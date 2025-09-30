@@ -2,39 +2,65 @@ import React, { useState } from "react";
 
 // Import components
 import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
 import VerifyEmail from "./components/auth/VerifyEmail";
 import StudentDashboard from "./components/dashboards/StudentDashboard";
 import TeacherDashboard from "./components/dashboards/TeacherDashboard";
+import SuperAdminDashboard from "./components/dashboards/SuperAdminDashboard"; // ✅ NEW
 import CreateQuiz from "./components/quizzes/CreateQuiz";
-import TeacherControl from "./components/quizzes/TeacherControl"; // ✅ now only imported
+import TeacherControl from "./components/quizzes/TeacherControl";
 
-const mockData = {
-  users: [
-    { id: 1, email: "admin@school.com", password: "admin123", role: "admin", verified: true, approved: true, name: "Admin User" },
-    { id: 2, email: "teacher@school.com", password: "teacher123", role: "teacher", verified: true, approved: true, name: "John Teacher" },
-    { id: 3, email: "student@school.com", password: "student123", role: "student", verified: true, approved: true, name: "Jane Student", studentId: "S12345" },
-  ],
-  quizzes: [
-    {
-      id: 1,
-      title: "Math Basics",
-      category: "Mathematics",
-      createdBy: 2,
-      questions: [
-        { id: 1, type: "multiple-choice", question: "What is 2 + 2?", options: ["3", "4", "5", "6"], correctAnswer: "4", timeLimit: 15 },
-        { id: 2, type: "true-false", question: "The Earth is flat", correctAnswer: "false", timeLimit: 10 },
-      ],
-      theme: "blue",
-    },
-  ],
-  categories: ["Mathematics", "Science", "History", "English", "Other"],
-};
+// ✅ Placeholder components for new teacher sections
+function ManageQuizzes({ setView }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <h2 className="text-3xl font-bold mb-4">📘 Manage Quizzes</h2>
+      <p className="text-gray-600 mb-6">Feature coming soon...</p>
+      <button
+        onClick={() => setView("teacher-dashboard")}
+        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+      >
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}
+
+function ManageStudents({ setView }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <h2 className="text-3xl font-bold mb-4">👥 Manage Students</h2>
+      <p className="text-gray-600 mb-6">Feature coming soon...</p>
+      <button
+        onClick={() => setView("teacher-dashboard")}
+        className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700"
+      >
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}
+
+function Reports({ setView }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <h2 className="text-3xl font-bold mb-4">📊 Reports</h2>
+      <p className="text-gray-600 mb-6">Feature coming soon...</p>
+      <button
+        onClick={() => setView("teacher-dashboard")}
+        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+      >
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}
 
 export default function QuizApp() {
   const [appState, setAppState] = useState({
-    users: mockData.users,
-    quizzes: mockData.quizzes,
-    categories: mockData.categories,
+    users: [], // now handled by Supabase
+    quizzes: [],
+    categories: [],
     currentUser: null,
     pendingVerifications: [],
     activeSessions: [],
@@ -59,6 +85,22 @@ export default function QuizApp() {
         setSuccess={setSuccess}
       />
     );
+
+  if (view === "register")
+    return (
+      <Register
+        appState={appState}
+        setAppState={setAppState}
+        setView={setView}
+        formData={formData}
+        setFormData={setFormData}
+        error={error}
+        setError={setError}
+        success={success}
+        setSuccess={setSuccess}
+      />
+    );
+
   if (view === "verify")
     return (
       <VerifyEmail
@@ -73,6 +115,7 @@ export default function QuizApp() {
         setSuccess={setSuccess}
       />
     );
+
   if (view === "student-dashboard")
     return (
       <StudentDashboard
@@ -83,11 +126,36 @@ export default function QuizApp() {
         setError={setError}
       />
     );
-  if (view === "teacher-dashboard")
-    return <TeacherDashboard appState={appState} setAppState={setAppState} setView={setView} />;
-  if (view === "create-quiz") return <CreateQuiz setView={setView} />;
-  if (view === "teacher-control") return <TeacherControl appState={appState} setView={setView} />;
 
+  if (view === "teacher-dashboard")
+    return (
+      <TeacherDashboard
+        appState={appState}
+        setAppState={setAppState}
+        setView={setView}
+      />
+    );
+
+  if (view === "superadmin-dashboard")
+    return (
+      <SuperAdminDashboard
+        appState={appState}
+        setAppState={setAppState}
+        setView={setView}
+      />
+    );
+
+  if (view === "create-quiz") return <CreateQuiz setView={setView} />;
+
+  if (view === "teacher-control")
+    return <TeacherControl appState={appState} setView={setView} />;
+
+  // ✅ new teacher sections
+  if (view === "manage-quizzes") return <ManageQuizzes setView={setView} />;
+  if (view === "manage-students") return <ManageStudents setView={setView} />;
+  if (view === "reports") return <Reports setView={setView} />;
+
+  // fallback (default to login)
   return (
     <Login
       appState={appState}
