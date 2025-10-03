@@ -31,9 +31,9 @@ export default function VerticalNav({ currentView, setView, appState }) {
         { id: "join-quiz", label: "Join Quiz", icon: PlayCircle },
         { id: "my-results", label: "My Results", icon: Trophy },
       ];
-    } else if (userRole === "super_admin") {
+    } else if (userRole === "superadmin") {
       return [
-        { id: "super-admin-dashboard", label: "Dashboard", icon: Shield },
+        { id: "superadmin-dashboard", label: "Dashboard", icon: Shield },
         { id: "manage-teachers", label: "Manage Teachers", icon: UserCheck },
         { id: "manage-students", label: "Manage Students", icon: Users },
         { id: "system-settings", label: "Settings", icon: Settings },

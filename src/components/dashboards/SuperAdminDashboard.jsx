@@ -248,7 +248,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Vertical Navigation */}
-      <VerticalNav currentView="super-admin-dashboard" setView={setView} appState={appState} />
+      <VerticalNav currentView="superadmin-dashboard" setView={setView} appState={appState} />
 
       {/* Main Content */}
       <div className="flex-1 ml-64">
