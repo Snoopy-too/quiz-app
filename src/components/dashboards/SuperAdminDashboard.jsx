@@ -41,6 +41,21 @@ export default function SuperAdminDashboard({ setView, appState }) {
 
   useEffect(() => {
     fetchUsers();
+
+    // Debug: Check current user's role
+    const checkUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("role, email, id")
+          .eq("id", user.id)
+          .single();
+        console.log("Current logged in user:", userData);
+        console.log("Auth UID:", user.id);
+      }
+    };
+    checkUserRole();
   }, []);
 
   const fetchUsers = async () => {
@@ -116,7 +131,17 @@ export default function SuperAdminDashboard({ setView, appState }) {
     e.preventDefault();
 
     try {
-      const { error } = await supabase
+      console.log("Attempting to update user:", selectedUser.id);
+      console.log("Update data:", {
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role,
+        student_id: editForm.student_id || null,
+        approved: editForm.approved,
+        verified: editForm.verified
+      });
+
+      const { data, error, count } = await supabase
         .from("users")
         .update({
           name: editForm.name,
@@ -126,15 +151,26 @@ export default function SuperAdminDashboard({ setView, appState }) {
           approved: editForm.approved,
           verified: editForm.verified
         })
-        .eq("id", selectedUser.id);
+        .eq("id", selectedUser.id)
+        .select();
 
-      if (error) throw error;
+      console.log("Update result:", { data, error, count });
+
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error("No rows were updated. This might be a permissions issue. Check that your role is 'superadmin' and RLS policies are applied.");
+      }
 
       alert("User updated successfully!");
       setShowEditModal(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
+      console.error("Error in handleEditUser:", error);
       alert("Error updating user: " + error.message);
     }
   };

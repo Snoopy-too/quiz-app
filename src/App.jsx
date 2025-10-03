@@ -25,6 +25,9 @@ import Reports from "./components/teachers/Reports";
 // Student components
 import StudentQuiz from "./components/students/StudentQuiz";
 
+// Settings
+import Settings from "./components/settings/Settings";
+
 export default function QuizApp() {
   const [appState, setAppState] = useState({
     users: [],
@@ -230,6 +233,7 @@ export default function QuizApp() {
     );
   if (view === "manage-students") return <ManageStudents setView={setView} appState={appState} />;
   if (view === "reports") return <Reports setView={setView} appState={appState} />;
+  if (view === "settings") return <Settings setView={setView} appState={appState} setAppState={setAppState} />;
 
   return (
     <Login

@@ -425,6 +425,10 @@ export default function ManageStudents({ setView, appState }) {
                     <p className="font-medium">{selectedStudent.email}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-600">Student Number</p>
+                    <p className="font-medium">{selectedStudent.student_id || "N/A"}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-gray-600">Status</p>
                     <p className="font-medium">
                       {selectedStudent.approved ? "Approved" : "Pending Approval"}
