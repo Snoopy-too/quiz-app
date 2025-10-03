@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Redirect all requests to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables (these should also be set in Netlify UI)
+# Note: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify Dashboard > Site settings > Environment variables
