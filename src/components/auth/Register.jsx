@@ -19,44 +19,67 @@ export default function Register({ setView, setAppState, error, setError, succes
     setError("");
     setSuccess("");
 
-    // ❌ Prevent self-registration as superadmin
+    // Prevent self-registration as superadmin
     if (formData.role === "superadmin") {
       setError("Superadmin accounts must be created by the system administrator.");
       return;
     }
 
     try {
-      // ✅ Insert new user
-      const { data, error } = await supabase.from("users").insert([
+      // 1. Create auth user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            role: formData.role,
+          }
+        }
+      });
+
+      if (authError) {
+        console.error("Supabase auth error:", authError);
+        setError(authError.message || "Registration failed. Try again.");
+        return;
+      }
+
+      if (!authData.user) {
+        setError("Registration failed. Please try again.");
+        return;
+      }
+
+      // 2. Create profile in users table
+      const { error: profileError } = await supabase.from("users").insert([
         {
+          id: authData.user.id, // Use auth user ID
           name: formData.name,
-          email: formData.email,
-          password: formData.password, // NOTE: plain-text for now
+          email: formData.email.trim().toLowerCase(),
           role: formData.role,
           student_id: formData.role === "student" ? formData.studentId : null,
-          verified: true, // auto-verified for now
-          approved: formData.role === "teacher" ? false : true, // teachers need approval
+          verified: false, // Email verification required
+          approved: formData.role === "student" ? true : false, // Teachers need approval
         },
-      ]).select().single();
+      ]);
 
-      if (error) {
-        console.error("Supabase insert error:", error);
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
         setError("Registration failed. Try again.");
         return;
       }
 
-      console.log("✅ Registration success:", data);
-
-      // Save new user into state and auto-login
-      setAppState((prev) => ({ ...prev, currentUser: data }));
-      setSuccess("Registration successful! You are now logged in.");
-
-      // Redirect based on role
-      if (data.role === "student") {
-        setView("student-dashboard");
-      } else if (data.role === "teacher") {
-        setView("teacher-dashboard");
+      // 3. Show success message
+      if (formData.role === "student") {
+        setSuccess("Registration successful! Please check your email to verify your account.");
+      } else {
+        setSuccess("Registration successful! A teacher must approve your account before you can login.");
       }
+
+      // Redirect to verify email page
+      setTimeout(() => {
+        setView("verify");
+      }, 2000);
+
     } catch (err) {
       console.error("Unexpected error:", err);
       setError("Something went wrong. Try again.");

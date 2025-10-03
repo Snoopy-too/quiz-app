@@ -1,46 +1,818 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../supabaseClient";
+import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club } from "lucide-react";
+import PodiumAnimation from "../animations/PodiumAnimation";
 
-export default function TeacherControl({ appState, setView }) {
-  const session = appState.activeSessions[appState.activeSessions.length - 1];
+export default function TeacherControl({ sessionId, setView }) {
+  const [session, setSession] = useState(null);
+  const [quiz, setQuiz] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+  const [participants, setParticipants] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [showResults, setShowResults] = useState(false);
+  const [questionResults, setQuestionResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showModeSelection, setShowModeSelection] = useState(true);
+  const [selectedMode, setSelectedMode] = useState(null);
 
-  if (!session) {
+  useEffect(() => {
+    if (sessionId) {
+      loadSession();
+      setupRealtimeSubscriptions();
+    }
+  }, [sessionId]);
+
+  const loadSession = async () => {
+    try {
+      // Load session
+      const { data: sessionData, error: sessionError } = await supabase
+        .from("quiz_sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .single();
+
+      if (sessionError) throw sessionError;
+      setSession(sessionData);
+
+      // Load quiz
+      const { data: quizData, error: quizError } = await supabase
+        .from("quizzes")
+        .select("*")
+        .eq("id", sessionData.quiz_id)
+        .single();
+
+      if (quizError) throw quizError;
+      setQuiz(quizData);
+
+      // Load questions
+      const { data: questionsData, error: questionsError } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("quiz_id", sessionData.quiz_id)
+        .order("order_index", { ascending: true });
+
+      if (questionsError) throw questionsError;
+      setQuestions(questionsData);
+
+      // Randomize questions if quiz setting enabled
+      if (quizData.randomize_questions) {
+        setShuffledQuestions(shuffleArray([...questionsData]));
+      } else {
+        setShuffledQuestions(questionsData);
+      }
+
+      // Load participants
+      await loadParticipants();
+
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const loadParticipants = async () => {
+    const { data, error } = await supabase
+      .from("session_participants")
+      .select("*, users(name)")
+      .eq("session_id", sessionId)
+      .order("score", { ascending: false });
+
+    if (!error) {
+      setParticipants(data || []);
+
+      // Group by teams if in team mode
+      if (session?.mode === "team") {
+        const teamMap = {};
+        data?.forEach(p => {
+          const teamName = p.team_name || "No Team";
+          if (!teamMap[teamName]) {
+            teamMap[teamName] = [];
+          }
+          teamMap[teamName].push(p);
+        });
+        setTeams(Object.entries(teamMap).map(([name, members]) => ({
+          name,
+          members,
+          score: members.reduce((sum, m) => sum + (m.score || 0), 0)
+        })));
+      }
+    }
+  };
+
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to new participants
+    const participantChannel = supabase
+      .channel(`session-${sessionId}-participants`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "session_participants",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          loadParticipants();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to answer submissions
+    const answerChannel = supabase
+      .channel(`session-${sessionId}-answers`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "quiz_answers",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          loadParticipants();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      participantChannel.unsubscribe();
+      answerChannel.unsubscribe();
+    };
+  };
+
+  const selectMode = async (mode) => {
+    try {
+      await supabase
+        .from("quiz_sessions")
+        .update({ mode: mode })
+        .eq("id", sessionId);
+
+      setSelectedMode(mode);
+      setShowModeSelection(false);
+      setSession({ ...session, mode });
+    } catch (err) {
+      alert("Error setting mode: " + err.message);
+    }
+  };
+
+  const startQuiz = async () => {
+    try {
+      await supabase
+        .from("quiz_sessions")
+        .update({ status: "active" })
+        .eq("id", sessionId);
+
+      setSession({ ...session, status: "active" });
+
+      // Wait 5 seconds before showing first question
+      setTimeout(() => {
+        showQuestion(0);
+      }, 5000);
+    } catch (err) {
+      alert("Error starting quiz: " + err.message);
+    }
+  };
+
+  const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
+  const showQuestion = async (questionIndex) => {
+    const questionsToUse = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
+
+    if (questionIndex >= questionsToUse.length) {
+      await endQuiz();
+      return;
+    }
+
+    try {
+      await supabase
+        .from("quiz_sessions")
+        .update({
+          current_question_index: questionIndex,
+          status: "question_active",
+        })
+        .eq("id", sessionId);
+
+      let question = questionsToUse[questionIndex];
+
+      // Randomize answer order if quiz setting enabled
+      if (quiz.randomize_answers && question.options) {
+        const shuffledOptions = shuffleArray([...question.options]);
+        question = { ...question, options: shuffledOptions };
+      }
+
+      setCurrentQuestion(question);
+      setShowResults(false);
+      setSession({
+        ...session,
+        current_question_index: questionIndex,
+        status: "question_active",
+      });
+
+      // Auto-advance after time limit
+      setTimeout(() => {
+        showQuestionResults(questionIndex);
+      }, question.time_limit * 1000);
+    } catch (err) {
+      alert("Error showing question: " + err.message);
+    }
+  };
+
+  const showQuestionResults = async (questionIndex) => {
+    try {
+      const questionsToUse = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
+
+      // Get all answers for this question
+      const { data: answers, error } = await supabase
+        .from("quiz_answers")
+        .select("*, session_participants(users(name))")
+        .eq("session_id", sessionId)
+        .eq("question_id", questionsToUse[questionIndex].id);
+
+      if (error) throw error;
+
+      // Update session status
+      await supabase
+        .from("quiz_sessions")
+        .update({ status: "showing_results" })
+        .eq("id", sessionId);
+
+      setQuestionResults(answers || []);
+      setShowResults(true);
+      setSession({ ...session, status: "showing_results" });
+    } catch (err) {
+      alert("Error loading results: " + err.message);
+    }
+  };
+
+  const nextQuestion = () => {
+    const nextIndex = session.current_question_index + 1;
+    showQuestion(nextIndex);
+  };
+
+  const endQuiz = async () => {
+    try {
+      await supabase
+        .from("quiz_sessions")
+        .update({ status: "completed" })
+        .eq("id", sessionId);
+
+      setSession({ ...session, status: "completed" });
+    } catch (err) {
+      alert("Error ending quiz: " + err.message);
+    }
+  };
+
+  const closeSession = async () => {
+    if (confirm("Are you sure you want to end this session?")) {
+      await endQuiz();
+      setView("manage-quizzes");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading session...</p>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl mb-4">No active session</p>
+          <p className="text-xl text-red-600 mb-4">Error: {error}</p>
           <button
-            onClick={() => setView("teacher-dashboard")}
+            onClick={() => setView("manage-quizzes")}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
           >
-            Back to Dashboard
+            Back to Quizzes
           </button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-blue-600 text-white p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{session.quiz.title}</h1>
-        <div className="text-xl font-mono">PIN: {session.pin}</div>
-      </nav>
-
-      <div className="container mx-auto p-6">
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Waiting for students...</h2>
-          <p className="text-xl text-gray-600 mb-6">
-            Share PIN: <span className="font-bold text-3xl">{session.pin}</span>
-          </p>
-          <p className="text-gray-600 mb-8">{session.participants.length} students joined</p>
+  // Mode Selection
+  if (session.status === "waiting" && showModeSelection) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
-            onClick={() => setView("teacher-dashboard")}
-            className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 text-xl"
+            onClick={closeSession}
+            className="text-red-600 hover:text-red-700"
           >
-            End Session
+            <X size={24} />
           </button>
+        </nav>
+
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-4xl w-full">
+            <h2 className="text-4xl font-bold mb-4">Select Quiz Mode</h2>
+            <p className="text-gray-600 mb-8">Choose how you want students to participate</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Classic Mode */}
+              <div
+                onClick={() => selectMode("classic")}
+                className="border-2 border-gray-300 rounded-xl p-8 hover:border-purple-600 hover:shadow-lg transition cursor-pointer group"
+              >
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-2xl font-bold mb-3 group-hover:text-purple-600">Classic Mode</h3>
+                <p className="text-gray-600 mb-4">
+                  Students join individually using the PIN and compete on their own.
+                </p>
+                <ul className="text-left text-sm text-gray-600 space-y-2">
+                  <li>✓ Individual scores</li>
+                  <li>✓ Personal leaderboard</li>
+                  <li>✓ Quick setup</li>
+                </ul>
+              </div>
+
+              {/* Team Mode */}
+              <div
+                onClick={() => selectMode("team")}
+                className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition cursor-pointer group"
+              >
+                <div className="text-6xl mb-4">👥</div>
+                <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
+                <p className="text-gray-600 mb-4">
+                  Students form teams with custom names and compete together.
+                </p>
+                <ul className="text-left text-sm text-gray-600 space-y-2">
+                  <li>✓ Team collaboration</li>
+                  <li>✓ Custom team names</li>
+                  <li>✓ Combined scores</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Waiting for students
+  if (session.status === "waiting" && !showModeSelection) {
+    const isTeamMode = session.mode === "team";
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <div className="flex items-center gap-4">
+            <span className={`px-4 py-2 rounded-lg font-semibold ${
+              isTeamMode ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+            }`}>
+              {isTeamMode ? "Team Mode" : "Classic Mode"}
+            </span>
+            <button
+              onClick={closeSession}
+              className="text-red-600 hover:text-red-700"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </nav>
+
+        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-2xl w-full">
+            <h2 className="text-4xl font-bold mb-6">Join at QuizMaster</h2>
+            <div className="bg-gray-100 rounded-xl p-8 mb-6">
+              <p className="text-gray-600 text-xl mb-2">Game PIN:</p>
+              <p className="text-7xl font-bold text-purple-600">{session.pin}</p>
+            </div>
+
+            {isTeamMode ? (
+              <>
+                <div className="flex items-center justify-center gap-3 mb-8">
+                  <Users className="text-blue-600" size={32} />
+                  <p className="text-3xl font-bold">{teams.length}</p>
+                  <p className="text-xl text-gray-600">teams joined</p>
+                </div>
+
+                {teams.length > 0 && (
+                  <div className="mb-6 max-h-60 overflow-y-auto">
+                    <div className="space-y-3">
+                      {teams.map((team, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                        >
+                          <div className="font-bold text-lg text-blue-900 mb-2">
+                            {team.name}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Members: {team.members.map(m => m.users?.name || m.player_name).join(", ")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-3 mb-8">
+                  <Users className="text-blue-600" size={32} />
+                  <p className="text-3xl font-bold">{participants.length}</p>
+                  <p className="text-xl text-gray-600">players</p>
+                </div>
+
+                {participants.length > 0 && (
+                  <div className="mb-6 max-h-40 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                      {participants.map((p) => (
+                        <div
+                          key={p.id}
+                          className="bg-gray-50 rounded-lg p-2 text-sm font-medium"
+                        >
+                          {p.users?.name || "Anonymous"}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <button
+              onClick={startQuiz}
+              disabled={isTeamMode ? teams.length === 0 : participants.length === 0}
+              className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+            >
+              <Play size={32} />
+              Start Quiz
+            </button>
+            {((isTeamMode && teams.length === 0) || (!isTeamMode && participants.length === 0)) && (
+              <p className="text-gray-500 mt-4">
+                Waiting for {isTeamMode ? "teams" : "players"} to join...
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Countdown screen - Quiz starting
+  if (session.status === "active" && !currentQuestion) {
+    const [countdown, setCountdown] = React.useState(5);
+
+    React.useEffect(() => {
+      if (countdown > 0) {
+        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        return () => clearTimeout(timer);
+      }
+    }, [countdown]);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <button
+            onClick={closeSession}
+            className="text-red-600 hover:text-red-700"
+          >
+            <X size={24} />
+          </button>
+        </nav>
+
+        <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
+          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
+            <h2 className="text-4xl font-bold text-gray-800 mb-8">{quiz.title}</h2>
+            <div className="mb-4">
+              <p className="text-gray-600 mb-4">Starting in...</p>
+              <div className="text-8xl font-bold text-purple-600 animate-pulse">
+                {countdown}
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-6">
+              Get ready! The first question will appear shortly.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz is active - showing question
+  if (session.status === "question_active" && currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-600">
+              Question {session.current_question_index + 1} of {questions.length}
+            </span>
+            <button
+              onClick={closeSession}
+              className="text-red-600 hover:text-red-700"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </nav>
+
+        <div className="container mx-auto p-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+            <div className="text-center mb-8">
+              <p className="text-gray-600 mb-4">Time: {currentQuestion.time_limit}s</p>
+              <h2 className="text-4xl font-bold mb-6">{currentQuestion.question_text}</h2>
+
+              {/* Media Display */}
+              {currentQuestion.image_url && (
+                <img
+                  src={currentQuestion.image_url}
+                  alt="Question"
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                />
+              )}
+              {currentQuestion.video_url && (
+                <video
+                  src={currentQuestion.video_url}
+                  controls
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                />
+              )}
+              {currentQuestion.gif_url && (
+                <img
+                  src={currentQuestion.gif_url}
+                  alt="GIF"
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {currentQuestion.options?.map((opt, idx) => {
+                const answerStyles = [
+                  { bg: "bg-red-500", icon: Heart },
+                  { bg: "bg-blue-600", icon: Spade },
+                  { bg: "bg-orange-500", icon: Diamond },
+                  { bg: "bg-green-500", icon: Club },
+                ];
+                const style = answerStyles[idx];
+                const IconComponent = style.icon;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex items-center justify-center gap-3 relative`}
+                  >
+                    <IconComponent size={28} className="absolute left-4 top-4" fill="white" />
+                    <span>{opt.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Users size={24} />
+                <span className="text-xl font-semibold">
+                  {participants.filter((p) =>
+                    questionResults.some((a) => a.participant_id === p.id)
+                  ).length}{" "}
+                  / {participants.length} answered
+                </span>
+              </div>
+              <button
+                onClick={() => showQuestionResults(session.current_question_index)}
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
+              >
+                Show Results
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Showing results
+  if (session.status === "showing_results" && currentQuestion) {
+    const correctOption = currentQuestion.options?.find((o) => o.is_correct);
+    const answerCounts = {};
+    currentQuestion.options?.forEach((_, idx) => {
+      answerCounts[idx] = 0;
+    });
+    questionResults.forEach((answer) => {
+      if (answer.selected_option_index !== null) {
+        answerCounts[answer.selected_option_index]++;
+      }
+    });
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+          <button
+            onClick={closeSession}
+            className="text-red-600 hover:text-red-700"
+          >
+            <X size={24} />
+          </button>
+        </nav>
+
+        <div className="container mx-auto p-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+            <h2 className="text-3xl font-bold text-center mb-6">
+              {currentQuestion.question_text}
+            </h2>
+
+            {/* Media Display in Results */}
+            {currentQuestion.image_url && (
+              <img
+                src={currentQuestion.image_url}
+                alt="Question"
+                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+              />
+            )}
+            {currentQuestion.video_url && (
+              <video
+                src={currentQuestion.video_url}
+                controls
+                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+              />
+            )}
+            {currentQuestion.gif_url && (
+              <img
+                src={currentQuestion.gif_url}
+                alt="GIF"
+                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {currentQuestion.options?.map((opt, idx) => {
+                const answerStyles = [
+                  { bg: "bg-red-500", icon: Heart },
+                  { bg: "bg-blue-600", icon: Spade },
+                  { bg: "bg-orange-500", icon: Diamond },
+                  { bg: "bg-green-500", icon: Club },
+                ];
+                const style = answerStyles[idx];
+                const IconComponent = style.icon;
+                const isCorrect = opt.is_correct;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`${style.bg} ${
+                      isCorrect ? "ring-4 ring-white" : "opacity-60"
+                    } text-white p-6 rounded-lg relative`}
+                  >
+                    <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
+                    <div className="text-xl font-bold mb-2 mt-8">{opt.text}</div>
+                    <div className="text-lg">
+                      {answerCounts[idx]} answer{answerCounts[idx] !== 1 ? "s" : ""}
+                    </div>
+                    {isCorrect && (
+                      <div className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-2 font-bold">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-center">
+              {session.current_question_index < questions.length - 1 ? (
+                <button
+                  onClick={nextQuestion}
+                  className="bg-blue-600 text-white px-12 py-4 rounded-xl hover:bg-blue-700 text-xl font-bold flex items-center gap-3"
+                >
+                  Next Question
+                  <SkipForward size={24} />
+                </button>
+              ) : (
+                <button
+                  onClick={endQuiz}
+                  className="bg-purple-600 text-white px-12 py-4 rounded-xl hover:bg-purple-700 text-xl font-bold flex items-center gap-3"
+                >
+                  <Trophy size={24} />
+                  Show Final Results
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Leaderboard */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-2xl font-bold mb-4 text-center">Leaderboard</h3>
+            <div className="space-y-2">
+              {participants.slice(0, 5).map((p, idx) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between bg-gray-50 rounded-lg p-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl font-bold text-gray-400">
+                      #{idx + 1}
+                    </span>
+                    <span className="text-lg font-semibold">
+                      {p.users?.name || "Anonymous"}
+                    </span>
+                  </div>
+                  <span className="text-xl font-bold text-purple-600">
+                    {p.score} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz completed
+  if (session.status === "completed") {
+    const topThree = participants.slice(0, 3);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600">
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <button
+            onClick={() => setView("manage-quizzes")}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+          >
+            Back to Quizzes
+          </button>
+        </nav>
+
+        <div className="container mx-auto p-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-12 mb-6">
+            <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
+            <h2 className="text-4xl font-bold mb-12 text-center">Quiz Complete!</h2>
+
+            {/* Podium Animation */}
+            {topThree.length >= 3 && <PodiumAnimation winners={topThree} />}
+
+            {/* Full Leaderboard */}
+            <div className="max-w-2xl mx-auto">
+              <h3 className="text-2xl font-bold mb-4 text-center">Final Rankings</h3>
+              <div className="space-y-3">
+                {participants.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between p-4 rounded-xl ${
+                      idx === 0
+                        ? "bg-yellow-100 border-2 border-yellow-500"
+                        : idx === 1
+                        ? "bg-gray-100 border-2 border-gray-400"
+                        : idx === 2
+                        ? "bg-orange-100 border-2 border-orange-400"
+                        : "bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl font-bold">
+                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                      </span>
+                      <span className="text-xl font-semibold">
+                        {p.users?.name || "Anonymous"}
+                      </span>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600">
+                      {p.score} pts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setView("manage-quizzes")}
+                className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 text-xl font-semibold"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

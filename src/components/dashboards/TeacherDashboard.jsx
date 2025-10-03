@@ -1,13 +1,9 @@
 import React from "react";
 import { LogOut, BookOpen, Users, BarChart3 } from "lucide-react";
+import VerticalNav from "../layout/VerticalNav";
 
 export default function TeacherDashboard({ appState, setAppState, setView }) {
   const teacher = appState.currentUser;
-
-  const handleLogout = () => {
-    setAppState((prev) => ({ ...prev, currentUser: null }));
-    setView("login");
-  };
 
   const handleNavigation = (section) => {
     if (section === "Manage Quizzes") setView("manage-quizzes");
@@ -16,20 +12,16 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navbar */}
-      <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-purple-600">QuizMaster Teacher</h1>
-        <div className="flex gap-4 items-center">
-          <span className="text-gray-600">{teacher?.name}</span>
-          <button
-            onClick={handleLogout}
-            className="text-red-600 hover:text-red-700"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
-      </nav>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Vertical Navigation */}
+      <VerticalNav currentView="teacher-dashboard" setView={setView} appState={appState} />
+
+      {/* Main Content */}
+      <div className="flex-1 ml-64">
+        {/* Top Bar */}
+        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+          <h1 className="text-2xl font-bold text-purple-600">Teacher Dashboard</h1>
+        </nav>
 
       {/* Dashboard Content */}
       <div className="container mx-auto p-6">
@@ -70,6 +62,7 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
             <p className="text-gray-600">
               View quiz performance and student progress reports.
             </p>
+          </div>
           </div>
         </div>
       </div>

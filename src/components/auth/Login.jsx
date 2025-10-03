@@ -1,96 +1,131 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 
-export default function Login({ setView, setAppState }) {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+export default function Login({
+  setView,
+  appState,
+  setAppState,
+  setError: setGlobalError, // optional from parent
+  setSuccess: setGlobalSuccess, // optional from parent
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-    console.log("Login formData:", formData);
+    setErrorMsg(null);
+    setGlobalError?.(null);
+    setGlobalSuccess?.(null);
+    setLoading(true);
 
     try {
-      // ✅ Query the "users" table directly
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", formData.email)
-        .eq("password", formData.password) // NOTE: plain-text for now
-        .single();
+      // 1) Auth against Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      if (error || !data) {
-        console.error("Supabase query error:", error);
-        setError("Invalid credentials");
+      if (error) {
+        setErrorMsg(/invalid/i.test(error.message) ? "Invalid credentials" : error.message);
         return;
       }
 
-      console.log("✅ Login success:", data);
-
-      // Save logged in user to state
-      setAppState((prev) => ({ ...prev, currentUser: data }));
-
-      // Redirect based on role
-      if (data.role === "student") {
-        setView("student-dashboard");
-      } else if (data.role === "teacher") {
-        setView("teacher-dashboard");
-      } else if (data.role === "superadmin") {
-        setView("superadmin-dashboard");
-      } else {
-        // fallback for unknown roles
-        setView("teacher-dashboard");
+      const userId = data.user?.id;
+      if (!userId) {
+        setErrorMsg("No session returned from Supabase.");
+        return;
       }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      setError("Login failed. Try again.");
+
+      // 2) Load profile from public.users
+      const { data: profile, error: pErr } = await supabase
+        .from("users")
+        .select("id, email, name, role, approved, verified")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (pErr) {
+        setErrorMsg(pErr.message);
+        return;
+      }
+
+      // Optional gates
+      if (profile?.role !== "superadmin") {
+        if (!profile?.approved) return setErrorMsg("Your account is awaiting approval.");
+        if (!profile?.verified) return setErrorMsg("Please verify your email to continue.");
+      }
+
+      // 3) Store in app state and route by role (NO page reload)
+      setAppState?.({
+        ...appState,
+        currentUser: profile,
+      });
+
+      if (profile?.role === "teacher") setView?.("teacher-dashboard");
+      else if (profile?.role === "superadmin") setView?.("superadmin-dashboard");
+      else setView?.("student-dashboard");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-400 to-pink-500">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login to QuizMaster</h2>
-        {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
-            required
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-sm w-full p-6 rounded-xl shadow-lg bg-white">
+        <h1 className="text-2xl font-bold text-center mb-4">Login to QuizMaster</h1>
+
+        {errorMsg && (
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded disabled:opacity-50"
           >
-            Login
+            {loading ? "Signing in..." : "Login"}
           </button>
         </form>
 
-        <div className="mt-4 text-center">
+        <p className="text-center text-sm mt-4">
+          Don't have an account?{" "}
           <button
             onClick={() => setView("register")}
-            className="text-purple-700 hover:underline"
+            className="text-purple-700 underline hover:text-purple-800"
           >
-            Don’t have an account? Register
+            Register
           </button>
-        </div>
+        </p>
       </div>
     </div>
   );
