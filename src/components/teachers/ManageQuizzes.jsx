@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { Plus, Edit2, Trash2, Play, Copy, Folder, FolderPlus, ChevronRight, ChevronDown, MoreVertical, FolderOpen, Search, Filter, CheckSquare, Square, Move, Archive, Eye } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function ManageQuizzes({ setView, appState }) {
   const [quizzes, setQuizzes] = useState([]);
@@ -21,6 +23,10 @@ export default function ManageQuizzes({ setView, appState }) {
   const [selectedQuizzes, setSelectedQuizzes] = useState(new Set());
   const [sortBy, setSortBy] = useState("created_at");
   const [filterCategory, setFilterCategory] = useState(null);
+
+  // Alert/Confirm modals
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     fetchQuizzes();
@@ -109,7 +115,12 @@ export default function ManageQuizzes({ setView, appState }) {
       setNewFolderName("");
       setSelectedParentFolder(null);
     } catch (err) {
-      alert("Error creating folder: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error creating folder: " + err.message,
+        type: "error"
+      });
     }
   };
 
@@ -127,27 +138,43 @@ export default function ManageQuizzes({ setView, appState }) {
       await fetchFolders();
       setEditingFolder(null);
     } catch (err) {
-      alert("Error renaming folder: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error renaming folder: " + err.message,
+        type: "error"
+      });
     }
   };
 
-  const deleteFolder = async (folderId) => {
-    if (!confirm("Are you sure? Quizzes in this folder will be moved to the root level.")) return;
+  const deleteFolder = (folderId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Folder",
+      message: "Are you sure? Quizzes in this folder will be moved to the root level.",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error: deleteError } = await supabase
+            .from("quiz_folders")
+            .delete()
+            .eq("id", folderId);
 
-    try {
-      const { error: deleteError } = await supabase
-        .from("quiz_folders")
-        .delete()
-        .eq("id", folderId);
+          if (deleteError) throw deleteError;
 
-      if (deleteError) throw deleteError;
-
-      await fetchFolders();
-      await fetchQuizzes();
-      setFolderContextMenu(null);
-    } catch (err) {
-      alert("Error deleting folder: " + err.message);
-    }
+          await fetchFolders();
+          await fetchQuizzes();
+          setFolderContextMenu(null);
+        } catch (err) {
+          setAlertModal({
+            isOpen: true,
+            title: "Error",
+            message: "Error deleting folder: " + err.message,
+            type: "error"
+          });
+        }
+      }
+    });
   };
 
   const moveQuizToFolder = async (quizId, folderId) => {
@@ -162,7 +189,12 @@ export default function ManageQuizzes({ setView, appState }) {
       await fetchQuizzes();
       setMoveQuizModal(null);
     } catch (err) {
-      alert("Error moving quiz: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error moving quiz: " + err.message,
+        type: "error"
+      });
     }
   };
 
@@ -191,7 +223,12 @@ export default function ManageQuizzes({ setView, appState }) {
         // Moving a folder to another folder (or root)
         if (draggedItem.item.id === targetFolder?.id) {
           // Can't move folder into itself
-          alert("Cannot move a folder into itself");
+          setAlertModal({
+            isOpen: true,
+            title: "Error",
+            message: "Cannot move a folder into itself",
+            type: "error"
+          });
           return;
         }
 
@@ -199,7 +236,12 @@ export default function ManageQuizzes({ setView, appState }) {
         let currentParent = targetFolder?.parent_folder_id;
         while (currentParent) {
           if (currentParent === draggedItem.item.id) {
-            alert("Cannot move a folder into its own subfolder");
+            setAlertModal({
+              isOpen: true,
+              title: "Error",
+              message: "Cannot move a folder into its own subfolder",
+              type: "error"
+            });
             return;
           }
           const parentFolder = folders.find(f => f.id === currentParent);
@@ -216,26 +258,42 @@ export default function ManageQuizzes({ setView, appState }) {
         await fetchFolders();
       }
     } catch (err) {
-      alert("Error moving item: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error moving item: " + err.message,
+        type: "error"
+      });
     } finally {
       setDraggedItem(null);
     }
   };
 
-  const handleDelete = async (quizId) => {
-    if (!confirm("Are you sure you want to delete this quiz?")) return;
+  const handleDelete = (quizId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Quiz",
+      message: "Are you sure you want to delete this quiz?",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error: deleteError } = await supabase
+            .from("quizzes")
+            .delete()
+            .eq("id", quizId);
 
-    try {
-      const { error: deleteError } = await supabase
-        .from("quizzes")
-        .delete()
-        .eq("id", quizId);
-
-      if (deleteError) throw deleteError;
-      await fetchQuizzes();
-    } catch (err) {
-      alert("Error deleting quiz: " + err.message);
-    }
+          if (deleteError) throw deleteError;
+          await fetchQuizzes();
+        } catch (err) {
+          setAlertModal({
+            isOpen: true,
+            title: "Error",
+            message: "Error deleting quiz: " + err.message,
+            type: "error"
+          });
+        }
+      }
+    });
   };
 
   const handleDuplicate = async (quizId) => {
@@ -300,10 +358,20 @@ export default function ManageQuizzes({ setView, appState }) {
         if (questionsInsertError) throw questionsInsertError;
       }
 
-      alert("Quiz duplicated successfully!");
+      setAlertModal({
+        isOpen: true,
+        title: "Success",
+        message: "Quiz duplicated successfully!",
+        type: "success"
+      });
       await fetchQuizzes();
     } catch (err) {
-      alert("Error duplicating quiz: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error duplicating quiz: " + err.message,
+        type: "error"
+      });
     }
   };
 
@@ -317,7 +385,12 @@ export default function ManageQuizzes({ setView, appState }) {
 
       if (qErr) throw qErr;
       if (!questions || questions.length === 0) {
-        alert("This quiz has no questions. Please add questions before starting.");
+        setAlertModal({
+          isOpen: true,
+          title: "No Questions",
+          message: "This quiz has no questions. Please add questions before starting.",
+          type: "error"
+        });
         return;
       }
 
@@ -344,7 +417,12 @@ export default function ManageQuizzes({ setView, appState }) {
       // Navigate to teacher control with session ID
       setView("teacher-control", session.id);
     } catch (err) {
-      alert("Error starting quiz: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error starting quiz: " + err.message,
+        type: "error"
+      });
     }
   };
 
@@ -434,28 +512,44 @@ export default function ManageQuizzes({ setView, appState }) {
       clearSelection();
       setMoveQuizModal(null);
     } catch (err) {
-      alert("Error moving quizzes: " + err.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error moving quizzes: " + err.message,
+        type: "error"
+      });
     }
   };
 
   // Bulk delete quizzes
-  const bulkDeleteQuizzes = async () => {
-    if (!confirm(`Delete ${selectedQuizzes.size} selected quizzes?`)) return;
+  const bulkDeleteQuizzes = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Quizzes",
+      message: `Delete ${selectedQuizzes.size} selected quizzes?`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const quizIds = Array.from(selectedQuizzes);
+          const { error } = await supabase
+            .from("quizzes")
+            .delete()
+            .in("id", quizIds);
 
-    try {
-      const quizIds = Array.from(selectedQuizzes);
-      const { error } = await supabase
-        .from("quizzes")
-        .delete()
-        .in("id", quizIds);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      await fetchQuizzes();
-      clearSelection();
-    } catch (err) {
-      alert("Error deleting quizzes: " + err.message);
-    }
+          await fetchQuizzes();
+          clearSelection();
+        } catch (err) {
+          setAlertModal({
+            isOpen: true,
+            title: "Error",
+            message: "Error deleting quizzes: " + err.message,
+            type: "error"
+          });
+        }
+      }
+    });
   };
 
   // Recursive folder renderer
@@ -1030,6 +1124,24 @@ export default function ManageQuizzes({ setView, appState }) {
           </div>
           </div>
         )}
+
+        {/* Custom Modals */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        />
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          confirmStyle="danger"
+        />
       </div>
     </div>
   );

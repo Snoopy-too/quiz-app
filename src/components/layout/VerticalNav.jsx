@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function VerticalNav({ currentView, setView, appState }) {
   const userRole = appState?.currentUser?.role;
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = async () => {
-    if (!confirm("Are you sure you want to logout?")) return;
-
+    setShowLogoutModal(false);
     try {
       await supabase.auth.signOut();
       setView("login");
@@ -34,9 +36,6 @@ export default function VerticalNav({ currentView, setView, appState }) {
     } else if (userRole === "superadmin") {
       return [
         { id: "superadmin-dashboard", label: "Dashboard", icon: Shield },
-        { id: "manage-teachers", label: "Manage Teachers", icon: UserCheck },
-        { id: "manage-students", label: "Manage Students", icon: Users },
-        { id: "system-settings", label: "Settings", icon: Settings },
       ];
     }
     return [];
@@ -117,13 +116,23 @@ export default function VerticalNav({ currentView, setView, appState }) {
         </button>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-purple-100 hover:bg-red-600 hover:text-white transition-all duration-200"
         >
           <LogOut size={20} />
           <span className="text-sm">Logout</span>
         </button>
       </div>
+
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+        confirmText="Logout"
+        confirmStyle="danger"
+      />
     </div>
   );
 }

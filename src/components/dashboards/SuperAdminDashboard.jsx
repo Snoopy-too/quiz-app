@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function SuperAdminDashboard({ setView, appState }) {
   const [users, setUsers] = useState([]);
@@ -15,6 +17,10 @@ export default function SuperAdminDashboard({ setView, appState }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // Alert/Confirm modals
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   // Form states
   const [createForm, setCreateForm] = useState({
@@ -86,7 +92,12 @@ export default function SuperAdminDashboard({ setView, appState }) {
     e.preventDefault();
 
     if (createForm.password !== createForm.confirmPassword) {
-      alert("Passwords do not match");
+      setAlertModal({
+        isOpen: true,
+        title: "Password Mismatch",
+        message: "Passwords do not match",
+        type: "error"
+      });
       return;
     }
 
@@ -118,12 +129,22 @@ export default function SuperAdminDashboard({ setView, appState }) {
 
       if (profileError) throw profileError;
 
-      alert("User created successfully!");
+      setAlertModal({
+        isOpen: true,
+        title: "Success",
+        message: "User created successfully!",
+        type: "success"
+      });
       setShowCreateModal(false);
       setCreateForm({ name: "", email: "", password: "", confirmPassword: "", role: "student", student_id: "" });
       fetchUsers();
     } catch (error) {
-      alert("Error creating user: " + error.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error creating user: " + error.message,
+        type: "error"
+      });
     }
   };
 
@@ -165,47 +186,81 @@ export default function SuperAdminDashboard({ setView, appState }) {
         throw new Error("No rows were updated. This might be a permissions issue. Check that your role is 'superadmin' and RLS policies are applied.");
       }
 
-      alert("User updated successfully!");
+      setAlertModal({
+        isOpen: true,
+        title: "Success",
+        message: "User updated successfully!",
+        type: "success"
+      });
       setShowEditModal(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
       console.error("Error in handleEditUser:", error);
-      alert("Error updating user: " + error.message);
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: "Error updating user: " + error.message,
+        type: "error"
+      });
     }
   };
 
-  const handleDeleteUser = async (userId, userEmail) => {
-    if (!confirm(`Are you sure you want to delete user: ${userEmail}?\n\nThis will delete:\n- User account\n- All their quizzes and questions\n- All quiz sessions\n- All participation records\n\nThis action cannot be undone!`)) {
-      return;
-    }
+  const handleDeleteUser = (userId, userEmail) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete User",
+      message: `Are you sure you want to delete user: ${userEmail}?\n\nThis will delete:\n- User account\n- All their quizzes and questions\n- All quiz sessions\n- All participation records\n\nThis action cannot be undone!`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          // Note: This only deletes from users table
+          // Auth user deletion requires admin API or user to delete themselves
+          const { error } = await supabase
+            .from("users")
+            .delete()
+            .eq("id", userId);
 
-    try {
-      // Note: This only deletes from users table
-      // Auth user deletion requires admin API or user to delete themselves
-      const { error } = await supabase
-        .from("users")
-        .delete()
-        .eq("id", userId);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      alert("User deleted from database. Note: Auth account still exists.");
-      fetchUsers();
-    } catch (error) {
-      alert("Error deleting user: " + error.message);
-    }
+          setAlertModal({
+            isOpen: true,
+            title: "Success",
+            message: "User deleted from database. Note: Auth account still exists.",
+            type: "success"
+          });
+          fetchUsers();
+        } catch (error) {
+          setAlertModal({
+            isOpen: true,
+            title: "Error",
+            message: "Error deleting user: " + error.message,
+            type: "error"
+          });
+        }
+      }
+    });
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("Passwords do not match");
+      setAlertModal({
+        isOpen: true,
+        title: "Password Mismatch",
+        message: "Passwords do not match",
+        type: "error"
+      });
       return;
     }
 
-    alert("Password reset requires Supabase Admin API or email reset link.\n\nTo reset password:\n1. Go to Supabase Dashboard\n2. Authentication > Users\n3. Click user\n4. Send password reset email");
+    setAlertModal({
+      isOpen: true,
+      title: "Password Reset Info",
+      message: "Password reset requires Supabase Admin API or email reset link.\n\nTo reset password:\n1. Go to Supabase Dashboard\n2. Authentication > Users\n3. Click user\n4. Send password reset email",
+      type: "info"
+    });
     setShowPasswordModal(false);
   };
 
@@ -682,6 +737,24 @@ export default function SuperAdminDashboard({ setView, appState }) {
             </div>
           </div>
         )}
+
+        {/* Custom Modals */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        />
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          confirmStyle="danger"
+        />
         </div>
       </div>
     </div>

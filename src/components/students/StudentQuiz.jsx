@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const [session, setSession] = useState(null);
@@ -17,6 +19,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [wasCorrect, setWasCorrect] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     if (sessionId) {
@@ -206,7 +210,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       setParticipant({ ...participant, score: participant.score + points });
     } catch (err) {
-      alert("Error submitting answer: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error submitting answer: " + err.message, type: "error" });
     }
   };
 
@@ -458,5 +462,23 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     );
   }
 
-  return null;
+  return (
+    <>
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
+    </>
+  );
 }

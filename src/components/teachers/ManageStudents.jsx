@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { Search, UserCheck, UserX, TrendingUp, Award, Clock, CheckCircle, XCircle } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function ManageStudents({ setView, appState }) {
   const [students, setStudents] = useState([]);
@@ -12,6 +14,8 @@ export default function ManageStudents({ setView, appState }) {
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     fetchStudents();
@@ -47,41 +51,53 @@ export default function ManageStudents({ setView, appState }) {
       if (error) throw error;
       await fetchStudents();
     } catch (err) {
-      alert("Error approving student: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error approving student: " + err.message, type: "error" });
     }
   };
 
   const handleReject = async (studentId) => {
-    if (!confirm("Are you sure you want to reject this student?")) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Reject Student",
+      message: "Are you sure you want to reject this student?",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error } = await supabase
+            .from("users")
+            .update({ approved: false })
+            .eq("id", studentId);
 
-    try {
-      const { error } = await supabase
-        .from("users")
-        .update({ approved: false })
-        .eq("id", studentId);
-
-      if (error) throw error;
-      await fetchStudents();
-    } catch (err) {
-      alert("Error rejecting student: " + err.message);
-    }
+          if (error) throw error;
+          await fetchStudents();
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: "Error", message: "Error rejecting student: " + err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const handleDelete = async (studentId) => {
-    if (!confirm("Are you sure you want to delete this student? This action cannot be undone.")) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Student",
+      message: "Are you sure you want to delete this student? This action cannot be undone.",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error } = await supabase
+            .from("users")
+            .delete()
+            .eq("id", studentId);
 
-    try {
-      const { error } = await supabase
-        .from("users")
-        .delete()
-        .eq("id", studentId);
-
-      if (error) throw error;
-      await fetchStudents();
-      setShowDetails(false);
-    } catch (err) {
-      alert("Error deleting student: " + err.message);
-    }
+          if (error) throw error;
+          await fetchStudents();
+          setShowDetails(false);
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting student: " + err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const fetchStudentPerformance = async (studentId) => {
@@ -539,6 +555,22 @@ export default function ManageStudents({ setView, appState }) {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
     </div>
   );
 }

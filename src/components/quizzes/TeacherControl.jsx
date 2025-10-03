@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function TeacherControl({ sessionId, setView }) {
   const [session, setSession] = useState(null);
@@ -17,6 +19,8 @@ export default function TeacherControl({ sessionId, setView }) {
   const [error, setError] = useState(null);
   const [showModeSelection, setShowModeSelection] = useState(true);
   const [selectedMode, setSelectedMode] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     if (sessionId) {
@@ -155,7 +159,7 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowModeSelection(false);
       setSession({ ...session, mode });
     } catch (err) {
-      alert("Error setting mode: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error setting mode: " + err.message, type: "error" });
     }
   };
 
@@ -173,7 +177,7 @@ export default function TeacherControl({ sessionId, setView }) {
         showQuestion(0);
       }, 5000);
     } catch (err) {
-      alert("Error starting quiz: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error starting quiz: " + err.message, type: "error" });
     }
   };
 
@@ -224,7 +228,7 @@ export default function TeacherControl({ sessionId, setView }) {
         showQuestionResults(questionIndex);
       }, question.time_limit * 1000);
     } catch (err) {
-      alert("Error showing question: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error showing question: " + err.message, type: "error" });
     }
   };
 
@@ -251,7 +255,7 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowResults(true);
       setSession({ ...session, status: "showing_results" });
     } catch (err) {
-      alert("Error loading results: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error loading results: " + err.message, type: "error" });
     }
   };
 
@@ -269,15 +273,21 @@ export default function TeacherControl({ sessionId, setView }) {
 
       setSession({ ...session, status: "completed" });
     } catch (err) {
-      alert("Error ending quiz: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error ending quiz: " + err.message, type: "error" });
     }
   };
 
   const closeSession = async () => {
-    if (confirm("Are you sure you want to end this session?")) {
-      await endQuiz();
-      setView("manage-quizzes");
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "End Session",
+      message: "Are you sure you want to end this session?",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        await endQuiz();
+        setView("manage-quizzes");
+      }
+    });
   };
 
   if (loading) {
@@ -814,5 +824,23 @@ export default function TeacherControl({ sessionId, setView }) {
     );
   }
 
-  return null;
+  return (
+    <>
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
+    </>
+  );
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club, X, SkipForward } from "lucide-react";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function PreviewQuiz({ quizId, setView, returnView = "manage-quizzes" }) {
   const [quiz, setQuiz] = useState(null);
@@ -17,6 +19,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   const [quizComplete, setQuizComplete] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(true);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     loadQuiz();
@@ -132,9 +136,15 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   };
 
   const quitPreview = () => {
-    if (confirm("Are you sure you want to quit the preview? Your progress will be lost.")) {
-      setView(returnView);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Quit Preview",
+      message: "Are you sure you want to quit the preview? Your progress will be lost.",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        setView(returnView);
+      }
+    });
   };
 
   if (loading) {
@@ -439,6 +449,22 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
           )}
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
     </div>
   );
 }

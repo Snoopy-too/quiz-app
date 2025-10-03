@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { BarChart3, TrendingUp, Users, Award, Target, AlertCircle, ChevronDown, ChevronUp, MoreVertical, Download, Trash2, Eye } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function Reports({ setView, appState }) {
   const [quizzes, setQuizzes] = useState([]);
@@ -12,6 +14,8 @@ export default function Reports({ setView, appState }) {
   const [expandedQuestion, setExpandedQuestion] = useState(null);
   const [selectedReports, setSelectedReports] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     fetchTeacherQuizzes();
@@ -225,24 +229,30 @@ export default function Reports({ setView, appState }) {
   };
 
   const handleExport = (quiz) => {
-    alert(`Export functionality for "${quiz.title}" will be implemented`);
+    setAlertModal({ isOpen: true, title: "Export", message: `Export functionality for "${quiz.title}" will be implemented`, type: "info" });
   };
 
   const handleDelete = async (quiz) => {
-    if (!confirm(`Are you sure you want to delete "${quiz.title}"? This action cannot be undone.`)) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Quiz",
+      message: `Are you sure you want to delete "${quiz.title}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error } = await supabase
+            .from("quizzes")
+            .delete()
+            .eq("id", quiz.id);
 
-    try {
-      const { error } = await supabase
-        .from("quizzes")
-        .delete()
-        .eq("id", quiz.id);
-
-      if (error) throw error;
-      await fetchTeacherQuizzes();
-      setOpenMenuId(null);
-    } catch (err) {
-      alert("Error deleting quiz: " + err.message);
-    }
+          if (error) throw error;
+          await fetchTeacherQuizzes();
+          setOpenMenuId(null);
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting quiz: " + err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const getPlayerCount = async (quiz) => {
@@ -638,6 +648,22 @@ export default function Reports({ setView, appState }) {
         )}
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
     </div>
   );
 }

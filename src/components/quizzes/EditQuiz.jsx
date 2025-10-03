@@ -3,6 +3,8 @@ import { supabase } from "../../supabaseClient";
 import { Plus, Trash2, Save, ArrowLeft, Upload, X, Edit2, GripVertical, Copy, CheckCircle, Eye, Clock, Award } from "lucide-react";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function EditQuiz({ setView, quizId, appState }) {
   const [quiz, setQuiz] = useState(null);
@@ -31,6 +33,8 @@ export default function EditQuiz({ setView, quizId, appState }) {
   });
   const [uploading, setUploading] = useState(false);
   const [draggedQuestion, setDraggedQuestion] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     if (quizId) {
@@ -108,13 +112,13 @@ export default function EditQuiz({ setView, quizId, appState }) {
 
   const handleSaveQuestion = async () => {
     if (!questionForm.question_text.trim()) {
-      alert("Question text is required");
+      setAlertModal({ isOpen: true, title: "Validation Error", message: "Question text is required", type: "error" });
       return;
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
     if (!hasCorrectAnswer) {
-      alert("Please mark at least one answer as correct");
+      setAlertModal({ isOpen: true, title: "Validation Error", message: "Please mark at least one answer as correct", type: "error" });
       return;
     }
 
@@ -171,26 +175,32 @@ export default function EditQuiz({ setView, quizId, appState }) {
         ],
       });
     } catch (err) {
-      alert("Error saving question: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error saving question: " + err.message, type: "error" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteQuestion = async (questionId) => {
-    if (!confirm("Are you sure you want to delete this question?")) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Question",
+      message: "Are you sure you want to delete this question?",
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error: deleteError } = await supabase
+            .from("questions")
+            .delete()
+            .eq("id", questionId);
 
-    try {
-      const { error: deleteError } = await supabase
-        .from("questions")
-        .delete()
-        .eq("id", questionId);
-
-      if (deleteError) throw deleteError;
-      await fetchQuizAndQuestions();
-    } catch (err) {
-      alert("Error deleting question: " + err.message);
-    }
+          if (deleteError) throw deleteError;
+          await fetchQuizAndQuestions();
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting question: " + err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const updateOption = (index, field, value) => {
@@ -249,7 +259,7 @@ export default function EditQuiz({ setView, quizId, appState }) {
         setQuestionForm({ ...questionForm, gif_url: url });
       }
     } catch (error) {
-      alert("Error uploading file: " + error.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error uploading file: " + error.message, type: "error" });
     } finally {
       setUploading(false);
     }
@@ -279,7 +289,7 @@ export default function EditQuiz({ setView, quizId, appState }) {
       if (insertError) throw insertError;
       await fetchQuizAndQuestions();
     } catch (err) {
-      alert("Error duplicating question: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error duplicating question: " + err.message, type: "error" });
     }
   };
 
@@ -319,7 +329,7 @@ export default function EditQuiz({ setView, quizId, appState }) {
       await fetchQuizAndQuestions();
       setDraggedQuestion(null);
     } catch (err) {
-      alert("Error reordering questions: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error reordering questions: " + err.message, type: "error" });
     }
   };
 
@@ -770,6 +780,22 @@ export default function EditQuiz({ setView, quizId, appState }) {
           )}
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
     </div>
   );
 }

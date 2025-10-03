@@ -3,6 +3,8 @@ import { supabase } from "../../supabaseClient";
 import { Upload, X } from "lucide-react";
 import { uploadImage } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
+import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [title, setTitle] = useState("");
@@ -20,6 +22,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   // ✅ Fetch categories from DB
   useEffect(() => {
@@ -41,14 +45,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {
-      alert("Please enter a category name");
+      setAlertModal({ isOpen: true, title: "Validation Error", message: "Please enter a category name", type: "error" });
       return;
     }
 
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) {
-        alert("You must be logged in to create a category.");
+        setAlertModal({ isOpen: true, title: "Authentication Required", message: "You must be logged in to create a category.", type: "error" });
         return;
       }
 
@@ -70,7 +74,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       setNewCategoryName("");
       setShowNewCategory(false);
     } catch (err) {
-      alert("Error creating category: " + err.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error creating category: " + err.message, type: "error" });
     }
   };
 
@@ -83,7 +87,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       const url = await uploadImage(file, "quiz-backgrounds");
       setBackgroundImageUrl(url);
     } catch (error) {
-      alert("Error uploading background: " + error.message);
+      setAlertModal({ isOpen: true, title: "Error", message: "Error uploading background: " + error.message, type: "error" });
     } finally {
       setUploading(false);
     }
@@ -330,6 +334,22 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         </div>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
     </div>
   );
 }
