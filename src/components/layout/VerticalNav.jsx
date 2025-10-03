@@ -30,8 +30,6 @@ export default function VerticalNav({ currentView, setView, appState }) {
     } else if (userRole === "student") {
       return [
         { id: "student-dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "join-quiz", label: "Join Quiz", icon: PlayCircle },
-        { id: "my-results", label: "My Results", icon: Trophy },
       ];
     } else if (userRole === "superadmin") {
       return [
