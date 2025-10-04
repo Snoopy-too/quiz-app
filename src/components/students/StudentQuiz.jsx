@@ -7,6 +7,7 @@ import ConfirmModal from "../common/ConfirmModal";
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const [session, setSession] = useState(null);
   const [quiz, setQuiz] = useState(null);
+  const [theme, setTheme] = useState(null);
   const [participant, setParticipant] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -41,15 +42,16 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       if (sessionError) throw sessionError;
       setSession(sessionData);
 
-      // Load quiz
+      // Load quiz with theme
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("*")
+        .select("*, themes(*)")
         .eq("id", sessionData.quiz_id)
         .single();
 
       if (quizError) throw quizError;
       setQuiz(quizData);
+      setTheme(quizData.themes);
 
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
@@ -214,10 +216,33 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     }
   };
 
+  // Helper function to get background style
+  const getBackgroundStyle = () => {
+    if (!theme) {
+      return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
+    }
+
+    if (theme.background_image_url) {
+      return {
+        backgroundImage: `url(${theme.background_image_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      };
+    }
+
+    return {
+      background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
+    };
+  };
+
+  const backgroundStyle = getBackgroundStyle();
+  const textColor = theme?.text_color || "#FFFFFF";
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-        <p className="text-2xl text-white">Joining quiz...</p>
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <p className="text-2xl" style={{ color: textColor }}>Joining quiz...</p>
       </div>
     );
   }
@@ -241,13 +266,13 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   // Show countdown screen
   if (showCountdown) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-md">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 max-w-md">
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
               <p className="text-gray-600 mb-4">Starting in...</p>
-              <div className="text-8xl font-bold text-purple-600 animate-pulse">
+              <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
                 {countdown}
               </div>
             </div>
@@ -263,14 +288,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   // Waiting for quiz to start
   if (session.status === "waiting") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
           <h2 className="text-3xl font-bold mb-4">You're in!</h2>
           <p className="text-gray-600 mb-6">
             Waiting for the teacher to start the quiz...
           </p>
           <div className="animate-pulse text-6xl mb-4">⏳</div>
-          <p className="text-lg font-semibold text-purple-600">{quiz.title}</p>
+          <p className="text-lg font-semibold" style={{ color: theme?.primary_color || "#7C3AED" }}>{quiz.title}</p>
         </div>
       </div>
     );
@@ -286,10 +311,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     ];
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+      <div className="min-h-screen" style={backgroundStyle}>
         <div className="container mx-auto p-4">
           {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 mb-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <Clock size={24} className="text-purple-600" />
@@ -307,7 +332,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </div>
 
           {/* Question */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-4">
             <div className="text-center mb-6">
               <p className="text-gray-600 mb-2">
                 Question {session.current_question_index + 1} of {questions.length}
@@ -395,8 +420,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   // Showing results
   if (session.status === "showing_results" && currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-600 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
           <div className="mb-6">
             {wasCorrect ? (
               <>
@@ -436,8 +461,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   // Quiz completed
   if (session.status === "completed") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
           <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
           <h2 className="text-4xl font-bold mb-6">Quiz Complete!</h2>
 

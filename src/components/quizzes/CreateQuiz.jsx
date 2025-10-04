@@ -5,10 +5,11 @@ import { uploadImage } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import ThemeSelector from "./ThemeSelector";
 
 export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [title, setTitle] = useState("");
-  const [theme, setTheme] = useState("default");
+  const [themeId, setThemeId] = useState(null);
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -16,19 +17,34 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [success, setSuccess] = useState(null);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState("");
   const [randomizeQuestions, setRandomizeQuestions] = useState(false);
   const [randomizeAnswers, setRandomizeAnswers] = useState(false);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
-  // ✅ Fetch categories from DB
+  // ✅ Fetch categories and default theme from DB
   useEffect(() => {
     fetchCategories();
+    fetchDefaultTheme();
   }, []);
+
+  const fetchDefaultTheme = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("themes")
+        .select("id")
+        .eq("is_default", true)
+        .single();
+
+      if (!error && data) {
+        setThemeId(data.id);
+      }
+    } catch (err) {
+      console.error("Error fetching default theme:", err);
+    }
+  };
 
   const fetchCategories = async () => {
     let { data, error } = await supabase
@@ -78,21 +94,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     }
   };
 
-  const handleBackgroundUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const url = await uploadImage(file, "quiz-backgrounds");
-      setBackgroundImageUrl(url);
-    } catch (error) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error uploading background: " + error.message, type: "error" });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   // ✅ Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,10 +112,9 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       const { error: insertError } = await supabase.from("quizzes").insert([
         {
           title,
-          theme,
+          theme_id: themeId,
           category_id: categoryId || null,
           created_by: user.user.id,
-          background_image_url: backgroundImageUrl || null,
           randomize_questions: randomizeQuestions,
           randomize_answers: randomizeAnswers,
           is_template: isTemplate,
@@ -126,13 +126,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
       setSuccess("Quiz created successfully!");
       setTitle("");
-      setTheme("default");
       setCategoryId("");
-      setBackgroundImageUrl("");
       setRandomizeQuestions(false);
       setRandomizeAnswers(false);
       setIsTemplate(false);
       setIsPublic(false);
+      await fetchDefaultTheme(); // Reset to default theme
       if (onQuizCreated) onQuizCreated(); // callback to refresh list if needed
     } catch (err) {
       setError(err.message);
@@ -170,16 +169,9 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           />
         </div>
 
-        {/* Theme */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Theme</label>
-          <input
-            type="text"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
-            placeholder="Theme (e.g. default, dark, fun)"
-          />
+        {/* Theme Selector */}
+        <div className="border-t pt-4">
+          <ThemeSelector selectedThemeId={themeId} onThemeSelect={setThemeId} />
         </div>
 
         {/* Category */}
@@ -237,40 +229,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Background Image */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Background Image (Optional)</label>
-          {backgroundImageUrl ? (
-            <div className="relative">
-              <img
-                src={backgroundImageUrl}
-                alt="Background Preview"
-                className="w-full h-40 object-cover rounded border"
-              />
-              <button
-                type="button"
-                onClick={() => setBackgroundImageUrl("")}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-blue-500">
-              <Upload size={32} className="text-gray-400 mb-2" />
-              <span className="text-sm text-gray-500">Upload Background Image</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBackgroundUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          )}
-          {uploading && <p className="text-sm text-blue-600 mt-2">Uploading...</p>}
         </div>
 
         {/* Quiz Settings */}

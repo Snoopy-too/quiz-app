@@ -5,6 +5,7 @@ import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import ThemeSelector from "./ThemeSelector";
 
 export default function EditQuiz({ setView, quizId, appState }) {
   const [quiz, setQuiz] = useState(null);
@@ -12,6 +13,8 @@ export default function EditQuiz({ setView, quizId, appState }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [themeId, setThemeId] = useState(null);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
   // Form for new/editing question
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -44,15 +47,16 @@ export default function EditQuiz({ setView, quizId, appState }) {
 
   const fetchQuizAndQuestions = async () => {
     try {
-      // Fetch quiz details with category
+      // Fetch quiz details with category and theme
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("id, title, theme, category_id, categories(name)")
+        .select("id, title, theme_id, category_id, categories(name), themes(name)")
         .eq("id", quizId)
         .single();
 
       if (quizError) throw quizError;
       setQuiz(quizData);
+      setThemeId(quizData.theme_id);
 
       // Fetch questions
       const { data: questionsData, error: questionsError } = await supabase
@@ -293,6 +297,26 @@ export default function EditQuiz({ setView, quizId, appState }) {
     }
   };
 
+  const handleSaveTheme = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("quizzes")
+        .update({ theme_id: themeId })
+        .eq("id", quizId);
+
+      if (error) throw error;
+
+      await fetchQuizAndQuestions();
+      setShowThemeSelector(false);
+      setAlertModal({ isOpen: true, title: "Success", message: "Theme updated successfully!", type: "success" });
+    } catch (err) {
+      setAlertModal({ isOpen: true, title: "Error", message: "Error updating theme: " + err.message, type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Drag and drop handlers
   const handleDragStart = (e, question, index) => {
     setDraggedQuestion({ question, index });
@@ -384,10 +408,14 @@ export default function EditQuiz({ setView, quizId, appState }) {
                     {quiz.categories.name}
                   </span>
                 )}
-                {quiz?.theme && (
-                  <span className="text-sm text-gray-600 px-2 py-0.5 bg-purple-100 rounded-full">
-                    {quiz.theme}
-                  </span>
+                {quiz?.themes?.name && (
+                  <button
+                    onClick={() => setShowThemeSelector(true)}
+                    className="text-sm text-gray-600 px-2 py-0.5 bg-purple-100 rounded-full hover:bg-purple-200 transition cursor-pointer"
+                    title="Click to change theme"
+                  >
+                    🎨 {quiz.themes.name}
+                  </button>
                 )}
                 <span className="text-sm text-gray-500">•</span>
                 <span className="text-sm text-gray-600">{questions.length} questions</span>
@@ -774,6 +802,43 @@ export default function EditQuiz({ setView, quizId, appState }) {
                 >
                   Cancel
                 </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Theme Selector Modal */}
+          {showThemeSelector && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                  <h2 className="text-2xl font-bold text-gray-800">Select Quiz Theme</h2>
+                  <button
+                    onClick={() => setShowThemeSelector(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="p-6">
+                  <ThemeSelector selectedThemeId={themeId} onThemeSelect={setThemeId} />
+
+                  <div className="flex gap-3 mt-6 pt-6 border-t">
+                    <button
+                      onClick={handleSaveTheme}
+                      disabled={saving}
+                      className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
+                    >
+                      {saving ? "Saving..." : "Save Theme"}
+                    </button>
+                    <button
+                      onClick={() => setShowThemeSelector(false)}
+                      className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
