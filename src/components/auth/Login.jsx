@@ -41,7 +41,7 @@ export default function Login({
       // 2) Load profile from public.users
       const { data: profile, error: pErr } = await supabase
         .from("users")
-        .select("id, email, name, role, approved, verified")
+        .select("id, email, name, role, approved, verified, teacher_code, teacher_id")
         .eq("id", userId)
         .maybeSingle();
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "../../supabaseClient";
+import { generateTeacherCode } from "../../utils/teacherCode";
 
 export default function Register({ setView, setAppState, error, setError, success, setSuccess }) {
   const [formData, setFormData] = useState({
@@ -8,6 +9,7 @@ export default function Register({ setView, setAppState, error, setError, succes
     password: "",
     role: "student",
     studentId: "",
+    teacherCode: "",
   });
 
   const handleChange = (e) => {
@@ -26,6 +28,48 @@ export default function Register({ setView, setAppState, error, setError, succes
     }
 
     try {
+      let teacherId = null;
+      let teacherCodeToSave = null;
+
+      // For students: validate teacher code
+      if (formData.role === "student") {
+        if (!formData.teacherCode.trim()) {
+          setError("Teacher code is required for students.");
+          return;
+        }
+
+        const cleanCode = formData.teacherCode.replace(/-/g, '').toUpperCase();
+
+        // Look up teacher by code
+        const { data: teacher, error: teacherError } = await supabase
+          .from("users")
+          .select("id, name")
+          .eq("teacher_code", cleanCode)
+          .eq("role", "teacher")
+          .maybeSingle();
+
+        if (teacherError || !teacher) {
+          setError("Invalid teacher code. Please check the code and try again.");
+          return;
+        }
+
+        teacherId = teacher.id;
+      }
+
+      // For teachers: generate unique teacher code
+      if (formData.role === "teacher") {
+        let codeExists = true;
+        while (codeExists) {
+          teacherCodeToSave = generateTeacherCode();
+          const { data: existing } = await supabase
+            .from("users")
+            .select("id")
+            .eq("teacher_code", teacherCodeToSave)
+            .maybeSingle();
+          codeExists = !!existing;
+        }
+      }
+
       // 1. Create auth user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
@@ -57,6 +101,8 @@ export default function Register({ setView, setAppState, error, setError, succes
           email: formData.email.trim().toLowerCase(),
           role: formData.role,
           student_id: formData.role === "student" ? formData.studentId : null,
+          teacher_id: teacherId, // Set teacher_id for students
+          teacher_code: teacherCodeToSave, // Set teacher_code for teachers
           verified: false, // Email verification required
           approved: formData.role === "student" ? true : false, // Teachers need approval
         },
@@ -153,15 +199,30 @@ export default function Register({ setView, setAppState, error, setError, succes
           </select>
 
           {formData.role === "student" && (
-            <input
-              type="text"
-              name="studentId"
-              placeholder="Student ID"
-              value={formData.studentId}
-              onChange={handleChange}
-              className="w-full px-4 py-2 mb-4 border rounded-lg"
-              required
-            />
+            <>
+              <input
+                type="text"
+                name="studentId"
+                placeholder="Student ID"
+                value={formData.studentId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 mb-4 border rounded-lg"
+                required
+              />
+              <input
+                type="text"
+                name="teacherCode"
+                placeholder="Teacher Code (e.g., ABCD-1234)"
+                value={formData.teacherCode}
+                onChange={handleChange}
+                className="w-full px-4 py-2 mb-4 border rounded-lg uppercase"
+                maxLength="9"
+                required
+              />
+              <p className="text-xs text-gray-600 -mt-3 mb-4 px-2">
+                Enter the invitation code provided by your teacher
+              </p>
+            </>
           )}
 
           <button

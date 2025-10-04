@@ -23,11 +23,12 @@ export default function ManageStudents({ setView, appState }) {
 
   const fetchStudents = async () => {
     try {
-      // Fetch all students
+      // Fetch students associated with the current teacher
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
         .select("*")
         .eq("role", "student")
+        .eq("teacher_id", appState.currentUser.id)
         .order("created_at", { ascending: false });
 
       if (studentsError) throw studentsError;
@@ -218,6 +219,13 @@ export default function ManageStudents({ setView, appState }) {
         </nav>
 
         <div className="container mx-auto p-6">
+        {/* Info Banner */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> Only students who registered with your teacher code are shown here.
+          </p>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-md p-6">
