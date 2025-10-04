@@ -6,6 +6,7 @@ import ConfirmModal from "../common/ConfirmModal";
 
 export default function PreviewQuiz({ quizId, setView, returnView = "manage-quizzes" }) {
   const [quiz, setQuiz] = useState(null);
+  const [theme, setTheme] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -45,6 +46,19 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       if (quizError) throw quizError;
       setQuiz(quizData);
 
+      // Load theme if quiz has a theme_id
+      if (quizData.theme_id) {
+        const { data: themeData, error: themeError } = await supabase
+          .from("themes")
+          .select("*")
+          .eq("id", quizData.theme_id)
+          .single();
+
+        if (!themeError && themeData) {
+          setTheme(themeData);
+        }
+      }
+
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
@@ -72,6 +86,28 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       setLoading(false);
     }
   };
+
+  // Helper function to get background style
+  const getBackgroundStyle = () => {
+    if (!theme) {
+      return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
+    }
+
+    if (theme.background_image_url) {
+      return {
+        backgroundImage: `url(${theme.background_image_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      };
+    }
+
+    return {
+      background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
+    };
+  };
+
+  const backgroundStyle = getBackgroundStyle();
 
   // Countdown timer effect
   useEffect(() => {
@@ -149,7 +185,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <p className="text-2xl text-white">Loading preview...</p>
       </div>
     );
@@ -174,8 +210,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   // Quiz completed
   if (quizComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600">
-        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+      <div className="min-h-screen" style={backgroundStyle}>
+        <nav className="bg-white/95 backdrop-blur-sm shadow-md p-4 flex justify-between items-center">
           <div>
             <span className="text-sm text-gray-600">Preview Mode</span>
             <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
@@ -189,7 +225,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
         </nav>
 
         <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
             <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
             <h2 className="text-4xl font-bold mb-6">Preview Complete!</h2>
 
@@ -237,9 +273,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   // Show countdown screen
   if (showCountdown) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-md">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 max-w-md">
             <div className="mb-6">
               <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                 PREVIEW MODE
@@ -248,7 +284,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
               <p className="text-gray-600 mb-4">Starting in...</p>
-              <div className="text-8xl font-bold text-purple-600 animate-pulse">
+              <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
                 {countdown}
               </div>
             </div>
@@ -270,9 +306,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+    <div className="min-h-screen" style={backgroundStyle}>
       {/* Header */}
-      <nav className="bg-white shadow-md p-4">
+      <nav className="bg-white/95 backdrop-blur-sm shadow-md p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div>
             <div className="flex items-center gap-3">
@@ -297,7 +333,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
       <div className="container mx-auto p-4">
         {/* Timer and Score */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 mb-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <Clock size={24} className="text-purple-600" />
@@ -313,7 +349,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
         </div>
 
         {/* Question */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-4">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-4">
           <div className="text-center mb-6">
             <h2 className="text-3xl font-bold mb-4">{currentQuestion.question_text}</h2>
 
