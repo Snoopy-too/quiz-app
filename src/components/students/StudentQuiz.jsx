@@ -50,8 +50,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         .single();
 
       if (quizError) throw quizError;
+
+      console.log("Quiz data:", quizData);
+      console.log("Theme data:", quizData?.themes);
+
       setQuiz(quizData);
-      setTheme(quizData.themes);
+      setTheme(quizData?.themes || null);
 
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
@@ -218,11 +222,15 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   // Helper function to get background style
   const getBackgroundStyle = () => {
+    console.log("Getting background style, theme:", theme);
+
     if (!theme) {
+      console.log("No theme found, using fallback");
       return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
     }
 
     if (theme.background_image_url) {
+      console.log("Using background image:", theme.background_image_url);
       return {
         backgroundImage: `url(${theme.background_image_url})`,
         backgroundSize: "cover",
@@ -231,6 +239,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       };
     }
 
+    console.log("Using gradient colors:", theme.primary_color, theme.secondary_color);
     return {
       background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
     };
