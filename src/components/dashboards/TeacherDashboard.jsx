@@ -1,11 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { LogOut, BookOpen, Users, BarChart3, Copy, Check } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
-import { formatTeacherCode } from "../../utils/teacherCode";
+import { formatTeacherCode, generateTeacherCode } from "../../utils/teacherCode";
+import { supabase } from "../../supabaseClient";
 
 export default function TeacherDashboard({ appState, setAppState, setView }) {
   const teacher = appState.currentUser;
   const [copied, setCopied] = useState(false);
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  // Generate teacher code if teacher doesn't have one
+  useEffect(() => {
+    const ensureTeacherCode = async () => {
+      if (teacher && teacher.role === "teacher" && !teacher.teacher_code) {
+        setGeneratingCode(true);
+        try {
+          // Generate unique code
+          let newCode;
+          let codeExists = true;
+
+          while (codeExists) {
+            newCode = generateTeacherCode();
+            const { data: existing } = await supabase
+              .from("users")
+              .select("id")
+              .eq("teacher_code", newCode)
+              .maybeSingle();
+            codeExists = !!existing;
+          }
+
+          // Update teacher with new code
+          const { error } = await supabase
+            .from("users")
+            .update({ teacher_code: newCode })
+            .eq("id", teacher.id);
+
+          if (!error) {
+            // Update app state
+            setAppState({
+              ...appState,
+              currentUser: { ...teacher, teacher_code: newCode }
+            });
+          }
+        } catch (err) {
+          console.error("Error generating teacher code:", err);
+        } finally {
+          setGeneratingCode(false);
+        }
+      }
+    };
+
+    ensureTeacherCode();
+  }, [teacher?.id]);
 
   const handleNavigation = (section) => {
     if (section === "Manage Quizzes") setView("manage-quizzes");
@@ -38,7 +84,13 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
         <h2 className="text-3xl font-bold mb-6">Teacher Dashboard</h2>
 
         {/* Teacher Invitation Code */}
-        {teacher?.teacher_code && (
+        {generatingCode ? (
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-xl shadow-lg mb-6">
+            <div className="flex items-center justify-center">
+              <p className="text-lg">Generating your teacher code...</p>
+            </div>
+          </div>
+        ) : teacher?.teacher_code ? (
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-xl shadow-lg mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div className="mb-4 md:mb-0">
@@ -70,7 +122,7 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Manage Quizzes */}
