@@ -42,20 +42,37 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       if (sessionError) throw sessionError;
       setSession(sessionData);
 
-      // Load quiz with theme
+      // Load quiz
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("*, themes(*)")
+        .select("*")
         .eq("id", sessionData.quiz_id)
         .single();
 
       if (quizError) throw quizError;
 
       console.log("Quiz data:", quizData);
-      console.log("Theme data:", quizData?.themes);
-
       setQuiz(quizData);
-      setTheme(quizData?.themes || null);
+
+      // Load theme separately if quiz has a theme_id
+      if (quizData.theme_id) {
+        const { data: themeData, error: themeError } = await supabase
+          .from("themes")
+          .select("*")
+          .eq("id", quizData.theme_id)
+          .single();
+
+        if (!themeError && themeData) {
+          console.log("Theme data loaded:", themeData);
+          setTheme(themeData);
+        } else {
+          console.log("Theme fetch error:", themeError);
+          setTheme(null);
+        }
+      } else {
+        console.log("No theme_id on quiz");
+        setTheme(null);
+      }
 
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
