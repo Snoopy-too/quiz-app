@@ -28,6 +28,35 @@ export default function Register({ setView, setAppState, error, setError, succes
     }
 
     try {
+      // STEP 1: Check if email already exists in users table
+      console.log("=== CHECKING IF EMAIL ALREADY EXISTS ===");
+      const emailToCheck = formData.email.trim().toLowerCase();
+      console.log("Checking email:", emailToCheck);
+
+      const { data: existingUser, error: checkError } = await supabase
+        .from("users")
+        .select("id, email, role, verified")
+        .eq("email", emailToCheck)
+        .maybeSingle();
+
+      console.log("Existing user check - data:", existingUser);
+      console.log("Existing user check - error:", checkError);
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 is "not found" which is fine
+        console.error("Error checking existing user:", checkError);
+        setError("Unable to verify email availability. Please try again.");
+        return;
+      }
+
+      if (existingUser) {
+        console.error("Email already registered:", existingUser);
+        setError("This email is already registered. Please login instead or use a different email.");
+        return;
+      }
+
+      console.log("Email is available for registration");
+
       let teacherId = null;
       let teacherCodeToSave = null;
 
@@ -116,7 +145,17 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       if (authError) {
         console.error("Supabase auth error:", authError);
-        setError(authError.message || "Registration failed. Try again.");
+
+        // Handle specific error cases
+        if (authError.message?.includes("already registered") || authError.message?.includes("already exists")) {
+          setError("This email is already registered. Please login instead.");
+        } else if (authError.message?.includes("Invalid email")) {
+          setError("Please enter a valid email address.");
+        } else if (authError.message?.includes("Password")) {
+          setError("Password must be at least 6 characters long.");
+        } else {
+          setError(authError.message || "Registration failed. Try again.");
+        }
         return;
       }
 
@@ -127,6 +166,10 @@ export default function Register({ setView, setAppState, error, setError, succes
       }
 
       console.log("Auth user created successfully! ID:", authData.user.id);
+
+      // Check if this is a new signup or existing user
+      const isNewUser = authData.user.identities && authData.user.identities.length > 0;
+      console.log("Is new user?", isNewUser);
 
       // 2. Create profile in users table
       console.log("=== CREATING USER PROFILE ===");
@@ -149,11 +192,24 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
-        setError(`Profile creation failed: ${profileError.message}`);
+
+        // Handle specific profile creation errors
+        if (profileError.code === '23505' || profileError.message?.includes("duplicate key")) {
+          console.error("Duplicate key error - email already exists in users table");
+          setError("This email is already registered. Please login instead or contact support if you believe this is an error.");
+        } else if (profileError.message?.includes("violates foreign key constraint")) {
+          console.error("Foreign key constraint error:", profileError.message);
+          setError("Invalid teacher reference. Please try again or contact support.");
+        } else {
+          setError(`Registration failed: ${profileError.message || "Unknown error occurred"}`);
+        }
+
+        // Note: Auth user was created but profile failed. User should contact support or try logging in.
+        console.error("⚠️ IMPORTANT: Auth user created but profile failed. User ID:", authData.user.id);
         return;
       }
 
-      console.log("Profile created successfully!");
+      console.log("✅ Profile created successfully!");
 
       // 3. Show success message
       if (formData.role === "student") {
