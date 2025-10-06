@@ -23,9 +23,10 @@ export default function StudentDashboard({ appState, setAppState, setView, error
       // Find session by PIN
       console.log('Looking for quiz with PIN:', joinPin);
 
+      // Use SELECT * to avoid PostgreSQL aggregate function conflict with 'mode' column
       const { data: sessions, error: sessionError } = await supabase
         .from("quiz_sessions")
-        .select("id, status, mode, quiz_id, pin, current_question_index")
+        .select("*")
         .eq("pin", joinPin);
 
       console.log('Query result:', { sessions, sessionError });
