@@ -291,34 +291,61 @@ export default function TeacherControl({ sessionId, setView }) {
     });
   };
 
+  // Render modals wrapper for all views
+  const ModalsWrapper = ({ children }) => (
+    <>
+      {children}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
+    </>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading session...</p>
-      </div>
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-xl text-gray-600">Loading session...</p>
+        </div>
+      </ModalsWrapper>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">Error: {error}</p>
-          <button
-            onClick={() => setView("manage-quizzes")}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
-          >
-            Back to Quizzes
-          </button>
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-xl text-red-600 mb-4">Error: {error}</p>
+            <button
+              onClick={() => setView("manage-quizzes")}
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            >
+              Back to Quizzes
+            </button>
+          </div>
         </div>
-      </div>
+      </ModalsWrapper>
     );
   }
 
   // Mode Selection
   if (session.status === "waiting" && showModeSelection) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -372,6 +399,7 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
@@ -380,7 +408,8 @@ export default function TeacherControl({ sessionId, setView }) {
     const isTeamMode = session.mode === "team";
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <div className="flex items-center gap-4">
@@ -475,6 +504,7 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
@@ -490,7 +520,8 @@ export default function TeacherControl({ sessionId, setView }) {
     }, [countdown]);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -516,13 +547,15 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
   // Quiz is active - showing question
   if (session.status === "question_active" && currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
           <div className="flex items-center gap-4">
@@ -613,6 +646,7 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
@@ -630,7 +664,8 @@ export default function TeacherControl({ sessionId, setView }) {
     });
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -751,6 +786,7 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
@@ -759,7 +795,8 @@ export default function TeacherControl({ sessionId, setView }) {
     const topThree = participants.slice(0, 3);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600">
+      <ModalsWrapper>
+        <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600">
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -822,26 +859,10 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </div>
       </div>
+      </ModalsWrapper>
     );
   }
 
-  return (
-    <>
-      <AlertModal
-        isOpen={alertModal.isOpen}
-        title={alertModal.title}
-        message={alertModal.message}
-        type={alertModal.type}
-        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-      />
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-        confirmStyle="danger"
-      />
-    </>
-  );
+  // Default fallback - should not reach here
+  return null;
 }

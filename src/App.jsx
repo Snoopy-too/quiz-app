@@ -40,14 +40,18 @@ export default function QuizApp() {
 
   // Initialize state from sessionStorage to persist across tab switches
   const [view, setView] = useState(() => {
-    return sessionStorage.getItem('quizapp_view') || "login";
+    const savedView = sessionStorage.getItem('quizapp_view');
+    console.log('[Session Persistence] Initializing view from sessionStorage:', savedView);
+    return savedView || "login";
   });
   const [selectedQuizId, setSelectedQuizId] = useState(() => {
     const saved = sessionStorage.getItem('quizapp_selectedQuizId');
+    console.log('[Session Persistence] Initializing selectedQuizId:', saved);
     return saved ? JSON.parse(saved) : null;
   });
   const [selectedSessionId, setSelectedSessionId] = useState(() => {
     const saved = sessionStorage.getItem('quizapp_selectedSessionId');
+    console.log('[Session Persistence] Initializing selectedSessionId:', saved);
     return saved ? JSON.parse(saved) : null;
   });
   const [formData, setFormData] = useState({});
@@ -56,15 +60,36 @@ export default function QuizApp() {
 
   // Persist view and IDs to sessionStorage whenever they change
   useEffect(() => {
-    sessionStorage.setItem('quizapp_view', view);
+    console.log('[Session Persistence] Saving view to sessionStorage:', view);
+    try {
+      sessionStorage.setItem('quizapp_view', view);
+      // Verify it was saved
+      const saved = sessionStorage.getItem('quizapp_view');
+      console.log('[Session Persistence] Verified saved view:', saved);
+    } catch (err) {
+      console.error('[Session Persistence] Error saving view:', err);
+    }
   }, [view]);
 
   useEffect(() => {
-    sessionStorage.setItem('quizapp_selectedQuizId', JSON.stringify(selectedQuizId));
+    console.log('[Session Persistence] Saving selectedQuizId:', selectedQuizId);
+    try {
+      sessionStorage.setItem('quizapp_selectedQuizId', JSON.stringify(selectedQuizId));
+    } catch (err) {
+      console.error('[Session Persistence] Error saving selectedQuizId:', err);
+    }
   }, [selectedQuizId]);
 
   useEffect(() => {
-    sessionStorage.setItem('quizapp_selectedSessionId', JSON.stringify(selectedSessionId));
+    console.log('[Session Persistence] Saving selectedSessionId:', selectedSessionId);
+    try {
+      sessionStorage.setItem('quizapp_selectedSessionId', JSON.stringify(selectedSessionId));
+      // Verify it was saved
+      const saved = sessionStorage.getItem('quizapp_selectedSessionId');
+      console.log('[Session Persistence] Verified saved session ID:', saved);
+    } catch (err) {
+      console.error('[Session Persistence] Error saving selectedSessionId:', err);
+    }
   }, [selectedSessionId]);
 
   // Bootstrap session on initial load & on auth state changes
