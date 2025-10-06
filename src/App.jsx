@@ -150,13 +150,19 @@ export default function QuizApp() {
       const savedView = sessionStorage.getItem('quizapp_view');
       const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
 
-      // If user has an active session, don't redirect them
-      if (savedView && activeViews.includes(savedView)) {
-        console.log('Preserving active view:', savedView);
+      console.log('[routeByRole] Current view state:', view);
+      console.log('[routeByRole] Saved view from storage:', savedView);
+      console.log('[routeByRole] User role:', role);
+
+      // CRITICAL: Don't redirect if user has an active session
+      // Check both the current view state AND sessionStorage for maximum safety
+      if ((view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView))) {
+        console.log('[routeByRole] Preserving active session, not redirecting');
         return;
       }
 
-      // Otherwise, route to default dashboard for their role
+      // Only redirect if we're sure there's no active session
+      console.log('[routeByRole] No active session found, routing to dashboard');
       if (role === "teacher") setView("teacher-dashboard");
       else if (role === "superadmin") setView("superadmin-dashboard");
       else if (role === "student") setView("student-dashboard");
@@ -249,23 +255,29 @@ export default function QuizApp() {
           }
 
           if (profile) {
-            console.log('Profile loaded after auth change:', profile.email);
+            console.log('[onAuthStateChange] Profile loaded:', profile.email, 'Event:', event);
             setAppState((s) => ({ ...s, currentUser: profile }));
 
             // Check if there's an active session saved
             const savedView = sessionStorage.getItem('quizapp_view');
             const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
 
-            // Only redirect to dashboard if:
-            // 1. User is signing in (SIGNED_IN event)
-            // 2. User doesn't have an active session
-            // 3. User is on login/register/verify pages
-            if (event === "SIGNED_IN" && (!savedView || !activeViews.includes(savedView))) {
+            console.log('[onAuthStateChange] Current view:', view);
+            console.log('[onAuthStateChange] Saved view:', savedView);
+            console.log('[onAuthStateChange] Event type:', event);
+
+            // CRITICAL: Only redirect if explicitly a new sign-in AND no active session
+            // Never redirect for token refreshes, initial sessions, or if user has active session
+            const hasActiveSession = (view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView));
+
+            if (event === "SIGNED_IN" && !hasActiveSession) {
+              console.log('[onAuthStateChange] Fresh sign-in detected, routing to dashboard');
               if (profile.role === "teacher") setView("teacher-dashboard");
               else if (profile.role === "superadmin") setView("superadmin-dashboard");
               else setView("student-dashboard");
+            } else {
+              console.log('[onAuthStateChange] Preserving current view (event:', event, ', hasActiveSession:', hasActiveSession, ')');
             }
-            // For TOKEN_REFRESHED events, don't change the view - keep user where they are
           } else {
             // No profile exists - this is a new OAuth user
             console.log('No profile found for OAuth user:', session.user.id);
