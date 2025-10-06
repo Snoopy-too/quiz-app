@@ -62,7 +62,7 @@ export default function TeacherControl({ sessionId, setView }) {
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
         .select("*")
-        .eq("id", session.quiz_id)
+        .eq("quiz_id", session.quiz_id)
         .order("order_index", { ascending: true });
 
       if (questionsError) throw questionsError;
