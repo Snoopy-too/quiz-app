@@ -29,6 +29,23 @@ import StudentQuiz from "./components/students/StudentQuiz";
 import Settings from "./components/settings/Settings";
 
 export default function QuizApp() {
+  // Clear any corrupted sessionStorage data on app load
+  useEffect(() => {
+    try {
+      // Check for corrupted data and clear it
+      const keys = ['quizapp_view', 'quizapp_selectedQuizId', 'quizapp_selectedSessionId'];
+      keys.forEach(key => {
+        const value = sessionStorage.getItem(key);
+        if (value === 'undefined' || value === 'null') {
+          console.log('[Session Persistence] Clearing corrupted storage key:', key);
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (err) {
+      console.error('[Session Persistence] Error clearing corrupted storage:', err);
+    }
+  }, []);
+
   const [appState, setAppState] = useState({
     users: [],
     quizzes: [],
@@ -40,19 +57,45 @@ export default function QuizApp() {
 
   // Initialize state from sessionStorage to persist across tab switches
   const [view, setView] = useState(() => {
-    const savedView = sessionStorage.getItem('quizapp_view');
-    console.log('[Session Persistence] Initializing view from sessionStorage:', savedView);
-    return savedView || "login";
+    try {
+      const savedView = sessionStorage.getItem('quizapp_view');
+      console.log('[Session Persistence] Initializing view from sessionStorage:', savedView);
+      if (savedView && savedView !== 'undefined' && savedView !== 'null') {
+        return savedView;
+      }
+    } catch (err) {
+      console.error('[Session Persistence] Error reading view from sessionStorage:', err);
+      sessionStorage.removeItem('quizapp_view');
+    }
+    return "login";
   });
+
   const [selectedQuizId, setSelectedQuizId] = useState(() => {
-    const saved = sessionStorage.getItem('quizapp_selectedQuizId');
-    console.log('[Session Persistence] Initializing selectedQuizId:', saved);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = sessionStorage.getItem('quizapp_selectedQuizId');
+      console.log('[Session Persistence] Initializing selectedQuizId:', saved);
+      if (saved && saved !== 'undefined' && saved !== 'null') {
+        return JSON.parse(saved);
+      }
+    } catch (err) {
+      console.error('[Session Persistence] Error reading selectedQuizId from sessionStorage:', err);
+      sessionStorage.removeItem('quizapp_selectedQuizId');
+    }
+    return null;
   });
+
   const [selectedSessionId, setSelectedSessionId] = useState(() => {
-    const saved = sessionStorage.getItem('quizapp_selectedSessionId');
-    console.log('[Session Persistence] Initializing selectedSessionId:', saved);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = sessionStorage.getItem('quizapp_selectedSessionId');
+      console.log('[Session Persistence] Initializing selectedSessionId:', saved);
+      if (saved && saved !== 'undefined' && saved !== 'null') {
+        return JSON.parse(saved);
+      }
+    } catch (err) {
+      console.error('[Session Persistence] Error reading selectedSessionId from sessionStorage:', err);
+      sessionStorage.removeItem('quizapp_selectedSessionId');
+    }
+    return null;
   });
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
@@ -62,10 +105,11 @@ export default function QuizApp() {
   useEffect(() => {
     console.log('[Session Persistence] Saving view to sessionStorage:', view);
     try {
-      sessionStorage.setItem('quizapp_view', view);
-      // Verify it was saved
-      const saved = sessionStorage.getItem('quizapp_view');
-      console.log('[Session Persistence] Verified saved view:', saved);
+      if (view && view !== 'undefined') {
+        sessionStorage.setItem('quizapp_view', view);
+      } else {
+        sessionStorage.removeItem('quizapp_view');
+      }
     } catch (err) {
       console.error('[Session Persistence] Error saving view:', err);
     }
@@ -74,7 +118,11 @@ export default function QuizApp() {
   useEffect(() => {
     console.log('[Session Persistence] Saving selectedQuizId:', selectedQuizId);
     try {
-      sessionStorage.setItem('quizapp_selectedQuizId', JSON.stringify(selectedQuizId));
+      if (selectedQuizId !== null && selectedQuizId !== undefined) {
+        sessionStorage.setItem('quizapp_selectedQuizId', JSON.stringify(selectedQuizId));
+      } else {
+        sessionStorage.removeItem('quizapp_selectedQuizId');
+      }
     } catch (err) {
       console.error('[Session Persistence] Error saving selectedQuizId:', err);
     }
@@ -83,10 +131,11 @@ export default function QuizApp() {
   useEffect(() => {
     console.log('[Session Persistence] Saving selectedSessionId:', selectedSessionId);
     try {
-      sessionStorage.setItem('quizapp_selectedSessionId', JSON.stringify(selectedSessionId));
-      // Verify it was saved
-      const saved = sessionStorage.getItem('quizapp_selectedSessionId');
-      console.log('[Session Persistence] Verified saved session ID:', saved);
+      if (selectedSessionId !== null && selectedSessionId !== undefined) {
+        sessionStorage.setItem('quizapp_selectedSessionId', JSON.stringify(selectedSessionId));
+      } else {
+        sessionStorage.removeItem('quizapp_selectedSessionId');
+      }
     } catch (err) {
       console.error('[Session Persistence] Error saving selectedSessionId:', err);
     }
