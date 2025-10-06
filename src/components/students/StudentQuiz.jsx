@@ -48,31 +48,36 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       setSession(session);
 
-      // Load quiz
-      const { data: quizData, error: quizError } = await supabase
+      // Load quiz - avoid .single() to prevent 406 errors
+      const { data: quizResults, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("id", session.quiz_id)
-        .single();
+        .eq("id", session.quiz_id);
 
       if (quizError) throw quizError;
+
+      // Get first result from array
+      const quizData = quizResults && quizResults.length > 0 ? quizResults[0] : null;
+      if (!quizData) {
+        throw new Error("Quiz not found");
+      }
 
       console.log("Quiz data:", quizData);
       setQuiz(quizData);
 
       // Load theme separately if quiz has a theme_id
       if (quizData.theme_id) {
-        const { data: themeData, error: themeError } = await supabase
+        const { data: themeResults, error: themeError } = await supabase
           .from("themes")
           .select("*")
-          .eq("id", quizData.theme_id)
-          .single();
+          .eq("id", quizData.theme_id);
 
-        if (!themeError && themeData) {
+        if (!themeError && themeResults && themeResults.length > 0) {
+          const themeData = themeResults[0];
           console.log("Theme data loaded:", themeData);
           setTheme(themeData);
         } else {
-          console.log("Theme fetch error:", themeError);
+          console.log("Theme fetch error or no theme found:", themeError);
           setTheme(null);
         }
       } else {
@@ -91,12 +96,17 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setQuestions(questionsData);
 
       // Check if already a participant
-      const { data: existingParticipant } = await supabase
+      console.log("Checking if user is already a participant...");
+      const { data: existingParticipant, error: checkParticipantError } = await supabase
         .from("session_participants")
         .select("*")
         .eq("session_id", sessionId)
         .eq("user_id", appState.currentUser.id)
         .maybeSingle();
+
+      if (checkParticipantError) {
+        console.log("Error checking participant:", checkParticipantError);
+      }
 
       if (existingParticipant) {
         setParticipant(existingParticipant);
