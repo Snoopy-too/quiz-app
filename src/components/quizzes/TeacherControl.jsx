@@ -48,14 +48,20 @@ export default function TeacherControl({ sessionId, setView }) {
 
       setSession(session);
 
-      // Load quiz
-      const { data: quizData, error: quizError } = await supabase
+      // Load quiz - avoid .single() to prevent 406 errors
+      const { data: quizResults, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("id", session.quiz_id)
-        .single();
+        .eq("id", session.quiz_id);
 
       if (quizError) throw quizError;
+
+      // Get first result from array
+      const quizData = quizResults && quizResults.length > 0 ? quizResults[0] : null;
+      if (!quizData) {
+        throw new Error("Quiz not found");
+      }
+
       setQuiz(quizData);
 
       // Load questions
