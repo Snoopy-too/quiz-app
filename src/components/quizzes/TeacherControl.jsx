@@ -25,7 +25,8 @@ export default function TeacherControl({ sessionId, setView }) {
   useEffect(() => {
     if (sessionId) {
       loadSession();
-      setupRealtimeSubscriptions();
+      const cleanup = setupRealtimeSubscriptions();
+      return cleanup;
     }
   }, [sessionId]);
 

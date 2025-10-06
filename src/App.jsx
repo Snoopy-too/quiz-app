@@ -132,9 +132,14 @@ export default function QuizApp() {
           if (profile) {
             console.log('Profile loaded after auth change:', profile.email);
             setAppState((s) => ({ ...s, currentUser: profile }));
-            if (profile.role === "teacher") setView("teacher-dashboard");
-            else if (profile.role === "superadmin") setView("superadmin-dashboard");
-            else setView("student-dashboard");
+
+            // Only redirect to dashboard if user is on login/register/verify pages
+            // Don't interrupt active sessions (like teacher-control, student-quiz, etc.)
+            if (event === "SIGNED_IN" || !appState.currentUser) {
+              if (profile.role === "teacher") setView("teacher-dashboard");
+              else if (profile.role === "superadmin") setView("superadmin-dashboard");
+              else setView("student-dashboard");
+            }
           } else {
             // No profile exists - this is a new OAuth user
             console.log('No profile found for OAuth user:', session.user.id);

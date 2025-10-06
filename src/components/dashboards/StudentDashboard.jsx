@@ -23,7 +23,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
       // Find session by PIN
       const { data: session, error: sessionError } = await supabase
         .from("quiz_sessions")
-        .select("id, status, mode")
+        .select("*")
         .eq("pin", joinPin)
         .maybeSingle();
 
