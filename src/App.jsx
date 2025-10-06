@@ -57,13 +57,26 @@ export default function QuizApp() {
     };
 
     const load = async () => {
+      console.log('Loading initial session...');
       const { data: sessionRes, error: sessErr } = await supabase.auth.getSession();
-      if (sessErr || !sessionRes?.session) {
+
+      if (sessErr) {
+        console.error('Session error:', sessErr);
+        setError(`Session error: ${sessErr.message}`);
         setAppState((s) => ({ ...s, currentUser: null }));
         setView("login");
         return;
       }
+
+      if (!sessionRes?.session) {
+        console.log('No active session found');
+        setAppState((s) => ({ ...s, currentUser: null }));
+        setView("login");
+        return;
+      }
+
       const userId = sessionRes.session.user.id;
+      console.log('Session found for user:', userId);
 
       const { data: profile, error: pErr } = await supabase
         .from("users")
@@ -73,36 +86,97 @@ export default function QuizApp() {
 
       if (ignore) return;
 
-      if (pErr || !profile) {
+      if (pErr) {
+        console.error('Profile fetch error:', pErr);
+        setError(`Failed to load profile: ${pErr.message}`);
         setView("login");
         return;
       }
 
+      if (!profile) {
+        console.warn('No profile found for user:', userId);
+        setError("User profile not found. Please contact support.");
+        setView("login");
+        return;
+      }
+
+      console.log('Profile loaded:', profile.email, 'Role:', profile.role);
       setAppState((s) => ({ ...s, currentUser: profile }));
       routeByRole(profile.role);
     };
 
     load();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+
       if (!session) {
         setAppState((s) => ({ ...s, currentUser: null }));
         setView("login");
       } else {
-        // When session changes (login), fetch profile and route
+        // When session changes (login/OAuth callback), fetch profile and route
         (async () => {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("users")
             .select("id, role, email, name, approved, verified")
             .eq("id", session.user.id)
             .maybeSingle();
+
+          if (profileError) {
+            console.error('Profile fetch error on auth change:', profileError);
+            setError(`Failed to load profile: ${profileError.message}`);
+            setView("login");
+            return;
+          }
+
           if (profile) {
+            console.log('Profile loaded after auth change:', profile.email);
             setAppState((s) => ({ ...s, currentUser: profile }));
             if (profile.role === "teacher") setView("teacher-dashboard");
             else if (profile.role === "superadmin") setView("superadmin-dashboard");
             else setView("student-dashboard");
           } else {
-            setView("login");
+            // No profile exists - this is a new OAuth user
+            console.log('No profile found for OAuth user:', session.user.id);
+            console.log('User metadata:', session.user.user_metadata);
+
+            // Create a basic profile for OAuth user
+            const email = session.user.email;
+            const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+
+            console.log('Creating profile for new OAuth user:', email);
+
+            // Create profile with student role by default (they can be upgraded by admin)
+            const { data: newProfile, error: createError } = await supabase
+              .from("users")
+              .insert([{
+                id: session.user.id,
+                email: email,
+                name: name,
+                role: "student",
+                verified: true, // OAuth users are pre-verified via Google
+                approved: false, // Needs teacher/admin approval
+              }])
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('Failed to create profile for OAuth user:', createError);
+              setError(`Failed to create user profile: ${createError.message}. Please contact support.`);
+              await supabase.auth.signOut();
+              setView("login");
+              return;
+            }
+
+            console.log('Profile created successfully for OAuth user');
+            setSuccess("Welcome! Your account has been created. A teacher must approve your account before you can access quizzes.");
+            setAppState((s) => ({ ...s, currentUser: newProfile }));
+
+            // Show them they need approval
+            setTimeout(() => {
+              setView("login");
+              setError("Your account is awaiting teacher approval. You will receive an email when approved.");
+            }, 3000);
           }
         })();
       }

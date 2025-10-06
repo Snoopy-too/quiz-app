@@ -137,18 +137,27 @@ export default function Register({ setView, setAppState, error, setError, succes
     setSuccess("");
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Dynamically use current site URL (works for both localhost and Netlify)
+      const redirectUrl = `${window.location.origin}/`;
+
+      console.log('Initiating Google OAuth with redirect URL:', redirectUrl);
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         },
       });
 
       if (error) {
-        setError(error.message);
+        console.error('OAuth initiation error:', error);
+        setError(`Google sign-in failed: ${error.message}`);
       }
+
+      // On success, browser redirects to Google
     } catch (err) {
-      setError("Failed to initiate Google sign-in.");
+      console.error('OAuth exception:', err);
+      setError("Failed to initiate Google sign-in. Please try again.");
     }
   };
 

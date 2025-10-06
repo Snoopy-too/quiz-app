@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 
 export default function Login({
@@ -12,6 +12,80 @@ export default function Login({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Check for existing session when component mounts (handles OAuth callback)
+  useEffect(() => {
+    const checkSession = async () => {
+      console.log('Login: Checking for existing session...');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('Login: Session check error:', sessionError);
+        setErrorMsg(`Authentication error: ${sessionError.message}`);
+        return;
+      }
+
+      if (session) {
+        console.log('Login: Active session found for:', session.user.email);
+        setLoading(true);
+
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from("users")
+          .select("id, email, name, role, approved, verified, teacher_code, teacher_id")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Login: Profile fetch error:', profileError);
+          setErrorMsg(`Failed to load profile: ${profileError.message}`);
+          setLoading(false);
+          return;
+        }
+
+        if (!profile) {
+          console.log('Login: No profile found, waiting for profile creation...');
+          // Profile might be being created by App.jsx's onAuthStateChange
+          // Don't show error, just wait
+          setLoading(false);
+          return;
+        }
+
+        // Check approval/verification gates
+        if (profile.role !== "superadmin") {
+          if (!profile.approved) {
+            console.log('Login: Account pending approval');
+            setErrorMsg("Your account is awaiting approval.");
+            setLoading(false);
+            return;
+          }
+          if (!profile.verified) {
+            console.log('Login: Email not verified');
+            setErrorMsg("Please verify your email to continue.");
+            setLoading(false);
+            return;
+          }
+        }
+
+        console.log('Login: Redirecting to dashboard for role:', profile.role);
+
+        // Update app state and redirect
+        setAppState?.({
+          ...appState,
+          currentUser: profile,
+        });
+
+        if (profile.role === "teacher") setView?.("teacher-dashboard");
+        else if (profile.role === "superadmin") setView?.("superadmin-dashboard");
+        else setView?.("student-dashboard");
+      } else {
+        console.log('Login: No active session found');
+      }
+    };
+
+    checkSession();
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -74,20 +148,32 @@ export default function Login({
     setErrorMsg(null);
     setGlobalError?.(null);
     setGlobalSuccess?.(null);
+    setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Dynamically use current site URL (works for both localhost and Netlify)
+      const redirectUrl = `${window.location.origin}/`;
+
+      console.log('Initiating Google OAuth with redirect URL:', redirectUrl);
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         },
       });
 
       if (error) {
-        setErrorMsg(error.message);
+        console.error('OAuth initiation error:', error);
+        setErrorMsg(`Google sign-in failed: ${error.message}`);
+        setLoading(false);
       }
+
+      // On success, browser redirects to Google - don't set loading to false
     } catch (err) {
-      setErrorMsg("Failed to initiate Google sign-in.");
+      console.error('OAuth exception:', err);
+      setErrorMsg("Failed to initiate Google sign-in. Please try again.");
+      setLoading(false);
     }
   };
 
