@@ -119,9 +119,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       }
 
       // If session is already active, load current question
-      if (sessionData.status === "question_active" && questionsData.length > 0) {
-        setCurrentQuestion(questionsData[sessionData.current_question_index]);
-        setTimeRemaining(questionsData[sessionData.current_question_index].time_limit);
+      if (session.status === "question_active" && questionsData.length > 0) {
+        setCurrentQuestion(questionsData[session.current_question_index]);
+        setTimeRemaining(questionsData[session.current_question_index].time_limit);
       }
 
       setLoading(false);
