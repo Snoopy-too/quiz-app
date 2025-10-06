@@ -21,19 +21,29 @@ export default function StudentDashboard({ appState, setAppState, setView, error
 
     try {
       // Find session by PIN
-      const { data: session, error: sessionError } = await supabase
+      console.log('Looking for quiz with PIN:', joinPin);
+
+      const { data: sessions, error: sessionError } = await supabase
         .from("quiz_sessions")
-        .select("*")
-        .eq("pin", joinPin)
-        .maybeSingle();
+        .select("id, status, mode, quiz_id, pin, current_question_index")
+        .eq("pin", joinPin);
 
-      if (sessionError) throw sessionError;
+      console.log('Query result:', { sessions, sessionError });
 
-      if (!session) {
+      if (sessionError) {
+        console.error('Session query error:', sessionError);
+        throw sessionError;
+      }
+
+      if (!sessions || sessions.length === 0) {
         setError("Invalid PIN - Quiz not found");
         setLoading(false);
         return;
       }
+
+      // Take the first session if multiple exist (shouldn't happen, but handle it)
+      const session = sessions[0];
+      console.log('Found session:', session);
 
       if (session.status === "completed") {
         setError("This quiz has already ended");

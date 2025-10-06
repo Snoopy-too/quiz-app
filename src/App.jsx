@@ -38,18 +38,51 @@ export default function QuizApp() {
     activeSessions: [],
   });
 
-  const [view, setView] = useState("login");
-  const [selectedQuizId, setSelectedQuizId] = useState(null);
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  // Initialize state from sessionStorage to persist across tab switches
+  const [view, setView] = useState(() => {
+    return sessionStorage.getItem('quizapp_view') || "login";
+  });
+  const [selectedQuizId, setSelectedQuizId] = useState(() => {
+    const saved = sessionStorage.getItem('quizapp_selectedQuizId');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedSessionId, setSelectedSessionId] = useState(() => {
+    const saved = sessionStorage.getItem('quizapp_selectedSessionId');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Persist view and IDs to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('quizapp_view', view);
+  }, [view]);
+
+  useEffect(() => {
+    sessionStorage.setItem('quizapp_selectedQuizId', JSON.stringify(selectedQuizId));
+  }, [selectedQuizId]);
+
+  useEffect(() => {
+    sessionStorage.setItem('quizapp_selectedSessionId', JSON.stringify(selectedSessionId));
+  }, [selectedSessionId]);
 
   // Bootstrap session on initial load & on auth state changes
   useEffect(() => {
     let ignore = false;
 
     const routeByRole = (role) => {
+      // Check if there's a saved view in sessionStorage (active session)
+      const savedView = sessionStorage.getItem('quizapp_view');
+      const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
+
+      // If user has an active session, don't redirect them
+      if (savedView && activeViews.includes(savedView)) {
+        console.log('Preserving active view:', savedView);
+        return;
+      }
+
+      // Otherwise, route to default dashboard for their role
       if (role === "teacher") setView("teacher-dashboard");
       else if (role === "superadmin") setView("superadmin-dashboard");
       else if (role === "student") setView("student-dashboard");
@@ -64,6 +97,10 @@ export default function QuizApp() {
         console.error('Session error:', sessErr);
         setError(`Session error: ${sessErr.message}`);
         setAppState((s) => ({ ...s, currentUser: null }));
+        // Clear saved session data on error
+        sessionStorage.removeItem('quizapp_view');
+        sessionStorage.removeItem('quizapp_selectedQuizId');
+        sessionStorage.removeItem('quizapp_selectedSessionId');
         setView("login");
         return;
       }
@@ -71,6 +108,10 @@ export default function QuizApp() {
       if (!sessionRes?.session) {
         console.log('No active session found');
         setAppState((s) => ({ ...s, currentUser: null }));
+        // Clear saved session data when logged out
+        sessionStorage.removeItem('quizapp_view');
+        sessionStorage.removeItem('quizapp_selectedQuizId');
+        sessionStorage.removeItem('quizapp_selectedSessionId');
         setView("login");
         return;
       }
@@ -112,6 +153,10 @@ export default function QuizApp() {
 
       if (!session) {
         setAppState((s) => ({ ...s, currentUser: null }));
+        // Clear saved session data when signed out
+        sessionStorage.removeItem('quizapp_view');
+        sessionStorage.removeItem('quizapp_selectedQuizId');
+        sessionStorage.removeItem('quizapp_selectedSessionId');
         setView("login");
       } else {
         // When session changes (login/OAuth callback), fetch profile and route
@@ -133,13 +178,20 @@ export default function QuizApp() {
             console.log('Profile loaded after auth change:', profile.email);
             setAppState((s) => ({ ...s, currentUser: profile }));
 
-            // Only redirect to dashboard if user is on login/register/verify pages
-            // Don't interrupt active sessions (like teacher-control, student-quiz, etc.)
-            if (event === "SIGNED_IN" || !appState.currentUser) {
+            // Check if there's an active session saved
+            const savedView = sessionStorage.getItem('quizapp_view');
+            const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
+
+            // Only redirect to dashboard if:
+            // 1. User is signing in (SIGNED_IN event)
+            // 2. User doesn't have an active session
+            // 3. User is on login/register/verify pages
+            if (event === "SIGNED_IN" && (!savedView || !activeViews.includes(savedView))) {
               if (profile.role === "teacher") setView("teacher-dashboard");
               else if (profile.role === "superadmin") setView("superadmin-dashboard");
               else setView("student-dashboard");
             }
+            // For TOKEN_REFRESHED events, don't change the view - keep user where they are
           } else {
             // No profile exists - this is a new OAuth user
             console.log('No profile found for OAuth user:', session.user.id);
