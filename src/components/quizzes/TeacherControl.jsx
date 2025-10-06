@@ -166,11 +166,28 @@ export default function TeacherControl({ sessionId, setView }) {
 
   const startQuiz = async () => {
     try {
-      await supabase
+      console.log('[startQuiz] Starting quiz, sessionId:', sessionId);
+      console.log('[startQuiz] Current session state:', session);
+
+      const { data, error } = await supabase
         .from("quiz_sessions")
         .update({ status: "active" })
         .eq("id", sessionId);
 
+      console.log('[startQuiz] Update result:', { data, error });
+
+      if (error) {
+        console.error('[startQuiz] Update error:', error);
+        setAlertModal({
+          isOpen: true,
+          title: "Error Starting Quiz",
+          message: `Failed to start quiz: ${error.message}\n\nDetails: ${JSON.stringify(error, null, 2)}`,
+          type: "error"
+        });
+        return;
+      }
+
+      console.log('[startQuiz] Quiz started successfully');
       setSession({ ...session, status: "active" });
 
       // Wait 5 seconds before showing first question
@@ -178,6 +195,7 @@ export default function TeacherControl({ sessionId, setView }) {
         showQuestion(0);
       }, 5000);
     } catch (err) {
+      console.error('[startQuiz] Unexpected error:', err);
       setAlertModal({ isOpen: true, title: "Error", message: "Error starting quiz: " + err.message, type: "error" });
     }
   };
