@@ -32,21 +32,27 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   const joinSession = async () => {
     try {
-      // Load session
+      // Load session - avoid .single() due to PostgreSQL 'mode' column conflict
       const { data: sessionData, error: sessionError } = await supabase
         .from("quiz_sessions")
         .select("*")
-        .eq("id", sessionId)
-        .single();
+        .eq("id", sessionId);
 
       if (sessionError) throw sessionError;
-      setSession(sessionData);
+
+      // Get first result from array
+      const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
+      if (!session) {
+        throw new Error("Quiz session not found");
+      }
+
+      setSession(session);
 
       // Load quiz
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("id", sessionData.quiz_id)
+        .eq("id", session.quiz_id)
         .single();
 
       if (quizError) throw quizError;
@@ -78,7 +84,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
         .select("*")
-        .eq("quiz_id", sessionData.quiz_id)
+        .eq("quiz_id", session.quiz_id)
         .order("order_index", { ascending: true });
 
       if (questionsError) throw questionsError;
