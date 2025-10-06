@@ -169,10 +169,32 @@ export default function TeacherControl({ sessionId, setView }) {
       console.log('[startQuiz] Starting quiz, sessionId:', sessionId);
       console.log('[startQuiz] Current session state:', session);
 
+      // First, verify the session exists and check permissions
+      const { data: existingSession, error: checkError } = await supabase
+        .from("quiz_sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .single();
+
+      console.log('[startQuiz] Existing session check:', { existingSession, checkError });
+
+      if (checkError) {
+        console.error('[startQuiz] Failed to fetch session:', checkError);
+        setAlertModal({
+          isOpen: true,
+          title: "Error Starting Quiz",
+          message: `Cannot access quiz session: ${checkError.message}`,
+          type: "error"
+        });
+        return;
+      }
+
+      // Now try to update
       const { data, error } = await supabase
         .from("quiz_sessions")
         .update({ status: "active" })
-        .eq("id", sessionId);
+        .eq("id", sessionId)
+        .select();
 
       console.log('[startQuiz] Update result:', { data, error });
 
