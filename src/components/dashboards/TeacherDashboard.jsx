@@ -61,7 +61,14 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
 
   const copyTeacherCode = () => {
     if (teacher?.teacher_code) {
-      navigator.clipboard.writeText(teacher.teacher_code);
+      const formattedCode = formatTeacherCode(teacher.teacher_code);
+      console.log("=== COPYING TEACHER CODE ===");
+      console.log("Raw code from database:", teacher.teacher_code);
+      console.log("Formatted code (displayed):", formattedCode);
+      console.log("Code being copied to clipboard:", formattedCode);
+
+      // Copy the formatted version (with hyphen) for user convenience
+      navigator.clipboard.writeText(formattedCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

@@ -39,20 +39,44 @@ export default function Register({ setView, setAppState, error, setError, succes
         }
 
         const cleanCode = formData.teacherCode.replace(/-/g, '').toUpperCase();
+        console.log("=== TEACHER CODE VALIDATION ===");
+        console.log("Original code entered:", formData.teacherCode);
+        console.log("Cleaned code for lookup:", cleanCode);
 
         // Look up teacher by code
         const { data: teacher, error: teacherError } = await supabase
           .from("users")
-          .select("id, name")
+          .select("id, name, teacher_code")
           .eq("teacher_code", cleanCode)
           .eq("role", "teacher")
           .maybeSingle();
 
-        if (teacherError || !teacher) {
+        console.log("Database query result - teacher:", teacher);
+        console.log("Database query result - error:", teacherError);
+
+        if (teacherError) {
+          console.error("Teacher lookup error:", teacherError);
+          setError(`Database error: ${teacherError.message}`);
+          return;
+        }
+
+        if (!teacher) {
+          console.error("No teacher found with code:", cleanCode);
+
+          // Debug: Let's see what codes exist in the database
+          const { data: allTeachers, error: debugError } = await supabase
+            .from("users")
+            .select("id, name, teacher_code, role")
+            .eq("role", "teacher");
+
+          console.log("All teachers in database:", allTeachers);
+          console.log("Debug query error:", debugError);
+
           setError("Invalid teacher code. Please check the code and try again.");
           return;
         }
 
+        console.log("Teacher found! ID:", teacher.id, "Name:", teacher.name);
         teacherId = teacher.id;
       }
 
@@ -71,6 +95,11 @@ export default function Register({ setView, setAppState, error, setError, succes
       }
 
       // 1. Create auth user with Supabase Auth
+      console.log("=== CREATING AUTH USER ===");
+      console.log("Email:", formData.email.trim().toLowerCase());
+      console.log("Role:", formData.role);
+      console.log("Teacher ID to assign:", teacherId);
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
@@ -82,6 +111,9 @@ export default function Register({ setView, setAppState, error, setError, succes
         }
       });
 
+      console.log("Auth signup result - data:", authData);
+      console.log("Auth signup result - error:", authError);
+
       if (authError) {
         console.error("Supabase auth error:", authError);
         setError(authError.message || "Registration failed. Try again.");
@@ -89,30 +121,39 @@ export default function Register({ setView, setAppState, error, setError, succes
       }
 
       if (!authData.user) {
+        console.error("No user returned from auth signup");
         setError("Registration failed. Please try again.");
         return;
       }
 
+      console.log("Auth user created successfully! ID:", authData.user.id);
+
       // 2. Create profile in users table
-      const { error: profileError } = await supabase.from("users").insert([
-        {
-          id: authData.user.id, // Use auth user ID
-          name: formData.name,
-          email: formData.email.trim().toLowerCase(),
-          role: formData.role,
-          student_id: formData.role === "student" ? formData.studentId : null,
-          teacher_id: teacherId, // Set teacher_id for students
-          teacher_code: teacherCodeToSave, // Set teacher_code for teachers
-          verified: false, // Email verification required
-          approved: formData.role === "student" ? true : false, // Teachers need approval
-        },
-      ]);
+      console.log("=== CREATING USER PROFILE ===");
+      const profileData = {
+        id: authData.user.id, // Use auth user ID
+        name: formData.name,
+        email: formData.email.trim().toLowerCase(),
+        role: formData.role,
+        student_id: formData.role === "student" ? formData.studentId : null,
+        teacher_id: teacherId, // Set teacher_id for students
+        teacher_code: teacherCodeToSave, // Set teacher_code for teachers
+        verified: false, // Email verification required
+        approved: formData.role === "student" ? true : false, // Teachers need approval
+      };
+      console.log("Profile data to insert:", profileData);
+
+      const { error: profileError } = await supabase.from("users").insert([profileData]);
+
+      console.log("Profile creation result - error:", profileError);
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
-        setError("Registration failed. Try again.");
+        setError(`Profile creation failed: ${profileError.message}`);
         return;
       }
+
+      console.log("Profile created successfully!");
 
       // 3. Show success message
       if (formData.role === "student") {
