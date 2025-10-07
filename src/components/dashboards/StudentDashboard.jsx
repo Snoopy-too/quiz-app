@@ -73,7 +73,32 @@ export default function StudentDashboard({ appState, setAppState, setView, error
         setShowTeamForm(true);
         setLoading(false);
       } else {
-        // Classic mode - join directly
+        // Classic mode - create participant record and join directly
+        console.log('Creating participant record for user:', appState.currentUser?.id);
+
+        const { data: participant, error: participantError } = await supabase
+          .from("session_participants")
+          .insert({
+            session_id: session.id,
+            user_id: appState.currentUser.id,
+            score: 0
+          })
+          .select()
+          .single();
+
+        if (participantError) {
+          // Check if error is due to duplicate entry (already joined)
+          if (participantError.code === '23505') {
+            console.log('Student already joined this session, proceeding...');
+          } else {
+            console.error('Failed to create participant:', participantError);
+            throw new Error(`Failed to join quiz: ${participantError.message}`);
+          }
+        } else {
+          console.log('Participant created successfully:', participant);
+        }
+
+        // Navigate to quiz
         setView("student-quiz", session.id);
       }
     } catch (err) {
