@@ -173,6 +173,7 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       // 2. Create profile in users table
       console.log("=== CREATING USER PROFILE ===");
+
       const profileData = {
         id: authData.user.id, // Use auth user ID
         name: formData.name,
@@ -181,8 +182,8 @@ export default function Register({ setView, setAppState, error, setError, succes
         student_id: formData.role === "student" ? formData.studentId : null,
         teacher_id: teacherId, // Set teacher_id for students
         teacher_code: teacherCodeToSave, // Set teacher_code for teachers
-        verified: false, // Email verification required
-        approved: formData.role === "student" ? true : false, // Teachers need approval
+        verified: false, // Email verification required via Supabase email link
+        approved: false, // All new users need approval (students by teacher, teachers by admin)
       };
       console.log("Profile data to insert:", profileData);
 
@@ -212,16 +213,18 @@ export default function Register({ setView, setAppState, error, setError, succes
       console.log("✅ Profile created successfully!");
 
       // 3. Show success message
+      console.log("✅ Registration complete!");
+
       if (formData.role === "student") {
-        setSuccess("Registration successful! Please check your email to verify your account.");
+        setSuccess("Registration successful! Please verify your email, then your teacher will approve your account.");
       } else {
-        setSuccess("Registration successful! A teacher must approve your account before you can login.");
+        setSuccess("Registration successful! Please verify your email, then a superadmin will approve your account.");
       }
 
-      // Redirect to verify email page
+      // Redirect to verify page where user can resend email if needed
       setTimeout(() => {
         setView("verify");
-      }, 2000);
+      }, 3000);
 
     } catch (err) {
       console.error("Unexpected error:", err);

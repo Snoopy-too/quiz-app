@@ -222,6 +222,25 @@ export default function QuizApp() {
       }
 
       console.log('Profile loaded:', profile.email, 'Role:', profile.role);
+
+      // Check approval and verification gates (unless superadmin)
+      if (profile.role !== "superadmin") {
+        if (!profile.approved) {
+          console.warn('User not approved:', profile.email);
+          setError("Your account is awaiting approval. Please wait for a teacher or admin to approve your account.");
+          await supabase.auth.signOut();
+          setView("login");
+          return;
+        }
+        if (!profile.verified) {
+          console.warn('User email not verified:', profile.email);
+          setError("Please verify your email before logging in. Check your inbox for a verification link.");
+          await supabase.auth.signOut();
+          setView("login");
+          return;
+        }
+      }
+
       setAppState((s) => ({ ...s, currentUser: profile }));
       routeByRole(profile.role);
     };
@@ -256,6 +275,44 @@ export default function QuizApp() {
 
           if (profile) {
             console.log('[onAuthStateChange] Profile loaded:', profile.email, 'Event:', event);
+
+            // Sync email verification status from Supabase Auth to our users table
+            const supabaseEmailConfirmed = session.user.email_confirmed_at !== null;
+            if (supabaseEmailConfirmed && !profile.verified) {
+              console.log('[onAuthStateChange] Email verified in Supabase, updating users table');
+              const { error: updateError } = await supabase
+                .from("users")
+                .update({ verified: true })
+                .eq("id", session.user.id);
+
+              if (updateError) {
+                console.error('Failed to update verified status:', updateError);
+              } else {
+                console.log('✅ User verified status synced to database');
+                // Update local profile state
+                profile.verified = true;
+                setSuccess("Email verified successfully!");
+              }
+            }
+
+            // Check approval and verification gates (unless superadmin)
+            if (profile.role !== "superadmin") {
+              if (!profile.approved) {
+                console.warn('[onAuthStateChange] User not approved:', profile.email);
+                setError("Your account is awaiting approval. Please wait for a teacher or admin to approve your account.");
+                await supabase.auth.signOut();
+                setView("login");
+                return;
+              }
+              if (!profile.verified) {
+                console.warn('[onAuthStateChange] User email not verified:', profile.email);
+                setError("Please verify your email before logging in. Check your inbox for a verification link.");
+                await supabase.auth.signOut();
+                setView("login");
+                return;
+              }
+            }
+
             setAppState((s) => ({ ...s, currentUser: profile }));
 
             // Check if there's an active session saved
@@ -360,14 +417,8 @@ export default function QuizApp() {
   if (view === "verify")
     return (
       <VerifyEmail
-        appState={appState}
-        setAppState={setAppState}
         setView={setView}
-        formData={formData}
-        setFormData={setFormData}
-        error={error}
         setError={setError}
-        success={success}
         setSuccess={setSuccess}
       />
     );
