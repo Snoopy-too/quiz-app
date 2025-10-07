@@ -24,6 +24,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [countdownValue, setCountdownValue] = useState(5);
   const [questionTimeRemaining, setQuestionTimeRemaining] = useState(0);
   const [autoAdvanceTimer, setAutoAdvanceTimer] = useState(null);
+  const [allStudentsAnswered, setAllStudentsAnswered] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -45,7 +46,7 @@ export default function TeacherControl({ sessionId, setView }) {
 
   // Question timer countdown effect
   useEffect(() => {
-    if (session?.status === "question_active" && questionTimeRemaining > 0) {
+    if (session?.status === "question_active" && questionTimeRemaining > 0 && !allStudentsAnswered) {
       const timer = setInterval(() => {
         setQuestionTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -58,23 +59,22 @@ export default function TeacherControl({ sessionId, setView }) {
 
       return () => clearInterval(timer);
     }
-  }, [session?.status, questionTimeRemaining]);
+  }, [session?.status, questionTimeRemaining, allStudentsAnswered]);
 
-  // Auto-advance when all students have answered
+  // Check if all students have answered
   useEffect(() => {
-    if (session?.status === "question_active" && participants.length > 0 && liveAnswers.length > 0) {
+    if (session?.status === "question_active" && participants.length > 0) {
       const allAnswered = participants.filter((p) =>
         liveAnswers.some((a) => a.participant_id === p.id)
       ).length === participants.length;
 
+      setAllStudentsAnswered(allAnswered);
+
       if (allAnswered && autoAdvanceTimer) {
-        // All students have answered - cancel the auto-advance timer and show results immediately
+        // All students have answered - cancel the auto-advance timer
+        // Timer stops, "Show Results" button appears
         clearTimeout(autoAdvanceTimer);
         setAutoAdvanceTimer(null);
-        // Give a brief moment for UI to update
-        setTimeout(() => {
-          proceedToResults();
-        }, 1000);
       }
     }
   }, [liveAnswers, participants, session?.status]);
@@ -354,6 +354,7 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowResults(false);
       setLiveAnswers([]); // Reset live answers for new question
       setQuestionTimeRemaining(question.time_limit); // Start countdown
+      setAllStudentsAnswered(false); // Reset for new question
       setSession({
         ...session,
         current_question_index: questionIndex,
@@ -374,24 +375,8 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const handleShowResults = () => {
-    const allAnswered = participants.filter((p) =>
-      liveAnswers.some((a) => a.participant_id === p.id)
-    ).length === participants.length;
-
-    // If there's still time and not all students have answered, show confirmation
-    if (questionTimeRemaining > 0 && !allAnswered) {
-      setConfirmModal({
-        isOpen: true,
-        title: "Show Results Early?",
-        message: `There are still ${questionTimeRemaining} seconds remaining and ${participants.length - participants.filter((p) => liveAnswers.some((a) => a.participant_id === p.id)).length} student(s) haven't answered yet. Are you sure you want to show results now?`,
-        onConfirm: () => {
-          setConfirmModal({ ...confirmModal, isOpen: false });
-          proceedToResults();
-        }
-      });
-    } else {
-      proceedToResults();
-    }
+    // Button only appears when all students have answered, so proceed directly
+    proceedToResults();
   };
 
   const proceedToResults = () => {
@@ -803,12 +788,18 @@ export default function TeacherControl({ sessionId, setView }) {
                   / {participants.length} answered
                 </span>
               </div>
-              <button
-                onClick={handleShowResults}
-                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
-              >
-                Show Results
-              </button>
+              {allStudentsAnswered ? (
+                <button
+                  onClick={handleShowResults}
+                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
+                >
+                  Show Results
+                </button>
+              ) : (
+                <div className="text-gray-500 text-sm">
+                  Waiting for all students...
+                </div>
+              )}
             </div>
           </div>
         </div>
