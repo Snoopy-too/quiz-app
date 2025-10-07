@@ -49,20 +49,31 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setSession(session);
 
       // Load quiz - avoid .single() to prevent 406 errors
+      console.log("=== LOADING QUIZ ===");
+      console.log("Session quiz_id:", session.quiz_id);
+
       const { data: quizResults, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
         .eq("id", session.quiz_id);
 
-      if (quizError) throw quizError;
+      console.log("Quiz query results:", quizResults);
+      console.log("Quiz query error:", quizError);
+
+      if (quizError) {
+        console.error("Quiz query failed:", quizError);
+        throw new Error(`Failed to load quiz: ${quizError.message}`);
+      }
 
       // Get first result from array
       const quizData = quizResults && quizResults.length > 0 ? quizResults[0] : null;
       if (!quizData) {
-        throw new Error("Quiz not found");
+        console.error("No quiz found with ID:", session.quiz_id);
+        console.error("Query returned:", quizResults);
+        throw new Error(`Quiz not found (ID: ${session.quiz_id}). The quiz may have been deleted or you may not have permission to view it.`);
       }
 
-      console.log("Quiz data:", quizData);
+      console.log("✅ Quiz loaded successfully:", quizData.title);
       setQuiz(quizData);
 
       // Load theme separately if quiz has a theme_id
@@ -130,8 +141,11 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       // If session is already active, load current question
       if (session.status === "question_active" && questionsData.length > 0) {
-        setCurrentQuestion(questionsData[session.current_question_index]);
-        setTimeRemaining(questionsData[session.current_question_index].time_limit);
+        const currentQuestionData = questionsData[session.current_question_index];
+        if (currentQuestionData) {
+          setCurrentQuestion(currentQuestionData);
+          setTimeRemaining(currentQuestionData.time_limit);
+        }
       }
 
       setLoading(false);
@@ -162,13 +176,17 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             setShowCountdown(true);
             setCountdown(5);
           } else if (updatedSession.status === "question_active") {
-            setShowCountdown(false);
-            setCurrentQuestion(questions[updatedSession.current_question_index]);
-            setTimeRemaining(questions[updatedSession.current_question_index].time_limit);
-            setHasAnswered(false);
-            setSelectedOption(null);
-            setShowCorrectAnswer(false);
-            setWasCorrect(false);
+            // Ensure question exists before accessing its properties
+            const questionData = questions[updatedSession.current_question_index];
+            if (questionData) {
+              setShowCountdown(false);
+              setCurrentQuestion(questionData);
+              setTimeRemaining(questionData.time_limit);
+              setHasAnswered(false);
+              setSelectedOption(null);
+              setShowCorrectAnswer(false);
+              setWasCorrect(false);
+            }
           } else if (updatedSession.status === "showing_results") {
             setShowCorrectAnswer(true);
           }
