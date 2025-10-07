@@ -110,7 +110,16 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         .order("order_index", { ascending: true });
 
       if (questionsError) throw questionsError;
-      setQuestions(questionsData);
+      
+      // If session has a question_order, use it to reorder questions
+      let orderedQuestions = questionsData;
+      if (session.question_order) {
+        orderedQuestions = session.question_order
+          .map(id => questionsData.find(q => q.id === id))
+          .filter(Boolean);
+      }
+      
+      setQuestions(orderedQuestions);
 
       // Check if already a participant
       console.log("Checking if user is already a participant...");
@@ -146,8 +155,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       }
 
       // If session is already active, load current question
-      if (session.status === "question_active" && questionsData.length > 0) {
-        const currentQuestionData = questionsData[session.current_question_index];
+      if (session.status === "question_active" && orderedQuestions.length > 0) {
+        const currentQuestionData = orderedQuestions[session.current_question_index];
         if (currentQuestionData) {
           setCurrentQuestion(currentQuestionData);
           setTimeRemaining(currentQuestionData.time_limit);

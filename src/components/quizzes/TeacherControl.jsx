@@ -13,6 +13,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [participants, setParticipants] = useState([]);
   const [teams, setTeams] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [questionOrder, setQuestionOrder] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [questionResults, setQuestionResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,11 +84,21 @@ export default function TeacherControl({ sessionId, setView }) {
       if (questionsError) throw questionsError;
       setQuestions(questionsData);
 
-      // Randomize questions if quiz setting enabled
-      if (quizData.randomize_questions) {
-        setShuffledQuestions(shuffleArray([...questionsData]));
+      // Check if session already has a question order
+      if (session.question_order) {
+        // Use existing order from session
+        const orderedQuestions = session.question_order
+          .map(id => questionsData.find(q => q.id === id))
+          .filter(Boolean);
+        setShuffledQuestions(orderedQuestions);
+        setQuestionOrder(session.question_order);
       } else {
-        setShuffledQuestions(questionsData);
+        // Create new order (shuffle if enabled)
+        const shuffled = quizData.randomize_questions 
+          ? shuffleArray([...questionsData])
+          : questionsData;
+        setShuffledQuestions(shuffled);
+        setQuestionOrder(shuffled.map(q => q.id));
       }
 
       // Load participants
@@ -210,10 +221,17 @@ export default function TeacherControl({ sessionId, setView }) {
         return;
       }
 
-      // Now try to update
+      // Now try to update with question order if not already set
+      const updateData = { status: "active" };
+      
+      // Only set question_order if it hasn't been set yet
+      if (!session.question_order && questionOrder) {
+        updateData.question_order = questionOrder;
+      }
+      
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .update({ status: "active" })
+        .update(updateData)
         .eq("id", sessionId)
         .select();
 
@@ -231,7 +249,7 @@ export default function TeacherControl({ sessionId, setView }) {
       }
 
       console.log('[startQuiz] Quiz started successfully');
-      setSession({ ...session, status: "active" });
+      setSession({ ...session, status: "active", question_order: questionOrder });
       setCountdownValue(5); // Reset countdown to 5
 
       // Wait 5 seconds before showing first question
