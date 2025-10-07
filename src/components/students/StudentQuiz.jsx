@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
 import AlertModal from "../common/AlertModal";
@@ -11,6 +11,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [participant, setParticipant] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const questionsRef = useRef([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -29,6 +30,11 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setupRealtimeSubscriptions();
     }
   }, [sessionId]);
+
+  // Keep questionsRef in sync with questions state
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
 
   const joinSession = async () => {
     try {
@@ -176,8 +182,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             setShowCountdown(true);
             setCountdown(5);
           } else if (updatedSession.status === "question_active") {
-            // Ensure question exists before accessing its properties
-            const questionData = questions[updatedSession.current_question_index];
+            // Use questionsRef to access current questions array
+            const currentQuestions = questionsRef.current;
+            const questionData = currentQuestions[updatedSession.current_question_index];
             if (questionData) {
               setShowCountdown(false);
               setCurrentQuestion(questionData);
@@ -186,6 +193,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
               setSelectedOption(null);
               setShowCorrectAnswer(false);
               setWasCorrect(false);
+            } else {
+              console.error('Question not found at index:', updatedSession.current_question_index);
+              console.error('Available questions:', currentQuestions.length);
             }
           } else if (updatedSession.status === "showing_results") {
             setShowCorrectAnswer(true);

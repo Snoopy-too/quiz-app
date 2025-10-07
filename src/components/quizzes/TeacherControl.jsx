@@ -19,6 +19,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [error, setError] = useState(null);
   const [showModeSelection, setShowModeSelection] = useState(true);
   const [selectedMode, setSelectedMode] = useState(null);
+  const [countdownValue, setCountdownValue] = useState(5);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -29,6 +30,14 @@ export default function TeacherControl({ sessionId, setView }) {
       return cleanup;
     }
   }, [sessionId]);
+
+  // Countdown timer effect for quiz start
+  useEffect(() => {
+    if (session?.status === "active" && !currentQuestion && countdownValue > 0) {
+      const timer = setTimeout(() => setCountdownValue(countdownValue - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [session?.status, currentQuestion, countdownValue]);
 
   const loadSession = async () => {
     try {
@@ -223,6 +232,7 @@ export default function TeacherControl({ sessionId, setView }) {
 
       console.log('[startQuiz] Quiz started successfully');
       setSession({ ...session, status: "active" });
+      setCountdownValue(5); // Reset countdown to 5
 
       // Wait 5 seconds before showing first question
       setTimeout(() => {
@@ -562,15 +572,6 @@ export default function TeacherControl({ sessionId, setView }) {
 
   // Countdown screen - Quiz starting
   if (session.status === "active" && !currentQuestion) {
-    const [countdown, setCountdown] = React.useState(5);
-
-    React.useEffect(() => {
-      if (countdown > 0) {
-        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-        return () => clearTimeout(timer);
-      }
-    }, [countdown]);
-
     return (
       <ModalsWrapper>
         <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
@@ -590,7 +591,7 @@ export default function TeacherControl({ sessionId, setView }) {
             <div className="mb-4">
               <p className="text-gray-600 mb-4">Starting in...</p>
               <div className="text-8xl font-bold text-purple-600 animate-pulse">
-                {countdown}
+                {countdownValue}
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-6">
