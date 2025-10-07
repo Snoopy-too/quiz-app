@@ -19,33 +19,38 @@ The current RLS policies on the `users` table don't allow teachers to update the
 
 2. **Run this SQL:**
    ```sql
-   -- Execute: fix-teacher-approval-rls.sql
+   -- Execute: fix-teacher-approval-rls-v2.sql
    ```
 
    Or copy-paste:
    ```sql
+   -- Drop old policy if exists
+   DROP POLICY IF EXISTS "teachers_can_approve_their_students" ON users;
+
+   -- Create corrected policy
    CREATE POLICY "teachers_can_approve_their_students"
      ON users
      FOR UPDATE
      TO authenticated
      USING (
-       -- The student being updated belongs to this teacher
-       teacher_id = auth.uid() AND
-       -- The current user is a teacher
-       (SELECT role FROM users WHERE id = auth.uid()) = 'teacher'
+       -- Allow if: the row being updated is a student assigned to the current teacher
+       EXISTS (
+         SELECT 1 FROM users teacher
+         WHERE teacher.id = auth.uid()
+         AND teacher.role = 'teacher'
+         AND users.teacher_id = teacher.id
+         AND users.role = 'student'
+       )
      )
      WITH CHECK (
-       -- The student being updated belongs to this teacher
-       teacher_id = auth.uid() AND
-       -- The current user is a teacher
-       (SELECT role FROM users WHERE id = auth.uid()) = 'teacher' AND
-       -- Only allow updating the approved field (prevent changing other sensitive fields)
-       -- The role cannot be changed
-       role = (SELECT role FROM users WHERE id = users.id) AND
-       -- The email cannot be changed
-       email = (SELECT email FROM users WHERE id = users.id) AND
-       -- The teacher_id cannot be changed
-       teacher_id = (SELECT teacher_id FROM users WHERE id = users.id)
+       -- Allow if: the row being updated is a student assigned to the current teacher
+       EXISTS (
+         SELECT 1 FROM users teacher
+         WHERE teacher.id = auth.uid()
+         AND teacher.role = 'teacher'
+         AND users.teacher_id = teacher.id
+         AND users.role = 'student'
+       )
      );
    ```
 
@@ -94,6 +99,13 @@ After pushing the latest code changes to GitHub:
 
 If approval still fails, check browser console for error messages:
 
+**Subquery Error:**
+```
+Error code: 21000
+Message: "more than one row returned by a subquery used as an expression"
+```
+→ Old/incorrect policy is still active. Run the DROP and CREATE commands from Step 1 again.
+
 **Permission Error:**
 ```
 Error code: 42501
@@ -130,6 +142,7 @@ Failed to fetch
 - [ ] Tab switching doesn't redirect (Netlify)
 
 ## Related Files
-- `fix-teacher-approval-rls.sql` - SQL migration
+- `fix-teacher-approval-rls-v2.sql` - **CORRECTED SQL migration (use this one)**
+- `fix-teacher-approval-rls.sql` - ~~Old version (has subquery error)~~
 - `src/components/teachers/ManageStudents.jsx` - Approval logic with enhanced error handling
 - `src/App.jsx` - Tab switching fix (activeViews array)
