@@ -44,14 +44,22 @@ export default function ManageStudents({ setView, appState }) {
 
   const handleApprove = async (studentId) => {
     try {
+      console.log("Approving student:", studentId);
       const { error } = await supabase
         .from("users")
         .update({ approved: true })
         .eq("id", studentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Approval error:", error);
+        throw error;
+      }
+
+      console.log("Student approved successfully");
+      setAlertModal({ isOpen: true, title: "Success", message: "Student approved successfully!", type: "success" });
       await fetchStudents();
     } catch (err) {
+      console.error("handleApprove error:", err);
       setAlertModal({ isOpen: true, title: "Error", message: "Error approving student: " + err.message, type: "error" });
     }
   };

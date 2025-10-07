@@ -148,21 +148,28 @@ export default function QuizApp() {
     const routeByRole = (role) => {
       // Check if there's a saved view in sessionStorage (active session)
       const savedView = sessionStorage.getItem('quizapp_view');
-      const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
+
+      // All views that should not trigger redirect to dashboard
+      const activeViews = [
+        'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
+        'manage-students', 'manage-quizzes', 'reports', 'settings',
+        'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
+        'create-quiz'
+      ];
 
       console.log('[routeByRole] Current view state:', view);
       console.log('[routeByRole] Saved view from storage:', savedView);
       console.log('[routeByRole] User role:', role);
 
-      // CRITICAL: Don't redirect if user has an active session
+      // CRITICAL: Don't redirect if user has an active session or is already on a valid page
       // Check both the current view state AND sessionStorage for maximum safety
       if ((view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView))) {
-        console.log('[routeByRole] Preserving active session, not redirecting');
+        console.log('[routeByRole] Preserving current view, not redirecting');
         return;
       }
 
-      // Only redirect if we're sure there's no active session
-      console.log('[routeByRole] No active session found, routing to dashboard');
+      // Only redirect if we're sure user is on login/register/verify page
+      console.log('[routeByRole] No active view found, routing to dashboard');
       if (role === "teacher") setView("teacher-dashboard");
       else if (role === "superadmin") setView("superadmin-dashboard");
       else if (role === "student") setView("student-dashboard");
@@ -317,23 +324,30 @@ export default function QuizApp() {
 
             // Check if there's an active session saved
             const savedView = sessionStorage.getItem('quizapp_view');
-            const activeViews = ['teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz'];
+
+            // All views that should not trigger redirect to dashboard
+            const activeViews = [
+              'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
+              'manage-students', 'manage-quizzes', 'reports', 'settings',
+              'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
+              'create-quiz'
+            ];
 
             console.log('[onAuthStateChange] Current view:', view);
             console.log('[onAuthStateChange] Saved view:', savedView);
             console.log('[onAuthStateChange] Event type:', event);
 
-            // CRITICAL: Only redirect if explicitly a new sign-in AND no active session
-            // Never redirect for token refreshes, initial sessions, or if user has active session
-            const hasActiveSession = (view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView));
+            // CRITICAL: Only redirect if explicitly a new sign-in AND no active session/valid view
+            // Never redirect for token refreshes, initial sessions, or if user has active view
+            const hasActiveView = (view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView));
 
-            if (event === "SIGNED_IN" && !hasActiveSession) {
+            if (event === "SIGNED_IN" && !hasActiveView) {
               console.log('[onAuthStateChange] Fresh sign-in detected, routing to dashboard');
               if (profile.role === "teacher") setView("teacher-dashboard");
               else if (profile.role === "superadmin") setView("superadmin-dashboard");
               else setView("student-dashboard");
             } else {
-              console.log('[onAuthStateChange] Preserving current view (event:', event, ', hasActiveSession:', hasActiveSession, ')');
+              console.log('[onAuthStateChange] Preserving current view (event:', event, ', hasActiveView:', hasActiveView, ')');
             }
           } else {
             // No profile exists - this is a new OAuth user
