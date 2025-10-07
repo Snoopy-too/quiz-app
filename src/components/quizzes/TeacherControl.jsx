@@ -280,21 +280,43 @@ export default function TeacherControl({ sessionId, setView }) {
     }
 
     try {
+      let question = questionsToUse[questionIndex];
+      let answerOrder = null;
+
+      // Randomize answer order if quiz setting enabled
+      if (quiz.randomize_answers && question.options) {
+        // Create array of indices [0, 1, 2, 3] and shuffle them
+        const indices = question.options.map((_, i) => i);
+        const shuffledIndices = shuffleArray([...indices]);
+
+        // Reorder options based on shuffled indices
+        const shuffledOptions = shuffledIndices.map(i => question.options[i]);
+        question = { ...question, options: shuffledOptions };
+        answerOrder = shuffledIndices;
+      }
+
+      // Get current question_configurations from session
+      const { data: currentSession } = await supabase
+        .from("quiz_sessions")
+        .select("question_configurations")
+        .eq("id", sessionId)
+        .single();
+
+      // Update question_configurations with answer order for this question
+      const questionConfigs = currentSession?.question_configurations || {};
+      if (answerOrder) {
+        questionConfigs[question.id] = { answer_order: answerOrder };
+      }
+
+      // Update database with current question and configurations
       await supabase
         .from("quiz_sessions")
         .update({
           current_question_index: questionIndex,
           status: "question_active",
+          question_configurations: questionConfigs,
         })
         .eq("id", sessionId);
-
-      let question = questionsToUse[questionIndex];
-
-      // Randomize answer order if quiz setting enabled
-      if (quiz.randomize_answers && question.options) {
-        const shuffledOptions = shuffleArray([...question.options]);
-        question = { ...question, options: shuffledOptions };
-      }
 
       setCurrentQuestion(question);
       setShowResults(false);
@@ -302,6 +324,7 @@ export default function TeacherControl({ sessionId, setView }) {
         ...session,
         current_question_index: questionIndex,
         status: "question_active",
+        question_configurations: questionConfigs,
       });
 
       // Auto-advance after time limit
