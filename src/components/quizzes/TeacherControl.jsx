@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
-import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club } from "lucide-react";
+import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -22,6 +22,8 @@ export default function TeacherControl({ sessionId, setView }) {
   const [showModeSelection, setShowModeSelection] = useState(true);
   const [selectedMode, setSelectedMode] = useState(null);
   const [countdownValue, setCountdownValue] = useState(5);
+  const [questionTimeRemaining, setQuestionTimeRemaining] = useState(0);
+  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState(null);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -40,6 +42,42 @@ export default function TeacherControl({ sessionId, setView }) {
       return () => clearTimeout(timer);
     }
   }, [session?.status, currentQuestion, countdownValue]);
+
+  // Question timer countdown effect
+  useEffect(() => {
+    if (session?.status === "question_active" && questionTimeRemaining > 0) {
+      const timer = setInterval(() => {
+        setQuestionTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [session?.status, questionTimeRemaining]);
+
+  // Auto-advance when all students have answered
+  useEffect(() => {
+    if (session?.status === "question_active" && participants.length > 0 && liveAnswers.length > 0) {
+      const allAnswered = participants.filter((p) =>
+        liveAnswers.some((a) => a.participant_id === p.id)
+      ).length === participants.length;
+
+      if (allAnswered && autoAdvanceTimer) {
+        // All students have answered - cancel the auto-advance timer and show results immediately
+        clearTimeout(autoAdvanceTimer);
+        setAutoAdvanceTimer(null);
+        // Give a brief moment for UI to update
+        setTimeout(() => {
+          proceedToResults();
+        }, 1000);
+      }
+    }
+  }, [liveAnswers, participants, session?.status]);
 
   const loadSession = async () => {
     try {
@@ -307,9 +345,15 @@ export default function TeacherControl({ sessionId, setView }) {
         })
         .eq("id", sessionId);
 
+      // Clear any existing auto-advance timer
+      if (autoAdvanceTimer) {
+        clearTimeout(autoAdvanceTimer);
+      }
+
       setCurrentQuestion(question);
       setShowResults(false);
       setLiveAnswers([]); // Reset live answers for new question
+      setQuestionTimeRemaining(question.time_limit); // Start countdown
       setSession({
         ...session,
         current_question_index: questionIndex,
@@ -320,12 +364,43 @@ export default function TeacherControl({ sessionId, setView }) {
       await loadLiveAnswers(question.id);
 
       // Auto-advance after time limit
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         showQuestionResults(questionIndex);
       }, question.time_limit * 1000);
+      setAutoAdvanceTimer(timer);
     } catch (err) {
       setAlertModal({ isOpen: true, title: "Error", message: "Error showing question: " + err.message, type: "error" });
     }
+  };
+
+  const handleShowResults = () => {
+    const allAnswered = participants.filter((p) =>
+      liveAnswers.some((a) => a.participant_id === p.id)
+    ).length === participants.length;
+
+    // If there's still time and not all students have answered, show confirmation
+    if (questionTimeRemaining > 0 && !allAnswered) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Show Results Early?",
+        message: `There are still ${questionTimeRemaining} seconds remaining and ${participants.length - participants.filter((p) => liveAnswers.some((a) => a.participant_id === p.id)).length} student(s) haven't answered yet. Are you sure you want to show results now?`,
+        onConfirm: () => {
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          proceedToResults();
+        }
+      });
+    } else {
+      proceedToResults();
+    }
+  };
+
+  const proceedToResults = () => {
+    // Cancel auto-advance timer
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+      setAutoAdvanceTimer(null);
+    }
+    showQuestionResults(session.current_question_index);
   };
 
   const showQuestionResults = async (questionIndex) => {
@@ -645,6 +720,12 @@ export default function TeacherControl({ sessionId, setView }) {
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-purple-100 px-4 py-2 rounded-lg">
+              <Clock size={20} className="text-purple-600" />
+              <span className="text-2xl font-bold text-purple-600">
+                {questionTimeRemaining}s
+              </span>
+            </div>
             <span className="text-gray-600">
               Question {session.current_question_index + 1} of {questions.length}
             </span>
@@ -723,7 +804,7 @@ export default function TeacherControl({ sessionId, setView }) {
                 </span>
               </div>
               <button
-                onClick={() => showQuestionResults(session.current_question_index)}
+                onClick={handleShowResults}
                 className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
               >
                 Show Results
