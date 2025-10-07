@@ -22,6 +22,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
     try {
       // Find session by PIN
       console.log('Looking for quiz with PIN:', joinPin);
+      console.log('Current user:', appState.currentUser?.id, appState.currentUser?.email);
 
       // Use SELECT * to avoid PostgreSQL aggregate function conflict with 'mode' column
       const { data: sessions, error: sessionError } = await supabase
@@ -32,12 +33,26 @@ export default function StudentDashboard({ appState, setAppState, setView, error
       console.log('Query result:', { sessions, sessionError });
 
       if (sessionError) {
-        console.error('Session query error:', sessionError);
+        console.error('Session query error details:', {
+          message: sessionError.message,
+          code: sessionError.code,
+          details: sessionError.details,
+          hint: sessionError.hint
+        });
+
+        // Check if it's an RLS policy error
+        if (sessionError.code === '42501' || sessionError.message?.includes('policy')) {
+          setError("Permission denied. Please ensure you're logged in and approved by your teacher.");
+          setLoading(false);
+          return;
+        }
+
         throw sessionError;
       }
 
       if (!sessions || sessions.length === 0) {
-        setError("Invalid PIN - Quiz not found");
+        console.warn('No quiz session found with PIN:', joinPin);
+        setError("Invalid PIN - Quiz not found. Please check the PIN and try again.");
         setLoading(false);
         return;
       }
