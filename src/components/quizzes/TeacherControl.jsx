@@ -16,6 +16,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [questionOrder, setQuestionOrder] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [questionResults, setQuestionResults] = useState([]);
+  const [liveAnswers, setLiveAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModeSelection, setShowModeSelection] = useState(true);
@@ -137,6 +138,20 @@ export default function TeacherControl({ sessionId, setView }) {
     }
   };
 
+  const loadLiveAnswers = async (questionId) => {
+    if (!questionId) return;
+
+    const { data, error } = await supabase
+      .from("quiz_answers")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("question_id", questionId);
+
+    if (!error) {
+      setLiveAnswers(data || []);
+    }
+  };
+
   const setupRealtimeSubscriptions = () => {
     // Subscribe to new participants
     const participantChannel = supabase
@@ -166,8 +181,12 @@ export default function TeacherControl({ sessionId, setView }) {
           table: "quiz_answers",
           filter: `session_id=eq.${sessionId}`,
         },
-        () => {
+        (payload) => {
           loadParticipants();
+          // Reload live answers if this answer is for the current question
+          if (currentQuestion && payload.new.question_id === currentQuestion.id) {
+            loadLiveAnswers(currentQuestion.id);
+          }
         }
       )
       .subscribe();
@@ -290,11 +309,15 @@ export default function TeacherControl({ sessionId, setView }) {
 
       setCurrentQuestion(question);
       setShowResults(false);
+      setLiveAnswers([]); // Reset live answers for new question
       setSession({
         ...session,
         current_question_index: questionIndex,
         status: "question_active",
       });
+
+      // Load any existing answers for this question (in case of refresh)
+      await loadLiveAnswers(question.id);
 
       // Auto-advance after time limit
       setTimeout(() => {
@@ -694,7 +717,7 @@ export default function TeacherControl({ sessionId, setView }) {
                 <Users size={24} />
                 <span className="text-xl font-semibold">
                   {participants.filter((p) =>
-                    questionResults.some((a) => a.participant_id === p.id)
+                    liveAnswers.some((a) => a.participant_id === p.id)
                   ).length}{" "}
                   / {participants.length} answered
                 </span>
