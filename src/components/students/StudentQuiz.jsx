@@ -36,22 +36,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     questionsRef.current = questions;
   }, [questions]);
 
-  // Helper function to apply answer order from question_configurations
-  const applyAnswerOrder = (question, session) => {
-    if (!session?.question_configurations || !question) {
-      return question;
-    }
-
-    const config = session.question_configurations[question.id];
-    if (config?.answer_order && question.options) {
-      // Reorder options based on the stored answer_order indices
-      const reorderedOptions = config.answer_order.map(index => question.options[index]);
-      return { ...question, options: reorderedOptions };
-    }
-
-    return question;
-  };
-
   const joinSession = async () => {
     try {
       // Load session - avoid .single() due to PostgreSQL 'mode' column conflict
@@ -174,10 +158,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       if (session.status === "question_active" && orderedQuestions.length > 0) {
         const currentQuestionData = orderedQuestions[session.current_question_index];
         if (currentQuestionData) {
-          // Apply answer order from session configuration
-          const questionWithAnswerOrder = applyAnswerOrder(currentQuestionData, session);
-          setCurrentQuestion(questionWithAnswerOrder);
-          setTimeRemaining(questionWithAnswerOrder.time_limit);
+          setCurrentQuestion(currentQuestionData);
+          setTimeRemaining(currentQuestionData.time_limit);
         }
       }
 
@@ -213,11 +195,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             const currentQuestions = questionsRef.current;
             const questionData = currentQuestions[updatedSession.current_question_index];
             if (questionData) {
-              // Apply answer order from session configuration
-              const questionWithAnswerOrder = applyAnswerOrder(questionData, updatedSession);
               setShowCountdown(false);
-              setCurrentQuestion(questionWithAnswerOrder);
-              setTimeRemaining(questionWithAnswerOrder.time_limit);
+              setCurrentQuestion(questionData);
+              setTimeRemaining(questionData.time_limit);
               setHasAnswered(false);
               setSelectedOption(null);
               setShowCorrectAnswer(false);

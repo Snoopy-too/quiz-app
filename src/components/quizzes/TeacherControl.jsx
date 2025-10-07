@@ -93,12 +93,9 @@ export default function TeacherControl({ sessionId, setView }) {
         setShuffledQuestions(orderedQuestions);
         setQuestionOrder(session.question_order);
       } else {
-        // Create new order (shuffle if enabled)
-        const shuffled = quizData.randomize_questions 
-          ? shuffleArray([...questionsData])
-          : questionsData;
-        setShuffledQuestions(shuffled);
-        setQuestionOrder(shuffled.map(q => q.id));
+        // Use questions in their original order
+        setShuffledQuestions(questionsData);
+        setQuestionOrder(questionsData.map(q => q.id));
       }
 
       // Load participants
@@ -280,41 +277,14 @@ export default function TeacherControl({ sessionId, setView }) {
     }
 
     try {
-      let question = questionsToUse[questionIndex];
-      let answerOrder = null;
+      const question = questionsToUse[questionIndex];
 
-      // Randomize answer order if quiz setting enabled
-      if (quiz.randomize_answers && question.options) {
-        // Create array of indices [0, 1, 2, 3] and shuffle them
-        const indices = question.options.map((_, i) => i);
-        const shuffledIndices = shuffleArray([...indices]);
-
-        // Reorder options based on shuffled indices
-        const shuffledOptions = shuffledIndices.map(i => question.options[i]);
-        question = { ...question, options: shuffledOptions };
-        answerOrder = shuffledIndices;
-      }
-
-      // Get current question_configurations from session
-      const { data: currentSession } = await supabase
-        .from("quiz_sessions")
-        .select("question_configurations")
-        .eq("id", sessionId)
-        .single();
-
-      // Update question_configurations with answer order for this question
-      const questionConfigs = currentSession?.question_configurations || {};
-      if (answerOrder) {
-        questionConfigs[question.id] = { answer_order: answerOrder };
-      }
-
-      // Update database with current question and configurations
+      // Update database with current question
       await supabase
         .from("quiz_sessions")
         .update({
           current_question_index: questionIndex,
           status: "question_active",
-          question_configurations: questionConfigs,
         })
         .eq("id", sessionId);
 
@@ -324,7 +294,6 @@ export default function TeacherControl({ sessionId, setView }) {
         ...session,
         current_question_index: questionIndex,
         status: "question_active",
-        question_configurations: questionConfigs,
       });
 
       // Auto-advance after time limit

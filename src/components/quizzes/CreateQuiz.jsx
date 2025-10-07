@@ -17,8 +17,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [success, setSuccess] = useState(null);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [randomizeQuestions, setRandomizeQuestions] = useState(false);
-  const [randomizeAnswers, setRandomizeAnswers] = useState(false);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -115,8 +113,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           theme_id: themeId,
           category_id: categoryId || null,
           created_by: user.user.id,
-          randomize_questions: randomizeQuestions,
-          randomize_answers: randomizeAnswers,
+          randomize_questions: false,
+          randomize_answers: false,
           is_template: isTemplate,
           is_public: isPublic,
         },
@@ -127,8 +125,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       setSuccess("Quiz created successfully!");
       setTitle("");
       setCategoryId("");
-      setRandomizeQuestions(false);
-      setRandomizeAnswers(false);
       setIsTemplate(false);
       setIsPublic(false);
       await fetchDefaultTheme(); // Reset to default theme
@@ -234,26 +230,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         {/* Quiz Settings */}
         <div className="border-t pt-4 space-y-3">
           <h3 className="font-semibold text-gray-700">Quiz Settings</h3>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={randomizeQuestions}
-              onChange={(e) => setRandomizeQuestions(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm">Randomize question order</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={randomizeAnswers}
-              onChange={(e) => setRandomizeAnswers(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm">Randomize answer order</span>
-          </label>
 
           <label className="flex items-center gap-2 cursor-pointer">
             <input
