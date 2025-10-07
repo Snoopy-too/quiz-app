@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../../supabaseClient";
 import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
@@ -28,6 +28,9 @@ export default function TeacherControl({ sessionId, setView }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
+  // Ref to hold current question for real-time subscription
+  const currentQuestionRef = useRef(null);
+
   useEffect(() => {
     if (sessionId) {
       loadSession();
@@ -35,6 +38,11 @@ export default function TeacherControl({ sessionId, setView }) {
       return cleanup;
     }
   }, [sessionId]);
+
+  // Keep ref in sync with currentQuestion state
+  useEffect(() => {
+    currentQuestionRef.current = currentQuestion;
+  }, [currentQuestion]);
 
   // Countdown timer effect for quiz start
   useEffect(() => {
@@ -222,8 +230,10 @@ export default function TeacherControl({ sessionId, setView }) {
         (payload) => {
           loadParticipants();
           // Reload live answers if this answer is for the current question
-          if (currentQuestion && payload.new.question_id === currentQuestion.id) {
-            loadLiveAnswers(currentQuestion.id);
+          // Use ref to avoid stale closure
+          const activeQuestion = currentQuestionRef.current;
+          if (activeQuestion && payload.new.question_id === activeQuestion.id) {
+            loadLiveAnswers(activeQuestion.id);
           }
         }
       )
