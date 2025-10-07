@@ -45,22 +45,41 @@ export default function ManageStudents({ setView, appState }) {
   const handleApprove = async (studentId) => {
     try {
       console.log("Approving student:", studentId);
-      const { error } = await supabase
+      console.log("Current user (teacher):", appState.currentUser?.id);
+
+      const { data, error } = await supabase
         .from("users")
         .update({ approved: true })
-        .eq("id", studentId);
+        .eq("id", studentId)
+        .select();
 
       if (error) {
-        console.error("Approval error:", error);
+        console.error("Approval error details:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+
+        // Check if it's an RLS policy error
+        if (error.code === '42501' || error.message?.includes('policy')) {
+          throw new Error("Permission denied. Please ensure the student belongs to you and you have teacher permissions.");
+        }
+
         throw error;
       }
 
-      console.log("Student approved successfully");
+      console.log("Student approved successfully. Updated data:", data);
       setAlertModal({ isOpen: true, title: "Success", message: "Student approved successfully!", type: "success" });
       await fetchStudents();
     } catch (err) {
       console.error("handleApprove error:", err);
-      setAlertModal({ isOpen: true, title: "Error", message: "Error approving student: " + err.message, type: "error" });
+      setAlertModal({
+        isOpen: true,
+        title: "Error",
+        message: err.message || "Error approving student. Check console for details.",
+        type: "error"
+      });
     }
   };
 
