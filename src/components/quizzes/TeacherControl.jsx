@@ -158,12 +158,31 @@ export default function TeacherControl({ sessionId, setView }) {
   const loadParticipants = async () => {
     const { data, error } = await supabase
       .from("session_participants")
-      .select("*, users(name)")
+      .select("*, users(name), teams(id, team_name)")
       .eq("session_id", sessionId)
       .order("score", { ascending: false });
 
     if (!error) {
-      setParticipants(data || []);
+      // Fetch team members for team entries
+      const participantsWithTeams = await Promise.all(
+        (data || []).map(async (p) => {
+          if (p.is_team_entry && p.team_id) {
+            // Fetch team members
+            const { data: members } = await supabase
+              .from("team_members")
+              .select("student_id, users(name)")
+              .eq("team_id", p.team_id);
+
+            return {
+              ...p,
+              teamMembers: members || []
+            };
+          }
+          return p;
+        })
+      );
+
+      setParticipants(participantsWithTeams);
 
       // Group by teams if in team mode
       if (session?.mode === "team") {
@@ -633,20 +652,48 @@ export default function TeacherControl({ sessionId, setView }) {
                 <div className="flex items-center justify-center gap-3 mb-8">
                   <Users className="text-blue-600" size={32} />
                   <p className="text-3xl font-bold">{participants.length}</p>
-                  <p className="text-xl text-gray-600">players</p>
+                  <p className="text-xl text-gray-600">
+                    {participants.filter(p => p.is_team_entry).length > 0
+                      ? "participants"
+                      : "players"}
+                  </p>
                 </div>
 
                 {participants.length > 0 && (
-                  <div className="mb-6 max-h-40 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-2">
-                      {participants.map((p) => (
-                        <div
-                          key={p.id}
-                          className="bg-gray-50 rounded-lg p-2 text-sm font-medium"
-                        >
-                          {p.users?.name || "Anonymous"}
-                        </div>
-                      ))}
+                  <div className="mb-6 max-h-60 overflow-y-auto">
+                    <div className="space-y-2">
+                      {participants.map((p) => {
+                        if (p.is_team_entry && p.teams) {
+                          // Team entry - display bold team name with members
+                          return (
+                            <div
+                              key={p.id}
+                              className="bg-blue-50 border border-blue-200 rounded-lg p-3"
+                            >
+                              <div className="font-bold text-lg text-blue-900">
+                                {p.teams.team_name}
+                              </div>
+                              <div className="ml-4 mt-1 space-y-0.5">
+                                {p.teamMembers?.map((member, idx) => (
+                                  <div key={idx} className="text-sm text-gray-600">
+                                    - {member.users?.name || "Unknown"}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          // Individual entry - display normally
+                          return (
+                            <div
+                              key={p.id}
+                              className="bg-gray-50 rounded-lg p-2 text-sm font-medium"
+                            >
+                              {p.users?.name || "Anonymous"}
+                            </div>
+                          );
+                        }
+                      })}
                     </div>
                   </div>
                 )}
