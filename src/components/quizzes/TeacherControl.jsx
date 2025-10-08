@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../../supabaseClient";
 import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
@@ -12,6 +12,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [theme, setTheme] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questionOrder, setQuestionOrder] = useState(null);
   const [showResults, setShowResults] = useState(false);
@@ -120,6 +121,21 @@ export default function TeacherControl({ sessionId, setView }) {
       }
 
       setQuiz(quizData);
+
+      if (quizData.theme_id) {
+        const { data: themeResults, error: themeError } = await supabase
+          .from("themes")
+          .select("*")
+          .eq("id", quizData.theme_id);
+
+        if (!themeError && themeResults && themeResults.length > 0) {
+          setTheme(themeResults[0]);
+        } else {
+          setTheme(null);
+        }
+      } else {
+        setTheme(null);
+      }
 
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
@@ -475,6 +491,71 @@ export default function TeacherControl({ sessionId, setView }) {
     });
   };
 
+  const getBackgroundConfig = () => {
+    if (theme?.background_image_url) {
+      return {
+        style: {
+          backgroundImage: `url(${theme.background_image_url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        },
+        overlay: true,
+      };
+    }
+
+    if (theme && (theme.primary_color || theme.secondary_color)) {
+      const primary = theme.primary_color || "#7C3AED";
+      const secondary = theme.secondary_color || primary;
+      return {
+        style: {
+          background: `linear-gradient(135deg, ${primary}, ${secondary})`,
+        },
+        overlay: false,
+      };
+    }
+
+    if (quiz?.background_image_url) {
+      return {
+        style: {
+          backgroundImage: `url(${quiz.background_image_url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        },
+        overlay: true,
+      };
+    }
+
+    return {
+      style: {
+        background: "linear-gradient(135deg, #7C3AED, #2563EB)",
+      },
+      overlay: false,
+    };
+  };
+
+  const backgroundConfig = useMemo(getBackgroundConfig, [theme, quiz]);
+
+  const renderWithBackground = (content, options = {}) => {
+    const { overlayStrength = 0.45 } = options;
+    const useOverlay = backgroundConfig.overlay;
+
+    return (
+      <ModalsWrapper>
+        <div className="min-h-screen relative" style={backgroundConfig.style}>
+          {useOverlay && (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: `rgba(0, 0, 0, ${overlayStrength})` }}
+            />
+          )}
+          <div className="relative z-10 min-h-screen flex flex-col">
+            {content}
+          </div>
+        </div>
+      </ModalsWrapper>
+    );
+  };
+
   // Render modals wrapper for all views
   const ModalsWrapper = ({ children }) => (
     <>
@@ -527,9 +608,8 @@ export default function TeacherControl({ sessionId, setView }) {
 
   // Mode Selection
   if (session.status === "waiting" && showModeSelection) {
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -540,50 +620,51 @@ export default function TeacherControl({ sessionId, setView }) {
           </button>
         </nav>
 
-        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-4xl w-full">
-            <h2 className="text-4xl font-bold mb-4">Select Quiz Mode</h2>
-            <p className="text-gray-600 mb-8">Choose how you want students to participate</p>
+        <div className="flex-1">
+          <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-4xl w-full">
+              <h2 className="text-4xl font-bold mb-4">Select Quiz Mode</h2>
+              <p className="text-gray-600 mb-8">Choose how you want students to participate</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Classic Mode */}
-              <div
-                onClick={() => selectMode("classic")}
-                className="border-2 border-gray-300 rounded-xl p-8 hover:border-purple-600 hover:shadow-lg transition cursor-pointer group"
-              >
-                <div className="text-6xl mb-4">🎯</div>
-                <h3 className="text-2xl font-bold mb-3 group-hover:text-purple-600">Classic Mode</h3>
-                <p className="text-gray-600 mb-4">
-                  Students join individually using the PIN and compete on their own.
-                </p>
-                <ul className="text-left text-sm text-gray-600 space-y-2">
-                  <li>✓ Individual scores</li>
-                  <li>✓ Personal leaderboard</li>
-                  <li>✓ Quick setup</li>
-                </ul>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Classic Mode */}
+                <div
+                  onClick={() => selectMode("classic")}
+                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-purple-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                >
+                  <div className="text-6xl mb-4">🎯</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-purple-600">Classic Mode</h3>
+                  <p className="text-gray-600 mb-4">
+                    Students join individually using the PIN and compete on their own.
+                  </p>
+                  <ul className="text-left text-sm text-gray-600 space-y-2">
+                    <li>✓ Individual scores</li>
+                    <li>✓ Personal leaderboard</li>
+                    <li>✓ Quick setup</li>
+                  </ul>
+                </div>
 
-              {/* Team Mode */}
-              <div
-                onClick={() => selectMode("team")}
-                className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition cursor-pointer group"
-              >
-                <div className="text-6xl mb-4">👥</div>
-                <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
-                <p className="text-gray-600 mb-4">
-                  Students form teams with custom names and compete together.
-                </p>
-                <ul className="text-left text-sm text-gray-600 space-y-2">
-                  <li>✓ Team collaboration</li>
-                  <li>✓ Custom team names</li>
-                  <li>✓ Combined scores</li>
-                </ul>
+                {/* Team Mode */}
+                <div
+                  onClick={() => selectMode("team")}
+                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                >
+                  <div className="text-6xl mb-4">👥</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
+                  <p className="text-gray-600 mb-4">
+                    Students form teams with custom names and compete together.
+                  </p>
+                  <ul className="text-left text-sm text-gray-600 space-y-2">
+                    <li>✓ Team collaboration</li>
+                    <li>✓ Custom team names</li>
+                    <li>✓ Combined scores</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+      </>
     );
   }
 
@@ -591,9 +672,8 @@ export default function TeacherControl({ sessionId, setView }) {
   if (session.status === "waiting" && !showModeSelection) {
     const isTeamMode = session.mode === "team";
 
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <div className="flex items-center gap-4">
@@ -611,120 +691,118 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </nav>
 
-        <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-2xl w-full">
-            <h2 className="text-4xl font-bold mb-6">Join at QuizMaster</h2>
-            <div className="bg-gray-100 rounded-xl p-8 mb-6">
-              <p className="text-gray-600 text-xl mb-2">Game PIN:</p>
-              <p className="text-7xl font-bold text-purple-600">{session.pin}</p>
+        <div className="flex-1">
+          <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-2xl w-full">
+              <h2 className="text-4xl font-bold mb-6">Join at QuizMaster</h2>
+              <div className="bg-gray-100 rounded-xl p-8 mb-6">
+                <p className="text-gray-600 text-xl mb-2">Game PIN:</p>
+                <p className="text-7xl font-bold text-purple-600">{session.pin}</p>
+              </div>
+
+              {isTeamMode ? (
+                <>
+                  <div className="flex items-center justify-center gap-3 mb-8">
+                    <Users className="text-blue-600" size={32} />
+                    <p className="text-3xl font-bold">{teams.length}</p>
+                    <p className="text-xl text-gray-600">teams joined</p>
+                  </div>
+
+                  {teams.length > 0 && (
+                    <div className="mb-6 max-h-60 overflow-y-auto">
+                      <div className="space-y-3">
+                        {teams.map((team, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                          >
+                            <div className="font-bold text-lg text-blue-900 mb-2">
+                              {team.name}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Members: {team.members.map(m => m.users?.name || m.player_name).join(", ")}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-center gap-3 mb-8">
+                    <Users className="text-blue-600" size={32} />
+                    <p className="text-3xl font-bold">{participants.length}</p>
+                    <p className="text-xl text-gray-600">
+                      {participants.filter(p => p.is_team_entry).length > 0
+                        ? "participants"
+                        : "players"}
+                    </p>
+                  </div>
+
+                  {participants.length > 0 && (
+                    <div className="mb-6 max-h-60 overflow-y-auto">
+                      <div className="space-y-2">
+                        {participants.map((p) => {
+                          if (p.is_team_entry && p.teams) {
+                            return (
+                              <div
+                                key={p.id}
+                                className="bg-blue-50 border border-blue-200 rounded-lg p-3"
+                              >
+                                <div className="font-bold text-lg text-blue-900">
+                                  {p.teams.team_name}
+                                </div>
+                                <div className="ml-4 mt-1 space-y-0.5">
+                                  {p.teamMembers?.map((member, idx) => (
+                                    <div key={idx} className="text-sm text-gray-600">
+                                      - {member.users?.name || "Unknown"}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div
+                                key={p.id}
+                                className="bg-gray-50 rounded-lg p-2 text-sm font-medium"
+                              >
+                                {p.users?.name || "Anonymous"}
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <button
+                onClick={startQuiz}
+                disabled={isTeamMode ? teams.length === 0 : participants.length === 0}
+                className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+              >
+                <Play size={32} />
+                Start Quiz
+              </button>
+              {((isTeamMode && teams.length === 0) || (!isTeamMode && participants.length === 0)) && (
+                <p className="text-gray-500 mt-4">
+                  Waiting for {isTeamMode ? "teams" : "players"} to join...
+                </p>
+              )}
             </div>
-
-            {isTeamMode ? (
-              <>
-                <div className="flex items-center justify-center gap-3 mb-8">
-                  <Users className="text-blue-600" size={32} />
-                  <p className="text-3xl font-bold">{teams.length}</p>
-                  <p className="text-xl text-gray-600">teams joined</p>
-                </div>
-
-                {teams.length > 0 && (
-                  <div className="mb-6 max-h-60 overflow-y-auto">
-                    <div className="space-y-3">
-                      {teams.map((team, idx) => (
-                        <div
-                          key={idx}
-                          className="bg-blue-50 border border-blue-200 rounded-lg p-4"
-                        >
-                          <div className="font-bold text-lg text-blue-900 mb-2">
-                            {team.name}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            Members: {team.members.map(m => m.users?.name || m.player_name).join(", ")}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-center gap-3 mb-8">
-                  <Users className="text-blue-600" size={32} />
-                  <p className="text-3xl font-bold">{participants.length}</p>
-                  <p className="text-xl text-gray-600">
-                    {participants.filter(p => p.is_team_entry).length > 0
-                      ? "participants"
-                      : "players"}
-                  </p>
-                </div>
-
-                {participants.length > 0 && (
-                  <div className="mb-6 max-h-60 overflow-y-auto">
-                    <div className="space-y-2">
-                      {participants.map((p) => {
-                        if (p.is_team_entry && p.teams) {
-                          // Team entry - display bold team name with members
-                          return (
-                            <div
-                              key={p.id}
-                              className="bg-blue-50 border border-blue-200 rounded-lg p-3"
-                            >
-                              <div className="font-bold text-lg text-blue-900">
-                                {p.teams.team_name}
-                              </div>
-                              <div className="ml-4 mt-1 space-y-0.5">
-                                {p.teamMembers?.map((member, idx) => (
-                                  <div key={idx} className="text-sm text-gray-600">
-                                    - {member.users?.name || "Unknown"}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        } else {
-                          // Individual entry - display normally
-                          return (
-                            <div
-                              key={p.id}
-                              className="bg-gray-50 rounded-lg p-2 text-sm font-medium"
-                            >
-                              {p.users?.name || "Anonymous"}
-                            </div>
-                          );
-                        }
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            <button
-              onClick={startQuiz}
-              disabled={isTeamMode ? teams.length === 0 : participants.length === 0}
-              className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
-            >
-              <Play size={32} />
-              Start Quiz
-            </button>
-            {((isTeamMode && teams.length === 0) || (!isTeamMode && participants.length === 0)) && (
-              <p className="text-gray-500 mt-4">
-                Waiting for {isTeamMode ? "teams" : "players"} to join...
-              </p>
-            )}
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+      </>
     );
   }
 
   // Countdown screen - Quiz starting
   if (session.status === "active" && !currentQuestion) {
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -735,30 +813,30 @@ export default function TeacherControl({ sessionId, setView }) {
           </button>
         </nav>
 
-        <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
-            <h2 className="text-4xl font-bold text-gray-800 mb-8">{quiz.title}</h2>
-            <div className="mb-4">
-              <p className="text-gray-600 mb-4">Starting in...</p>
-              <div className="text-8xl font-bold text-purple-600 animate-pulse">
-                {countdownValue}
+        <div className="flex-1">
+          <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
+              <h2 className="text-4xl font-bold text-gray-800 mb-8">{quiz.title}</h2>
+              <div className="mb-4">
+                <p className="text-gray-600 mb-4">Starting in...</p>
+                <div className="text-8xl font-bold text-purple-600 animate-pulse">
+                  {countdownValue}
+                </div>
               </div>
+              <p className="text-sm text-gray-500 mt-6">
+                Get ready! The first question will appear shortly.
+              </p>
             </div>
-            <p className="text-sm text-gray-500 mt-6">
-              Get ready! The first question will appear shortly.
-            </p>
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+      </>
     );
   }
 
   // Quiz is active - showing question
   if (session.status === "question_active" && currentQuestion) {
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
           <div className="flex items-center gap-4">
@@ -780,13 +858,14 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
         </nav>
 
-        <div className="container mx-auto p-6">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <div className="text-center mb-8">
-              <p className="text-gray-600 mb-4">Time: {currentQuestion.time_limit}s</p>
-              <h2 className="text-4xl font-bold mb-6">{currentQuestion.question_text}</h2>
+        <div className="flex-1">
+          <div className="container mx-auto p-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
+              <div className="text-center mb-8">
+                <p className="text-gray-600 mb-4">Time: {currentQuestion.time_limit}s</p>
+                <h2 className="text-4xl font-bold mb-6">{currentQuestion.question_text}</h2>
 
-              {/* Media Display */}
+                {/* Media Display */}
               {currentQuestion.image_url && (
                 <img
                   src={currentQuestion.image_url}
@@ -834,7 +913,7 @@ export default function TeacherControl({ sessionId, setView }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Users size={24} />
@@ -853,15 +932,15 @@ export default function TeacherControl({ sessionId, setView }) {
                   Show Results
                 </button>
               ) : (
-                <div className="text-gray-500 text-sm">
+                <div className="text-gray-200 text-sm">
                   Waiting for all students...
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+        </div>
+      </>
     );
   }
 
@@ -878,9 +957,8 @@ export default function TeacherControl({ sessionId, setView }) {
       }
     });
 
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -891,13 +969,14 @@ export default function TeacherControl({ sessionId, setView }) {
           </button>
         </nav>
 
-        <div className="container mx-auto p-6">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h2 className="text-3xl font-bold text-center mb-6">
-              {currentQuestion.question_text}
-            </h2>
+        <div className="flex-1">
+          <div className="container mx-auto p-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
+              <h2 className="text-3xl font-bold text-center mb-6">
+                {currentQuestion.question_text}
+              </h2>
 
-            {/* Media Display in Results */}
+              {/* Media Display in Results */}
             {currentQuestion.image_url && (
               <img
                 src={currentQuestion.image_url}
@@ -976,7 +1055,7 @@ export default function TeacherControl({ sessionId, setView }) {
           </div>
 
           {/* Leaderboard */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
             <h3 className="text-2xl font-bold mb-4 text-center">Leaderboard</h3>
             <div className="space-y-2">
               {participants.slice(0, 5).map((p, idx) => (
@@ -1000,8 +1079,8 @@ export default function TeacherControl({ sessionId, setView }) {
             </div>
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+        </div>
+      </>
     );
   }
 
@@ -1009,9 +1088,8 @@ export default function TeacherControl({ sessionId, setView }) {
   if (session.status === "completed") {
     const topThree = participants.slice(0, 3);
 
-    return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gradient-to-br from-yellow-500 to-orange-600">
+    return renderWithBackground(
+      <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
           <button
@@ -1022,13 +1100,14 @@ export default function TeacherControl({ sessionId, setView }) {
           </button>
         </nav>
 
-        <div className="container mx-auto p-6">
-          <div className="bg-white rounded-2xl shadow-2xl p-12 mb-6">
-            <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
-            <h2 className="text-4xl font-bold mb-12 text-center">Quiz Complete!</h2>
+        <div className="flex-1">
+          <div className="container mx-auto p-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 mb-6">
+              <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
+              <h2 className="text-4xl font-bold mb-12 text-center">Quiz Complete!</h2>
 
-            {/* Podium Animation */}
-            {topThree.length >= 3 && <PodiumAnimation winners={topThree} />}
+              {/* Podium Animation */}
+              {topThree.length >= 3 && <PodiumAnimation winners={topThree} />}
 
             {/* Full Leaderboard */}
             <div className="max-w-2xl mx-auto">
@@ -1073,8 +1152,8 @@ export default function TeacherControl({ sessionId, setView }) {
             </div>
           </div>
         </div>
-      </div>
-      </ModalsWrapper>
+        </div>
+      </>
     );
   }
 

@@ -11,6 +11,7 @@ export default function ManageQuizzes({ setView, appState }) {
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [themesById, setThemesById] = useState({});
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedParentFolder, setSelectedParentFolder] = useState(null);
@@ -29,11 +30,37 @@ export default function ManageQuizzes({ setView, appState }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
-    fetchQuizzes();
-    fetchFolders();
+    const init = async () => {
+      const themesMap = await fetchThemes();
+      await fetchQuizzes(themesMap);
+      await fetchFolders();
+    };
+
+    init();
   }, []);
 
-  const fetchQuizzes = async () => {
+  const fetchThemes = async () => {
+    try {
+      const { data, error: themeError } = await supabase
+        .from("themes")
+        .select("id, name, background_image_url, primary_color, secondary_color, text_color");
+
+      if (themeError) throw themeError;
+
+      const mapped = {};
+      (data || []).forEach((theme) => {
+        mapped[theme.id] = theme;
+      });
+
+      setThemesById(mapped);
+      return mapped;
+    } catch (err) {
+      console.error("Error fetching themes:", err.message);
+      return {};
+    }
+  };
+
+  const fetchQuizzes = async (themeMap = themesById) => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) {
@@ -43,24 +70,18 @@ export default function ManageQuizzes({ setView, appState }) {
 
       const { data, error: fetchError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id), themes(id, name, background_image_url, primary_color, secondary_color, text_color)")
+        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id)")
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // Add question count to each quiz
-      const quizzesWithCount = (data || []).map((quiz) => {
-        const { questions, themes, ...rest } = quiz;
-        const themeDetails = Array.isArray(themes) ? themes[0] : themes;
-
-        return {
-          ...rest,
-          questions,
-          questionCount: questions?.length || 0,
-          themeDetails: themeDetails || null
-        };
-      });
+      const quizzesWithCount = (data || []).map((quiz) => ({
+        ...quiz,
+        questionCount: quiz.questions?.length || 0,
+        themeDetails: themeMap[quiz.theme_id] || null
+      }));
 
       setQuizzes(quizzesWithCount);
     } catch (err) {
@@ -658,30 +679,32 @@ export default function ManageQuizzes({ setView, appState }) {
             {/* Render quizzes in this folder as simple clickable items */}
             {folderQuizzes.length > 0 && (
               <div className="ml-8 mt-1 space-y-1">
-                {folderQuizzes.map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    onClick={() => setActiveFolder(folder.id)}
-                    className="py-1.5 px-3 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer transition-colors flex items-center gap-2"
-                  >
+                {folderQuizzes.map((quiz) => {
+                  const theme = quiz.themeDetails || themesById[quiz.theme_id] || null;
+                  const backgroundImage = theme?.background_image_url || quiz.background_image_url;
+                  const gradient = theme?.primary_color
+                    ? `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color || theme.primary_color})`
+                    : "linear-gradient(135deg, #7C3AED, #2563EB)";
+
+                  return (
                     <div
-                      className="w-3 h-3 rounded-full border border-white/60 shadow"
-                      style={{
-                        backgroundImage: quiz.themeDetails?.background_image_url || quiz.background_image_url
-                          ? `url(${quiz.themeDetails?.background_image_url || quiz.background_image_url})`
-                          : undefined,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        background: quiz.themeDetails?.primary_color
-                          ? `linear-gradient(135deg, ${quiz.themeDetails.primary_color}, ${quiz.themeDetails.secondary_color || quiz.themeDetails.primary_color})`
-                          : quiz.background_image_url
-                            ? undefined
-                            : "linear-gradient(135deg, #7C3AED, #2563EB)"
-                      }}
-                    ></div>
-                    <span className="flex-1">{quiz.title}</span>
-                  </div>
-                ))}
+                      key={quiz.id}
+                      onClick={() => setActiveFolder(folder.id)}
+                      className="py-1.5 px-3 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer transition-colors flex items-center gap-2"
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full border border-white/60 shadow"
+                        style={{
+                          backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                          background: backgroundImage ? undefined : gradient
+                        }}
+                      ></div>
+                      <span className="flex-1">{quiz.title}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -692,7 +715,7 @@ export default function ManageQuizzes({ setView, appState }) {
 
   // Quiz card renderer
   const getThemeMeta = (quiz) => {
-    const theme = quiz.themeDetails;
+    const theme = quiz.themeDetails || themesById[quiz.theme_id] || null;
     const customBackground = quiz.background_image_url;
 
     if (theme?.background_image_url) {
