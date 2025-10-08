@@ -909,7 +909,7 @@ export default function ManageQuizzes({ setView, appState }) {
               <h1 className="text-2xl font-bold text-purple-600">Quiz Manager</h1>
               <div className="h-6 w-px bg-gray-300"></div>
               <span className="text-sm text-gray-600">
-                {quizzes.length} quiz{quizzes.length !== 1 ? "es" : ""} • {folders.length} folder{folders.length !== 1 ? "s" : ""}
+                {quizzes.length} {quizzes.length !== 1 ? "quizzes" : "quiz"} • {folders.length} folder{folders.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
@@ -1091,7 +1091,7 @@ export default function ManageQuizzes({ setView, appState }) {
                           : folders.find((f) => f.id === activeFolder)?.name || "Folder"}
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      {getDisplayedQuizzes().length} quiz{getDisplayedQuizzes().length !== 1 ? "es" : ""}
+                      {getDisplayedQuizzes().length} {getDisplayedQuizzes().length !== 1 ? "quizzes" : "quiz"}
                       {searchQuery && ` matching "${searchQuery}"`}
                     </p>
                   </div>
