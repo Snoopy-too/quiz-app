@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Ensure required columns exist even if table was created previously without them
+ALTER TABLE teams
+ADD COLUMN IF NOT EXISTS creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS team_name TEXT;
+
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_teams_creator ON teams(creator_id);
 CREATE INDEX IF NOT EXISTS idx_teams_teacher ON teams(teacher_id);
@@ -26,6 +32,12 @@ CREATE TABLE IF NOT EXISTS team_members (
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(team_id, student_id) -- Prevent duplicate team memberships
 );
+
+-- Ensure required columns exist if table was previously created without them
+ALTER TABLE team_members
+ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id);
