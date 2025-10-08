@@ -89,11 +89,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
   // Helper function to get background style
   const getBackgroundStyle = () => {
-    if (!theme) {
-      return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
-    }
-
-    if (theme.background_image_url) {
+    if (theme?.background_image_url) {
       return {
         backgroundImage: `url(${theme.background_image_url})`,
         backgroundSize: "cover",
@@ -102,9 +98,22 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       };
     }
 
-    return {
-      background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
-    };
+    if (theme) {
+      return {
+        background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
+      };
+    }
+
+    if (quiz?.background_image_url) {
+      return {
+        backgroundImage: `url(${quiz.background_image_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      };
+    }
+
+    return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
   };
 
   const backgroundStyle = getBackgroundStyle();

@@ -5,6 +5,7 @@ import { supabase } from "./supabaseClient";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import VerifyEmail from "./components/auth/VerifyEmail";
+import CompleteProfile from "./components/auth/CompleteProfile";
 
 // Dashboards
 import StudentDashboard from "./components/dashboards/StudentDashboard";
@@ -154,7 +155,7 @@ export default function QuizApp() {
         'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
         'manage-students', 'manage-quizzes', 'reports', 'settings',
         'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
-        'create-quiz'
+        'create-quiz', 'complete-profile'
       ];
 
       console.log('[routeByRole] Current view state:', view);
@@ -203,12 +204,18 @@ export default function QuizApp() {
         return;
       }
 
-      const userId = sessionRes.session.user.id;
+      const sessionInfo = sessionRes.session;
+      const appMetadata = sessionInfo.user?.app_metadata || {};
+      const providers = Array.isArray(appMetadata.providers) ? appMetadata.providers : [];
+      const primaryProvider = appMetadata.provider;
+      const isGoogleUser = providers.includes("google") || primaryProvider === "google";
+
+      const userId = sessionInfo.user.id;
       console.log('Session found for user:', userId);
 
       const { data: profile, error: pErr } = await supabase
         .from("users")
-        .select("id, email, name, role, approved, verified")
+        .select("id, email, name, role, approved, verified, teacher_code, teacher_id, teacher_invite_code")
         .eq("id", userId)
         .maybeSingle();
 
@@ -229,6 +236,14 @@ export default function QuizApp() {
       }
 
       console.log('Profile loaded:', profile.email, 'Role:', profile.role);
+
+      const needsProfileCompletion = isGoogleUser && (!profile.role || !profile.teacher_invite_code);
+
+      if (needsProfileCompletion) {
+        setAppState((s) => ({ ...s, currentUser: profile }));
+        setView("complete-profile");
+        return;
+      }
 
       // Check approval and verification gates (unless superadmin)
       if (profile.role !== "superadmin") {
@@ -269,7 +284,7 @@ export default function QuizApp() {
         (async () => {
           const { data: profile, error: profileError } = await supabase
             .from("users")
-            .select("id, role, email, name, approved, verified")
+            .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code")
             .eq("id", session.user.id)
             .maybeSingle();
 
@@ -282,6 +297,10 @@ export default function QuizApp() {
 
           if (profile) {
             console.log('[onAuthStateChange] Profile loaded:', profile.email, 'Event:', event);
+            const appMetadata = session.user?.app_metadata || {};
+            const providers = Array.isArray(appMetadata.providers) ? appMetadata.providers : [];
+            const primaryProvider = appMetadata.provider;
+            const isGoogleUser = providers.includes("google") || primaryProvider === "google";
 
             // Sync email verification status from Supabase Auth to our users table
             const supabaseEmailConfirmed = session.user.email_confirmed_at !== null;
@@ -300,6 +319,15 @@ export default function QuizApp() {
                 profile.verified = true;
                 setSuccess("Email verified successfully!");
               }
+            }
+
+            const needsProfileCompletion = isGoogleUser && (!profile.role || !profile.teacher_invite_code);
+
+            if (needsProfileCompletion) {
+              console.log('[onAuthStateChange] Profile incomplete, redirecting to completion flow');
+              setAppState((s) => ({ ...s, currentUser: profile }));
+              setView("complete-profile");
+              return;
             }
 
             // Check approval and verification gates (unless superadmin)
@@ -330,7 +358,7 @@ export default function QuizApp() {
               'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
               'manage-students', 'manage-quizzes', 'reports', 'settings',
               'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
-              'create-quiz'
+              'create-quiz', 'complete-profile'
             ];
 
             console.log('[onAuthStateChange] Current view:', view);
@@ -360,14 +388,16 @@ export default function QuizApp() {
 
             console.log('Creating profile for new OAuth user:', email);
 
-            // Create profile with student role by default (they can be upgraded by admin)
+            // Create a minimal profile and collect required details afterwards
             const { data: newProfile, error: createError } = await supabase
               .from("users")
               .insert([{
                 id: session.user.id,
                 email: email,
                 name: name,
-                role: "student",
+                role: null,
+                teacher_invite_code: null,
+                teacher_id: null,
                 verified: true, // OAuth users are pre-verified via Google
                 approved: false, // Needs teacher/admin approval
               }])
@@ -383,14 +413,9 @@ export default function QuizApp() {
             }
 
             console.log('Profile created successfully for OAuth user');
-            setSuccess("Welcome! Your account has been created. A teacher must approve your account before you can access quizzes.");
             setAppState((s) => ({ ...s, currentUser: newProfile }));
-
-            // Show them they need approval
-            setTimeout(() => {
-              setView("login");
-              setError("Your account is awaiting teacher approval. You will receive an email when approved.");
-            }, 3000);
+            setSuccess("Welcome! Almost done — please complete your profile.");
+            setView("complete-profile");
           }
         })();
       }
@@ -431,6 +456,17 @@ export default function QuizApp() {
   if (view === "verify")
     return (
       <VerifyEmail
+        setView={setView}
+        setError={setError}
+        setSuccess={setSuccess}
+      />
+    );
+
+  if (view === "complete-profile")
+    return (
+      <CompleteProfile
+        user={appState.currentUser}
+        setAppState={setAppState}
         setView={setView}
         setError={setError}
         setSuccess={setSuccess}
