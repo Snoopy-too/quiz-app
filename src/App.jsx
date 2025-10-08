@@ -223,7 +223,11 @@ export default function QuizApp() {
 
       if (pErr) {
         console.error('Profile fetch error:', pErr);
-        setError(`Failed to load profile: ${pErr.message}`);
+        if (pErr.message?.includes('teacher_invite_code')) {
+          setError("Database schema is missing the teacher_invite_code column. Run add-teacher-invite-code-column.sql in Supabase.");
+        } else {
+          setError(`Failed to load profile: ${pErr.message}`);
+        }
         setView("login");
         return;
       }
@@ -237,7 +241,11 @@ export default function QuizApp() {
 
       console.log('Profile loaded:', profile.email, 'Role:', profile.role);
 
-      const needsProfileCompletion = isGoogleUser && (!profile.role || !profile.teacher_invite_code);
+      const hasInviteOrLink =
+        profile.teacher_invite_code ||
+        profile.teacher_id ||
+        (profile.role === "teacher" && profile.teacher_code);
+      const needsProfileCompletion = isGoogleUser && (!profile.role || !hasInviteOrLink);
 
       if (needsProfileCompletion) {
         setAppState((s) => ({ ...s, currentUser: profile }));
@@ -290,7 +298,11 @@ export default function QuizApp() {
 
           if (profileError) {
             console.error('Profile fetch error on auth change:', profileError);
-            setError(`Failed to load profile: ${profileError.message}`);
+            if (profileError.message?.includes('teacher_invite_code')) {
+              setError("Database schema is missing the teacher_invite_code column. Run add-teacher-invite-code-column.sql in Supabase.");
+            } else {
+              setError(`Failed to load profile: ${profileError.message}`);
+            }
             setView("login");
             return;
           }
@@ -321,7 +333,11 @@ export default function QuizApp() {
               }
             }
 
-            const needsProfileCompletion = isGoogleUser && (!profile.role || !profile.teacher_invite_code);
+            const hasInviteOrLink =
+              profile.teacher_invite_code ||
+              profile.teacher_id ||
+              (profile.role === "teacher" && profile.teacher_code);
+            const needsProfileCompletion = isGoogleUser && (!profile.role || !hasInviteOrLink);
 
             if (needsProfileCompletion) {
               console.log('[onAuthStateChange] Profile incomplete, redirecting to completion flow');

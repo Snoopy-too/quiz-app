@@ -59,6 +59,7 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       let teacherId = null;
       let teacherCodeToSave = null;
+      let cleanedTeacherInvite = null;
 
       // For students: validate teacher code
       if (formData.role === "student") {
@@ -68,6 +69,7 @@ export default function Register({ setView, setAppState, error, setError, succes
         }
 
         const cleanCode = formData.teacherCode.replace(/-/g, '').toUpperCase();
+        cleanedTeacherInvite = cleanCode;
         console.log("=== TEACHER CODE VALIDATION ===");
         console.log("Original code entered:", formData.teacherCode);
         console.log("Cleaned code for lookup:", cleanCode);
@@ -181,6 +183,7 @@ export default function Register({ setView, setAppState, error, setError, succes
         role: formData.role,
         student_id: formData.role === "student" ? formData.studentId : null,
         teacher_id: teacherId, // Set teacher_id for students
+        teacher_invite_code: cleanedTeacherInvite, // Preserve invite code used during onboarding
         teacher_code: teacherCodeToSave, // Set teacher_code for teachers
         verified: false, // Email verification required via Supabase email link
         approved: false, // All new users need approval (students by teacher, teachers by admin)
