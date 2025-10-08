@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import ConfirmModal from "../common/ConfirmModal";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function VerticalNav({ currentView, setView, appState }) {
+  const { t } = useTranslation();
   const userRole = appState?.currentUser?.role;
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -21,19 +24,19 @@ export default function VerticalNav({ currentView, setView, appState }) {
   const getNavItems = () => {
     if (userRole === "teacher") {
       return [
-        { id: "teacher-dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "manage-quizzes", label: "My Quizzes", icon: FolderOpen },
-        { id: "create-quiz", label: "Create Quiz", icon: FileText },
-        { id: "manage-students", label: "Students", icon: Users },
-        { id: "reports", label: "Reports", icon: BarChart3 },
+        { id: "teacher-dashboard", label: t('nav.dashboard'), icon: LayoutDashboard },
+        { id: "manage-quizzes", label: t('teacher.myQuizzes'), icon: FolderOpen },
+        { id: "create-quiz", label: t('nav.createQuiz'), icon: FileText },
+        { id: "manage-students", label: t('teacher.students'), icon: Users },
+        { id: "reports", label: t('nav.reports'), icon: BarChart3 },
       ];
     } else if (userRole === "student") {
       return [
-        { id: "student-dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { id: "student-dashboard", label: t('nav.dashboard'), icon: LayoutDashboard },
       ];
     } else if (userRole === "superadmin") {
       return [
-        { id: "superadmin-dashboard", label: "Dashboard", icon: Shield },
+        { id: "superadmin-dashboard", label: t('nav.dashboard'), icon: Shield },
       ];
     }
     return [];
@@ -52,7 +55,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
           <div>
             <h1 className="text-xl font-bold">QuizMaster</h1>
             <p className="text-xs text-purple-200">
-              {userRole === "teacher" ? "Teacher Portal" : userRole === "student" ? "Student Portal" : "Admin Portal"}
+              {userRole === "teacher" ? t('teacher.teacherDashboard') : userRole === "student" ? t('student.studentDashboard') : "Admin Portal"}
             </p>
           </div>
         </div>
@@ -60,7 +63,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
 
       {/* User Info */}
       <div className="p-4 border-b border-purple-600">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
             <span className="text-sm font-bold">
               {appState?.currentUser?.name?.charAt(0).toUpperCase() || appState?.currentUser?.email?.charAt(0).toUpperCase()}
@@ -71,6 +74,9 @@ export default function VerticalNav({ currentView, setView, appState }) {
             <p className="text-xs text-purple-200 truncate">{appState?.currentUser?.email}</p>
           </div>
         </div>
+
+        {/* Language Switcher */}
+        <LanguageSwitcher compact={true} />
       </div>
 
       {/* Navigation Items */}
@@ -110,7 +116,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
           }`}
         >
           <Settings size={20} className={currentView === "settings" ? "text-purple-700" : "text-purple-200"} />
-          <span className="text-sm">Settings</span>
+          <span className="text-sm">{t('nav.settings')}</span>
         </button>
 
         <button
@@ -118,17 +124,17 @@ export default function VerticalNav({ currentView, setView, appState }) {
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-purple-100 hover:bg-red-600 hover:text-white transition-all duration-200"
         >
           <LogOut size={20} />
-          <span className="text-sm">Logout</span>
+          <span className="text-sm">{t('nav.logout')}</span>
         </button>
       </div>
 
       <ConfirmModal
         isOpen={showLogoutModal}
-        title="Confirm Logout"
-        message="Are you sure you want to logout?"
+        title={t('nav.logout')}
+        message={t('common.confirm')}
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutModal(false)}
-        confirmText="Logout"
+        confirmText={t('nav.logout')}
         confirmStyle="danger"
       />
     </div>

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { generateTeacherCode, unformatTeacherCode } from "../../utils/teacherCode";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function CompleteProfile({ user, setAppState, setView, setSuccess, setError }) {
+  const { t } = useTranslation();
   const [teacherInviteCode, setTeacherInviteCode] = useState(user?.teacher_invite_code || "");
   const [role, setRole] = useState(user?.role || "");
   const [submitting, setSubmitting] = useState(false);
@@ -144,14 +147,17 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white shadow-lg rounded-xl p-6 space-y-6">
+        <div className="flex justify-center">
+          <LanguageSwitcher />
+        </div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Almost done!</h1>
-          <p className="text-sm text-gray-600">Please complete your profile below.</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('auth.almostDone')}</h1>
+          <p className="text-sm text-gray-600">{t('auth.completeProfileBelow')}</p>
         </div>
 
         {(localError || user?.approved === false) && (
           <div className="rounded-md border p-3 text-sm" style={{ borderColor: "#ef4444", color: "#b91c1c", background: "#fef2f2" }}>
-            {localError || "Your account is pending approval. Complete your profile so your teacher can approve you faster."}
+            {localError || t('auth.pendingApprovalMessage')}
           </div>
         )}
 
@@ -159,7 +165,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
           {role !== "teacher" && (
             <div>
               <label htmlFor="teacher-invite" className="block text-sm font-medium text-gray-700">
-                Enter your Teacher Invitation Code
+                {t('auth.enterTeacherCode')}
               </label>
               <input
                 id="teacher-invite"
@@ -167,15 +173,15 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
                 value={teacherInviteCode}
                 onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                placeholder="e.g. ABCD-1234"
+                placeholder={t('auth.teacherCodeExample')}
               />
-              <p className="mt-1 text-xs text-gray-500">Students must enter the invitation code provided by their teacher.</p>
+              <p className="mt-1 text-xs text-gray-500">{t('auth.studentsMustEnterCode')}</p>
             </div>
           )}
 
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-              Select your role
+              {t('auth.selectYourRole')}
             </label>
             <select
               id="role"
@@ -187,13 +193,13 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               <option value="" disabled>
-                Select role
+                {t('auth.selectRole')}
               </option>
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
+              <option value="student">{t('auth.student')}</option>
+              <option value="teacher">{t('auth.teacher')}</option>
             </select>
             {role === "teacher" && (
-              <p className="mt-1 text-xs text-gray-500">Teachers can continue without an invitation code.</p>
+              <p className="mt-1 text-xs text-gray-500">{t('auth.teachersNoCodeNeeded')}</p>
             )}
           </div>
 
@@ -202,7 +208,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
             disabled={submitting}
             className="w-full rounded-md bg-purple-600 px-4 py-2 text-white font-medium hover:bg-purple-700 disabled:opacity-60"
           >
-            {submitting ? "Saving..." : "Submit"}
+            {submitting ? t('auth.saving') : t('common.submit')}
           </button>
         </form>
       </div>

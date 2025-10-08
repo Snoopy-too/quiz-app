@@ -1,19 +1,21 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { ArrowLeft } from "lucide-react";
 
 export default function JoinClassicQuiz({ appState, setView, error, setError, onBack, isApproved }) {
+  const { t } = useTranslation();
   const [joinPin, setJoinPin] = useState("");
   const [loading, setLoading] = useState(false);
 
   const joinQuiz = async () => {
     if (!isApproved) {
-      setError("Your account is awaiting approval. Please wait for your teacher to approve you before joining quizzes.");
+      setError(t('student.accountAwaitingApproval'));
       return;
     }
 
     if (!joinPin || joinPin.length !== 6) {
-      setError("Please enter a valid 6-digit PIN");
+      setError(t('student.enterValid6DigitPIN'));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         });
 
         if (sessionError.code === '42501' || sessionError.message?.includes('policy')) {
-          setError("Permission denied. Please ensure you're logged in and approved by your teacher.");
+          setError(t('errors.permissionDeniedEnsureApproved'));
           setLoading(false);
           return;
         }
@@ -51,7 +53,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
 
       if (!sessions || sessions.length === 0) {
         console.warn('No quiz session found with PIN:', joinPin);
-        setError("Invalid PIN - Quiz not found. Please check the PIN and try again.");
+        setError(t('errors.invalidPinQuizNotFound'));
         setLoading(false);
         return;
       }
@@ -60,7 +62,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
       console.log('Found session:', session);
 
       if (session.status === "completed") {
-        setError("This quiz has already ended");
+        setError(t('errors.quizAlreadyEnded'));
         setLoading(false);
         return;
       }
@@ -95,13 +97,11 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
 
           if (fallbackError && fallbackError.code !== '23505') {
             console.error('Fallback insert failed:', fallbackError);
-            throw new Error(
-              "Database migration incomplete: add the is_team_entry column to session_participants (run create-teams-tables.sql)."
-            );
+            throw new Error(t('errors.databaseMigrationIncomplete'));
           }
         } else {
           console.error('Failed to create participant:', participantError);
-          throw new Error(`Failed to join quiz: ${participantError.message}`);
+          throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
         }
       } else {
         console.log('Participant created successfully:', participant);
@@ -110,7 +110,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
       // Navigate to quiz
       setView("student-quiz", session.id);
     } catch (err) {
-      setError("Error joining quiz: " + err.message);
+      setError(t('errors.errorJoiningQuiz') + ": " + err.message);
       setLoading(false);
     }
   };
@@ -123,11 +123,11 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={20} />
-          Back to Dashboard
+          {t('student.backToDashboard')}
         </button>
 
-        <h1 className="text-3xl font-bold text-center mb-6">Join Quiz</h1>
-        <p className="text-center text-gray-600 mb-6">Enter the PIN from your teacher</p>
+        <h1 className="text-3xl font-bold text-center mb-6">{t('student.joinQuiz')}</h1>
+        <p className="text-center text-gray-600 mb-6">{t('student.enterPinFromTeacher')}</p>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -137,7 +137,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
 
         <input
           type="text"
-          placeholder="Enter PIN"
+          placeholder={t('session.enterPin')}
           value={joinPin}
           onChange={(e) => setJoinPin(e.target.value)}
           className="w-full p-4 border-2 rounded-lg text-center text-2xl mb-4"
@@ -149,12 +149,12 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           disabled={loading || !isApproved}
           className="w-full bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Joining..." : "Join Quiz"}
+          {loading ? t('student.joining') : t('student.joinQuiz')}
         </button>
 
         {!isApproved && (
           <p className="mt-4 text-sm text-gray-500 text-center">
-            Waiting for teacher approval. You will be able to join quizzes once approved.
+            {t('student.waitingForTeacherApprovalMessage')}
           </p>
         )}
       </div>

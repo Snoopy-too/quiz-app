@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import {
   Plus,
@@ -45,6 +46,7 @@ const createEmptyQuestion = (type = "multiple_choice") => ({
 });
 
 export default function EditQuiz({ setView, quizId, appState: _appState }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [themeId, setThemeId] = useState(null);
   const [customThemeUrl, setCustomThemeUrl] = useState(null);
@@ -187,13 +189,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
   const handleSaveQuestion = async () => {
     if (!questionForm.question_text.trim()) {
-      setQuestionError("Question text is required.");
+      setQuestionError(t('quiz.questionTextRequired'));
       return;
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
     if (!hasCorrectAnswer) {
-      setQuestionError("Please mark at least one answer as correct.");
+      setQuestionError(t('quiz.markCorrectAnswer'));
       return;
     }
 
@@ -235,7 +237,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       await fetchQuizAndQuestions();
       resetQuestionForm();
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error saving question: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorSavingQuestion') + ": " + err.message, type: "error" });
     } finally {
       setSaving(false);
     }
@@ -244,8 +246,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const handleDeleteQuestion = (questionId) => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Question",
-      message: "Are you sure you want to delete this question?",
+      title: t('quiz.deleteQuestion'),
+      message: t('quiz.confirmDeleteQuestion'),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
@@ -256,7 +258,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
           }
           await fetchQuizAndQuestions();
         } catch (err) {
-          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting question: " + err.message, type: "error" });
+          setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorDeletingQuestion') + ": " + err.message, type: "error" });
         }
       },
     });
@@ -308,7 +310,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         }));
       }
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error uploading file: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorUploadingFile') + ": " + err.message, type: "error" });
     } finally {
       setUploading(false);
     }
@@ -326,7 +328,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       const { error: insertError } = await supabase.from("questions").insert([
         {
           quiz_id: quizId,
-          question_text: `${question.question_text} (Copy)`,
+          question_text: `${question.question_text} ${t('quiz.copySuffix')}`,
           question_type: question.question_type,
           time_limit: question.time_limit,
           points: question.points,
@@ -341,7 +343,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       if (insertError) throw insertError;
       await fetchQuizAndQuestions();
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error duplicating question: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorDuplicatingQuestion') + ": " + err.message, type: "error" });
     }
   };
 
@@ -380,7 +382,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       await fetchQuizAndQuestions();
       setDraggedQuestion(null);
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error reordering questions: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorReorderingQuestions') + ": " + err.message, type: "error" });
     }
   };
 
@@ -390,7 +392,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     setSuccess(null);
 
     if (!title.trim()) {
-      setSaveError("Quiz title is required.");
+      setSaveError(t('quiz.quizTitleRequired'));
       setActiveTab("settings");
       setSaving(false);
       return;
@@ -411,7 +413,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       const { error: updateError } = await supabase.from("quizzes").update(payload).eq("id", quizId);
       if (updateError) throw updateError;
 
-      setSuccess("Quiz updated successfully!");
+      setSuccess(t('quiz.quizUpdatedSuccess'));
     } catch (err) {
       setSaveError(err.message);
     } finally {
@@ -429,30 +431,30 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       {heading && <h3 className="text-xl font-bold mb-4">{heading}</h3>}
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Question</label>
+          <label className="block text-sm font-medium mb-1">{t('quiz.question')}</label>
           <input
             type="text"
             value={questionForm.question_text}
             onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_text: e.target.value }))}
             className="w-full border rounded px-3 py-2"
-            placeholder="Enter your question"
+            placeholder={t('quiz.enterQuestion')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Question Type</label>
+          <label className="block text-sm font-medium mb-1">{t('quiz.questionType')}</label>
           <select
             value={questionForm.question_type}
             onChange={(e) => handleQuestionTypeChange(e.target.value)}
             className="w-full border rounded px-3 py-2"
           >
-            <option value="multiple_choice">Multiple Choice</option>
-            <option value="true_false">True/False</option>
+            <option value="multiple_choice">{t('quiz.multipleChoice')}</option>
+            <option value="true_false">{t('quiz.trueFalse')}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Media (Optional)</label>
+          <label className="block text-sm font-medium mb-2">{t('quiz.mediaOptional')}</label>
           <div className="grid grid-cols-3 gap-4">
             <div>
               {questionForm.image_url ? (
@@ -468,7 +470,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               ) : (
                 <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
                   <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">Image</span>
+                  <span className="text-xs text-gray-500">{t('quiz.image')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -494,7 +496,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               ) : (
                 <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
                   <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">Video</span>
+                  <span className="text-xs text-gray-500">{t('quiz.video')}</span>
                   <input
                     type="file"
                     accept="video/*"
@@ -520,7 +522,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               ) : (
                 <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
                   <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">GIF</span>
+                  <span className="text-xs text-gray-500">{t('quiz.gif')}</span>
                   <input
                     type="file"
                     accept="image/gif"
@@ -532,12 +534,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               )}
             </div>
           </div>
-          {uploading && <p className="text-sm text-purple-600 mt-2">Uploading...</p>}
+          {uploading && <p className="text-sm text-purple-600 mt-2">{t('common.uploading')}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Time Limit (seconds)</label>
+            <label className="block text-sm font-medium mb-1">{t('quiz.timeLimit')}</label>
             <input
               type="number"
               value={questionForm.time_limit}
@@ -554,7 +556,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Points</label>
+            <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
             <input
               type="number"
               value={questionForm.points}
@@ -573,7 +575,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Answer Options</label>
+          <label className="block text-sm font-medium mb-2">{t('quiz.answers')}</label>
           <div className="space-y-2">
             {questionForm.options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 items-center">
@@ -582,7 +584,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   value={opt.text}
                   onChange={(e) => updateOption(idx, "text", e.target.value)}
                   className="flex-1 border rounded px-3 py-2"
-                  placeholder={`Option ${idx + 1}`}
+                  placeholder={`${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
                 <label className="flex items-center gap-2 whitespace-nowrap">
@@ -592,7 +594,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
                     className="w-5 h-5"
                   />
-                  <span className="text-sm">Correct</span>
+                  <span className="text-sm">{t('quiz.correct')}</span>
                 </label>
               </div>
             ))}
@@ -608,13 +610,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Save size={18} />
-            {saving ? "Saving..." : "Save Question"}
+            {saving ? t('common.saving') : t('quiz.saveQuestion')}
           </button>
           <button
             onClick={resetQuestionForm}
             className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -624,7 +626,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading quiz...</p>
+        <p className="text-xl text-gray-600">{t('quiz.loadingQuiz')}</p>
       </div>
     );
   }
@@ -633,12 +635,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">Error: {loadError}</p>
+          <p className="text-xl text-red-600 mb-4">{t('common.error')}: {loadError}</p>
           <button
             onClick={() => setView("manage-quizzes")}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
           >
-            Back to Quizzes
+            {t('quiz.backToQuizzes')}
           </button>
         </div>
       </div>
@@ -657,13 +659,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                 <ArrowLeft size={24} />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{title || "Untitled Quiz"}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{title || t('quiz.untitledQuiz')}</h1>
                 <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                   <span>
-                    {questions.length} question{questions.length === 1 ? "" : "s"}
+                    {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')}
                   </span>
                   <span>•</span>
-                  <span>{totalPoints} total points</span>
+                  <span>{totalPoints} {t('quiz.totalPoints')}</span>
                 </div>
               </div>
             </div>
@@ -673,7 +675,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={18} />
-              {saving ? "Saving..." : "Save Quiz"}
+              {saving ? t('common.saving') : t('quiz.saveQuiz')}
             </button>
           </div>
           {(saveError || success) && (
@@ -695,7 +697,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                 }`}
                 onClick={() => setActiveTab("settings")}
               >
-                Settings
+                {t('nav.settings')}
               </button>
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${
@@ -705,7 +707,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                 }`}
                 onClick={() => setActiveTab("questions")}
               >
-                Questions ({questions.length})
+                {t('quiz.questions')} ({questions.length})
               </button>
             </div>
 
@@ -713,13 +715,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               {activeTab === "settings" ? (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Quiz Title</label>
+                    <label className="block text-sm font-medium mb-1">{t('quiz.title')}</label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
-                      placeholder="Enter quiz title"
+                      placeholder={t('quiz.enterQuizTitle')}
                     />
                   </div>
 
@@ -741,13 +743,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Folder</label>
+                    <label className="block text-sm font-medium mb-1">{t('folder.folder')}</label>
                     <select
                       value={folderId}
                       onChange={(e) => setFolderId(e.target.value)}
                       className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
                     >
-                      <option value="">-- No Folder (Top Level) --</option>
+                      <option value="">{t('folder.noFolder')}</option>
                       {folderOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.label}
@@ -756,13 +758,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     </select>
                     {folders.length === 0 && (
                       <p className="mt-2 text-xs text-gray-500">
-                        No folders yet. You can organize quizzes into folders from the Manage Quizzes page.
+                        {t('folder.noFoldersMessage')}
                       </p>
                     )}
                   </div>
 
                   <div className="border-t pt-4 space-y-3">
-                    <h3 className="font-semibold text-gray-700">Quiz Settings</h3>
+                    <h3 className="font-semibold text-gray-700">{t('quiz.quizSettings')}</h3>
 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -771,7 +773,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         onChange={(e) => setIsTemplate(e.target.checked)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">Save as template</span>
+                      <span className="text-sm">{t('quiz.isTemplate')}</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -781,7 +783,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         onChange={(e) => setIsPublic(e.target.checked)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">Make quiz public</span>
+                      <span className="text-sm">{t('quiz.isPublic')}</span>
                     </label>
                   </div>
                 </div>
@@ -790,10 +792,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-800">
-                        Questions ({questions.length})
+                        {t('quiz.questions')} ({questions.length})
                       </h2>
                       <p className="text-sm text-gray-500">
-                        {questions.length} question{questions.length === 1 ? "" : "s"} • {totalPoints} total points
+                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.totalPoints')}
                       </p>
                     </div>
                     <button
@@ -801,7 +803,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                       className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 text-sm font-medium"
                     >
                       <Plus size={16} />
-                      Add Question
+                      {t('quiz.addQuestion')}
                     </button>
                   </div>
 
@@ -810,13 +812,13 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
                         <Plus size={32} className="text-purple-600" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">No questions yet</h3>
-                      <p className="text-gray-600 mb-6">Start building your quiz by adding questions.</p>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('quiz.noQuestions')}</h3>
+                      <p className="text-gray-600 mb-6">{t('quiz.startBuildingQuiz')}</p>
                       <button
                         onClick={handleAddQuestion}
                         className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
                       >
-                        Add Your First Question
+                        {t('quiz.addFirstQuestion')}
                       </button>
                     </div>
                   ) : (
@@ -872,21 +874,21 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                     <button
                                       onClick={() => handleEditQuestion(question)}
                                       className="text-gray-600 hover:text-purple-600 px-2 py-1 rounded"
-                                      title="Edit question"
+                                      title={t('quiz.editQuestion')}
                                     >
                                       <Edit2 size={16} />
                                     </button>
                                     <button
                                       onClick={() => handleDuplicateQuestion(question)}
                                       className="text-gray-600 hover:text-purple-600 px-2 py-1 rounded"
-                                      title="Duplicate question"
+                                      title={t('quiz.duplicateQuestion')}
                                     >
                                       <Copy size={16} />
                                     </button>
                                     <button
                                       onClick={() => handleDeleteQuestion(question.id)}
                                       className="text-gray-600 hover:text-red-600 px-2 py-1 rounded"
-                                      title="Delete question"
+                                      title={t('quiz.deleteQuestion')}
                                     >
                                       <Trash2 size={16} />
                                     </button>
@@ -939,7 +941,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                               opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
                                             }`}
                                           >
-                                            {opt.text || <em className="text-gray-400">No answer text</em>}
+                                            {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}
                                           </span>
                                         </div>
                                       </div>
@@ -956,7 +958,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
                   {questionFormMode === "add" && (
                     <div className="bg-white border border-purple-200 rounded-lg shadow-sm p-6">
-                      {renderQuestionEditor("Add New Question")}
+                      {renderQuestionEditor(t('quiz.addNewQuestion'))}
                     </div>
                   )}
                 </div>
@@ -971,7 +973,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={20} />
-              {saving ? "Saving..." : "Save Quiz"}
+              {saving ? t('common.saving') : t('quiz.saveQuiz')}
             </button>
           </div>
         </div>

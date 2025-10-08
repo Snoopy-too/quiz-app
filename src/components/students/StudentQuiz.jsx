@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
+  const { t } = useTranslation();
   const [session, setSession] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [theme, setTheme] = useState(null);
@@ -49,7 +51,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       // Get first result from array
       const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
       if (!session) {
-        throw new Error("Quiz session not found");
+        throw new Error(t('errors.quizSessionNotFound'));
       }
 
       setSession(session);
@@ -68,7 +70,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       if (quizError) {
         console.error("Quiz query failed:", quizError);
-        throw new Error(`Failed to load quiz: ${quizError.message}`);
+        throw new Error(`${t('errors.errorLoadingQuiz')}: ${quizError.message}`);
       }
 
       // Get first result from array
@@ -76,7 +78,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       if (!quizData) {
         console.error("No quiz found with ID:", session.quiz_id);
         console.error("Query returned:", quizResults);
-        throw new Error(`Quiz not found (ID: ${session.quiz_id}). The quiz may have been deleted or you may not have permission to view it.`);
+        throw new Error(`${t('errors.quizNotFound')} (ID: ${session.quiz_id}). ${t('errors.quizMayBeDeleted')}`);
       }
 
       console.log("✅ Quiz loaded successfully:", quizData.title);
@@ -286,7 +288,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       setParticipant({ ...participant, score: participant.score + points });
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error submitting answer: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('errors.errorSubmittingAnswer') + ": " + err.message, type: "error" });
     }
   };
 
@@ -331,7 +333,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
-        <p className="text-2xl" style={{ color: textColor }}>Joining quiz...</p>
+        <p className="text-2xl" style={{ color: textColor }}>{t('student.joiningQuiz')}</p>
       </div>
     );
   }
@@ -340,12 +342,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">Error: {error}</p>
+          <p className="text-xl text-red-600 mb-4">{t('common.error')}: {error}</p>
           <button
             onClick={() => setView("student-dashboard")}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
           >
-            Back to Dashboard
+            {t('student.backToDashboard')}
           </button>
         </div>
       </div>
@@ -360,13 +362,13 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 max-w-md">
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
-              <p className="text-gray-600 mb-4">Starting in...</p>
+              <p className="text-gray-600 mb-4">{t('student.startingIn')}</p>
               <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
                 {countdown}
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-6">
-              Get ready! The quiz will begin shortly.
+              {t('student.getReadyQuizStarting')}
             </p>
           </div>
         </div>
@@ -379,9 +381,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
-          <h2 className="text-3xl font-bold mb-4">You're in!</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('student.youreIn')}</h2>
           <p className="text-gray-600 mb-6">
-            Waiting for the teacher to start the quiz...
+            {t('student.waitingForTeacherToStart')}
           </p>
           <div className="animate-pulse text-6xl mb-4">⏳</div>
           <p className="text-lg font-semibold" style={{ color: theme?.primary_color || "#7C3AED" }}>{quiz.title}</p>
@@ -412,7 +414,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 </span>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Your Score</p>
+                <p className="text-sm text-gray-600">{t('session.yourScore')}</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {participant?.score || 0}
                 </p>
@@ -424,7 +426,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-4">
             <div className="text-center mb-6">
               <p className="text-gray-600 mb-2">
-                Question {session.current_question_index + 1} of {questions.length}
+                {t('quiz.question')} {session.current_question_index + 1} {t('student.of')} {questions.length}
               </p>
               <h2 className="text-3xl font-bold mb-4">{currentQuestion.question_text}</h2>
 
@@ -484,20 +486,20 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 }`}
               >
                 <p className="text-2xl font-bold">
-                  {wasCorrect ? "✓ Correct!" : "✗ Incorrect"}
+                  {wasCorrect ? `✓ ${t('session.correctAnswer')}` : `✗ ${t('student.incorrect')}`}
                 </p>
                 <p className="text-lg">
                   {wasCorrect
-                    ? `+${currentQuestion.points} points!`
-                    : "Better luck next time!"}
+                    ? `+${currentQuestion.points} ${t('quiz.points')}!`
+                    : t('student.betterLuckNextTime')}
                 </p>
               </div>
             )}
 
             {!hasAnswered && timeRemaining === 0 && (
               <div className="mt-6 p-4 rounded-xl text-center bg-gray-100 text-gray-800">
-                <p className="text-2xl font-bold">Time's up!</p>
-                <p className="text-lg">Waiting for results...</p>
+                <p className="text-2xl font-bold">{t('session.timeUp')}</p>
+                <p className="text-lg">{t('student.waitingForResults')}</p>
               </div>
             )}
           </div>
@@ -515,19 +517,19 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             {wasCorrect ? (
               <>
                 <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-4xl font-bold text-green-600 mb-2">Correct!</h2>
+                <h2 className="text-4xl font-bold text-green-600 mb-2">{t('session.correctAnswer')}</h2>
               </>
             ) : (
               <>
                 <div className="text-6xl mb-4">😔</div>
-                <h2 className="text-4xl font-bold text-red-600 mb-2">Incorrect</h2>
+                <h2 className="text-4xl font-bold text-red-600 mb-2">{t('student.incorrect')}</h2>
               </>
             )}
           </div>
 
           {showCorrectAnswer && (
             <div className="mb-6">
-              <p className="text-gray-600 mb-2">The correct answer was:</p>
+              <p className="text-gray-600 mb-2">{t('student.theCorrectAnswerWas')}</p>
               <p className="text-xl font-bold text-green-600">
                 {currentQuestion.options?.find((o) => o.is_correct)?.text}
               </p>
@@ -535,13 +537,13 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           )}
 
           <div className="bg-purple-100 rounded-xl p-6">
-            <p className="text-gray-600 mb-1">Your Score</p>
+            <p className="text-gray-600 mb-1">{t('session.yourScore')}</p>
             <p className="text-4xl font-bold text-purple-600">
               {participant?.score || 0}
             </p>
           </div>
 
-          <p className="text-gray-600 mt-6">Waiting for next question...</p>
+          <p className="text-gray-600 mt-6">{t('student.waitingForNextQuestion')}</p>
         </div>
       </div>
     );
@@ -553,23 +555,23 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
           <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
-          <h2 className="text-4xl font-bold mb-6">Quiz Complete!</h2>
+          <h2 className="text-4xl font-bold mb-6">{t('student.quizComplete')}</h2>
 
           <div className="bg-purple-100 rounded-xl p-8 mb-6">
-            <p className="text-gray-600 mb-2">Final Score</p>
+            <p className="text-gray-600 mb-2">{t('student.finalScore')}</p>
             <p className="text-5xl font-bold text-purple-600">
               {participant?.score || 0}
             </p>
-            <p className="text-gray-600 mt-2">points</p>
+            <p className="text-gray-600 mt-2">{t('quiz.points')}</p>
           </div>
 
-          <p className="text-gray-600 mb-6">Great job!</p>
+          <p className="text-gray-600 mb-6">{t('student.greatJob')}</p>
 
           <button
             onClick={() => setView("student-dashboard")}
             className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 text-xl font-semibold"
           >
-            Back to Dashboard
+            {t('student.backToDashboard')}
           </button>
         </div>
       </div>

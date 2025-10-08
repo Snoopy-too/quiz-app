@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { generateTeacherCode } from "../../utils/teacherCode";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function Register({ setView, setAppState, error, setError, success, setSuccess }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -267,15 +270,18 @@ export default function Register({ setView, setAppState, error, setError, succes
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500">
       <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Register for QuizMaster</h2>
+        <div className="flex justify-center mb-4">
+          <LanguageSwitcher />
+        </div>
+        <h2 className="text-2xl font-bold mb-6 text-center">{t('auth.registerForQuizMaster')}</h2>
         {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
         {success && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{success}</div>}
-        
+
         <form onSubmit={handleSubmit}>
           <input
             type="text"
             name="name"
-            placeholder="Full Name"
+            placeholder={t('auth.fullName')}
             value={formData.name}
             onChange={handleChange}
             className="w-full px-4 py-2 mb-4 border rounded-lg"
@@ -284,7 +290,7 @@ export default function Register({ setView, setAppState, error, setError, succes
           <input
             type="email"
             name="email"
-            placeholder="Email"
+            placeholder={t('auth.email')}
             value={formData.email}
             onChange={handleChange}
             className="w-full px-4 py-2 mb-4 border rounded-lg"
@@ -293,7 +299,7 @@ export default function Register({ setView, setAppState, error, setError, succes
           <input
             type="password"
             name="password"
-            placeholder="Password"
+            placeholder={t('auth.password')}
             value={formData.password}
             onChange={handleChange}
             className="w-full px-4 py-2 mb-4 border rounded-lg"
@@ -306,8 +312,8 @@ export default function Register({ setView, setAppState, error, setError, succes
             onChange={handleChange}
             className="w-full px-4 py-2 mb-4 border rounded-lg"
           >
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
+            <option value="student">{t('auth.student')}</option>
+            <option value="teacher">{t('auth.teacher')}</option>
           </select>
 
           {formData.role === "student" && (
@@ -315,7 +321,7 @@ export default function Register({ setView, setAppState, error, setError, succes
               <input
                 type="text"
                 name="studentId"
-                placeholder="Student ID"
+                placeholder={t('auth.studentId')}
                 value={formData.studentId}
                 onChange={handleChange}
                 className="w-full px-4 py-2 mb-4 border rounded-lg"
@@ -324,7 +330,7 @@ export default function Register({ setView, setAppState, error, setError, succes
               <input
                 type="text"
                 name="teacherCode"
-                placeholder="Teacher Code (e.g., ABCD-1234)"
+                placeholder={t('auth.teacherCodePlaceholder')}
                 value={formData.teacherCode}
                 onChange={handleChange}
                 className="w-full px-4 py-2 mb-4 border rounded-lg uppercase"
@@ -332,7 +338,7 @@ export default function Register({ setView, setAppState, error, setError, succes
                 required
               />
               <p className="text-xs text-gray-600 -mt-3 mb-4 px-2">
-                Enter the invitation code provided by your teacher
+                {t('auth.teacherCodeHelp')}
               </p>
             </>
           )}
@@ -341,7 +347,7 @@ export default function Register({ setView, setAppState, error, setError, succes
             type="submit"
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
           >
-            Register
+            {t('auth.register')}
           </button>
         </form>
 
@@ -351,7 +357,7 @@ export default function Register({ setView, setAppState, error, setError, succes
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
@@ -378,7 +384,7 @@ export default function Register({ setView, setAppState, error, setError, succes
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Sign in with Google
+            {t('auth.signInWithGoogle')}
           </button>
         </div>
 
@@ -387,7 +393,7 @@ export default function Register({ setView, setAppState, error, setError, succes
             onClick={() => setView("login")}
             className="text-green-700 hover:underline"
           >
-            Already have an account? Login
+            {t('auth.alreadyHaveAccount')} {t('auth.login')}
           </button>
         </div>
       </div>

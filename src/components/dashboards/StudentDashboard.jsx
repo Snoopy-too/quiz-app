@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Users, Trophy, BookOpen, ShieldAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import VerticalNav from "../layout/VerticalNav";
 import JoinClassicQuiz from "../students/JoinClassicQuiz";
 import CreateTeam from "../students/CreateTeam";
 
 export default function StudentDashboard({ appState, setAppState, setView, error, setError }) {
+  const { t } = useTranslation();
   const [currentView, setCurrentView] = useState("dashboard"); // dashboard, join-classic, create-team
   const isApproved = appState.currentUser?.approved;
 
@@ -31,17 +33,17 @@ export default function StudentDashboard({ appState, setAppState, setView, error
           <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-8">
             <div className="max-w-6xl w-full">
               <h1 className="text-4xl font-bold text-white text-center mb-6">
-                Welcome, {appState.currentUser?.name}!
+                {t('student.welcome', { name: appState.currentUser?.name })}
               </h1>
 
               {!isApproved && (
                 <div className="mb-10 mx-auto max-w-2xl rounded-2xl bg-white/15 border border-white/30 backdrop-blur-sm p-5 text-center text-white">
                   <div className="flex items-center justify-center gap-3 text-lg font-semibold">
                     <ShieldAlert size={24} />
-                    Awaiting Teacher Approval
+                    {t('student.awaitingTeacherApproval')}
                   </div>
                   <p className="mt-2 text-sm text-white/80">
-                    You can browse your dashboard, but quiz participation and team creation are disabled until your teacher approves your account.
+                    {t('student.approvalMessage')}
                   </p>
                 </div>
               )}
@@ -60,12 +62,12 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     <BookOpen size={48} className="text-purple-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    Join Quiz
+                    {t('student.joinQuiz')}
                   </h2>
                   <p className="text-gray-600 mb-4">
                     {isApproved
-                      ? "Enter a PIN to join a quiz individually"
-                      : "Disabled until your teacher approves your account"}
+                      ? t('student.enterPinToJoinIndividually')
+                      : t('student.disabledUntilApproved')}
                   </p>
                   <div className="mt-auto">
                     <span
@@ -75,7 +77,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                           : "bg-gray-300 text-gray-600"
                       }`}
                     >
-                      Start
+                      {t('actions.start')}
                     </span>
                   </div>
                 </div>
@@ -93,12 +95,12 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     <Users size={48} className="text-blue-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    Create Team
+                    {t('student.createTeam')}
                   </h2>
                   <p className="text-gray-600 mb-4">
                     {isApproved
-                      ? "Form a team with your classmates"
-                      : "Disabled until your teacher approves your account"}
+                      ? t('student.formTeamWithClassmates')
+                      : t('student.disabledUntilApproved')}
                   </p>
                   <div className="mt-auto">
                     <span
@@ -108,7 +110,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                           : "bg-gray-300 text-gray-600"
                       }`}
                     >
-                      Create
+                      {t('common.create')}
                     </span>
                   </div>
                 </div>
@@ -121,14 +123,14 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     <Trophy size={48} className="text-green-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    View My Results
+                    {t('student.viewMyResults')}
                   </h2>
                   <p className="text-gray-600 mb-4">
-                    See your quiz history and scores
+                    {t('student.seeQuizHistoryAndScores')}
                   </p>
                   <div className="mt-auto">
                     <span className="inline-block bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold">
-                      Coming Soon
+                      {t('student.comingSoon')}
                     </span>
                   </div>
                 </div>

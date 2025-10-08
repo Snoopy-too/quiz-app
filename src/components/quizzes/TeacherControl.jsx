@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
@@ -6,6 +7,7 @@ import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 
 export default function TeacherControl({ sessionId, setView }) {
+  const { t } = useTranslation();
   const [session, setSession] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -101,7 +103,7 @@ export default function TeacherControl({ sessionId, setView }) {
       // Get first result from array
       const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
       if (!session) {
-        throw new Error("Quiz session not found");
+        throw new Error(t('errors.quizSessionNotFound'));
       }
 
       setSession(session);
@@ -117,7 +119,7 @@ export default function TeacherControl({ sessionId, setView }) {
       // Get first result from array
       const quizData = quizResults && quizResults.length > 0 ? quizResults[0] : null;
       if (!quizData) {
-        throw new Error("Quiz not found");
+        throw new Error(t('errors.quizNotFound'));
       }
 
       setQuiz(quizData);
@@ -291,7 +293,7 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowModeSelection(false);
       setSession({ ...session, mode });
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error setting mode: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorSettingMode') + ': ' + err.message, type: "error" });
     }
   };
 
@@ -313,8 +315,8 @@ export default function TeacherControl({ sessionId, setView }) {
         console.error('[startQuiz] Failed to fetch session:', checkError);
         setAlertModal({
           isOpen: true,
-          title: "Error Starting Quiz",
-          message: `Cannot access quiz session: ${checkError.message}`,
+          title: t('errors.errorStartingQuiz'),
+          message: `${t('teacher.cannotAccessSession')}: ${checkError.message}`,
           type: "error"
         });
         return;
@@ -340,8 +342,8 @@ export default function TeacherControl({ sessionId, setView }) {
         console.error('[startQuiz] Update error:', error);
         setAlertModal({
           isOpen: true,
-          title: "Error Starting Quiz",
-          message: `Failed to start quiz: ${error.message}\n\nDetails: ${JSON.stringify(error, null, 2)}`,
+          title: t('errors.errorStartingQuiz'),
+          message: `${t('teacher.failedToStartQuiz')}: ${error.message}\n\n${t('teacher.details')}: ${JSON.stringify(error, null, 2)}`,
           type: "error"
         });
         return;
@@ -357,7 +359,7 @@ export default function TeacherControl({ sessionId, setView }) {
       }, 5000);
     } catch (err) {
       console.error('[startQuiz] Unexpected error:', err);
-      setAlertModal({ isOpen: true, title: "Error", message: "Error starting quiz: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('errors.errorStartingQuiz') + ': ' + err.message, type: "error" });
     }
   };
 
@@ -415,7 +417,7 @@ export default function TeacherControl({ sessionId, setView }) {
       }, question.time_limit * 1000);
       setAutoAdvanceTimer(timer);
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error showing question: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorShowingQuestion') + ': ' + err.message, type: "error" });
     }
   };
 
@@ -456,7 +458,7 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowResults(true);
       setSession({ ...session, status: "showing_results" });
     } catch (err) {
-      setAlertModal({ isOpen: true, title: "Error", message: "Error loading results: " + err.message, type: "error" });
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorLoadingResults') + ': ' + err.message, type: "error" });
     }
   };
 

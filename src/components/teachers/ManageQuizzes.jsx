@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { Plus, Edit2, Trash2, Play, Copy, Folder, FolderPlus, ChevronRight, ChevronDown, MoreVertical, FolderOpen, Search, Filter, CheckSquare, Square, Move, Archive, Eye } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
@@ -6,6 +7,7 @@ import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 
 export default function ManageQuizzes({ setView, appState }) {
+  const { t } = useTranslation();
   const [quizzes, setQuizzes] = useState([]);
   const [folders, setFolders] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
@@ -64,7 +66,7 @@ export default function ManageQuizzes({ setView, appState }) {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) {
-        setError("Not authenticated");
+        setError(t('errors.notAuthenticated'));
         return;
       }
 
@@ -145,8 +147,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error creating folder: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorCreatingFolder') + ": " + err.message,
         type: "error"
       });
     }
@@ -168,8 +170,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error renaming folder: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorRenamingFolder') + ": " + err.message,
         type: "error"
       });
     }
@@ -178,8 +180,8 @@ export default function ManageQuizzes({ setView, appState }) {
   const deleteFolder = (folderId) => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Folder",
-      message: "Are you sure? Quizzes in this folder will be moved to the root level.",
+      title: t('folder.deleteFolder'),
+      message: t('manager.deleteFolderConfirm'),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
@@ -196,8 +198,8 @@ export default function ManageQuizzes({ setView, appState }) {
         } catch (err) {
           setAlertModal({
             isOpen: true,
-            title: "Error",
-            message: "Error deleting folder: " + err.message,
+            title: t('common.error'),
+            message: t('errors.errorDeletingFolder') + ": " + err.message,
             type: "error"
           });
         }
@@ -219,8 +221,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error moving quiz: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorMovingQuiz') + ": " + err.message,
         type: "error"
       });
     }
@@ -253,8 +255,8 @@ export default function ManageQuizzes({ setView, appState }) {
           // Can't move folder into itself
           setAlertModal({
             isOpen: true,
-            title: "Error",
-            message: "Cannot move a folder into itself",
+            title: t('common.error'),
+            message: t('manager.cannotMoveIntoItself'),
             type: "error"
           });
           return;
@@ -266,8 +268,8 @@ export default function ManageQuizzes({ setView, appState }) {
           if (currentParent === draggedItem.item.id) {
             setAlertModal({
               isOpen: true,
-              title: "Error",
-              message: "Cannot move a folder into its own subfolder",
+              title: t('common.error'),
+              message: t('manager.cannotMoveIntoSubfolder'),
               type: "error"
             });
             return;
@@ -288,8 +290,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error moving item: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorMovingItem') + ": " + err.message,
         type: "error"
       });
     } finally {
@@ -300,8 +302,8 @@ export default function ManageQuizzes({ setView, appState }) {
   const handleDelete = (quizId) => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Quiz",
-      message: "Are you sure you want to delete this quiz?",
+      title: t('quiz.deleteQuiz'),
+      message: t('manager.deleteQuizConfirm'),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
@@ -315,8 +317,8 @@ export default function ManageQuizzes({ setView, appState }) {
         } catch (err) {
           setAlertModal({
             isOpen: true,
-            title: "Error",
-            message: "Error deleting quiz: " + err.message,
+            title: t('common.error'),
+            message: t('errors.errorDeletingQuiz') + ": " + err.message,
             type: "error"
           });
         }
@@ -388,16 +390,16 @@ export default function ManageQuizzes({ setView, appState }) {
 
       setAlertModal({
         isOpen: true,
-        title: "Success",
-        message: "Quiz duplicated successfully!",
+        title: t('common.success'),
+        message: t('messages.quizDuplicatedSuccess'),
         type: "success"
       });
       await fetchQuizzes();
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error duplicating quiz: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorDuplicatingQuiz') + ": " + err.message,
         type: "error"
       });
     }
@@ -415,8 +417,8 @@ export default function ManageQuizzes({ setView, appState }) {
       if (!questions || questions.length === 0) {
         setAlertModal({
           isOpen: true,
-          title: "No Questions",
-          message: "This quiz has no questions. Please add questions before starting.",
+          title: t('quiz.noQuestions'),
+          message: t('errors.noQuestions'),
           type: "error"
         });
         return;
@@ -447,8 +449,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error starting quiz: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorStartingQuiz') + ": " + err.message,
         type: "error"
       });
     }
@@ -542,8 +544,8 @@ export default function ManageQuizzes({ setView, appState }) {
     } catch (err) {
       setAlertModal({
         isOpen: true,
-        title: "Error",
-        message: "Error moving quizzes: " + err.message,
+        title: t('common.error'),
+        message: t('errors.errorMovingQuizzes') + ": " + err.message,
         type: "error"
       });
     }
@@ -553,8 +555,8 @@ export default function ManageQuizzes({ setView, appState }) {
   const bulkDeleteQuizzes = () => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Quizzes",
-      message: `Delete ${selectedQuizzes.size} selected quizzes?`,
+      title: t('quiz.deleteQuiz'),
+      message: t('manager.deleteQuizzesConfirm', { count: selectedQuizzes.size }),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
@@ -571,8 +573,8 @@ export default function ManageQuizzes({ setView, appState }) {
         } catch (err) {
           setAlertModal({
             isOpen: true,
-            title: "Error",
-            message: "Error deleting quizzes: " + err.message,
+            title: t('common.error'),
+            message: t('errors.errorDeletingQuizzes') + ": " + err.message,
             type: "error"
           });
         }
@@ -849,43 +851,43 @@ export default function ManageQuizzes({ setView, appState }) {
             <button
               onClick={() => handleStartQuiz(quiz.id)}
               className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
-              title="Start Quiz"
+              title={t('quiz.startQuiz')}
             >
               <Play size={14} />
-              Start
+              {t('actions.start')}
             </button>
             <button
               onClick={() => setView("preview-quiz", quiz.id)}
               className="p-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition"
-              title="Preview"
+              title={t('actions.preview')}
             >
               <Eye size={16} />
             </button>
             <button
               onClick={() => setView("edit-quiz", quiz.id)}
               className="p-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition"
-              title="Edit"
+              title={t('common.edit')}
             >
               <Edit2 size={16} />
             </button>
             <button
               onClick={() => handleDuplicate(quiz.id)}
               className="p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition"
-              title="Duplicate"
+              title={t('actions.duplicate')}
             >
               <Copy size={16} />
             </button>
             <button
               onClick={() => setMoveQuizModal(quiz.id)}
               className="p-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition"
-              title="Move to Folder"
+              title={t('folder.moveToFolder')}
             >
               <Move size={16} />
             </button>
             <button
               onClick={() => handleDelete(quiz.id)}
               className="p-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition"
-              title="Delete"
+              title={t('common.delete')}
             >
               <Trash2 size={16} />
             </button>
@@ -906,10 +908,15 @@ export default function ManageQuizzes({ setView, appState }) {
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-purple-600">Quiz Manager</h1>
+              <h1 className="text-2xl font-bold text-purple-600">{t('manager.quizManager')}</h1>
               <div className="h-6 w-px bg-gray-300"></div>
               <span className="text-sm text-gray-600">
-                {quizzes.length} {quizzes.length !== 1 ? "quizzes" : "quiz"} • {folders.length} folder{folders.length !== 1 ? "s" : ""}
+                {t('manager.quizzesAndFolders', {
+                  quizCount: quizzes.length,
+                  quizText: quizzes.length !== 1 ? t('quiz.quizzes') : t('quiz.quiz'),
+                  folderCount: folders.length,
+                  folderText: folders.length !== 1 ? t('folder.folders') : t('folder.folder')
+                })}
               </span>
             </div>
           </div>
@@ -924,7 +931,7 @@ export default function ManageQuizzes({ setView, appState }) {
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search quizzes..."
+                placeholder={t('manager.searchQuizzes')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -936,8 +943,8 @@ export default function ManageQuizzes({ setView, appState }) {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
             >
-              <option value="created_at">Sort: Newest</option>
-              <option value="title">Sort: A-Z</option>
+              <option value="created_at">{t('manager.sortNewest')}</option>
+              <option value="title">{t('manager.sortAZ')}</option>
             </select>
           </div>
 
@@ -946,27 +953,27 @@ export default function ManageQuizzes({ setView, appState }) {
             {selectedQuizzes.size > 0 && (
               <>
                 <div className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
-                  {selectedQuizzes.size} selected
+                  {t('manager.selected', { count: selectedQuizzes.size })}
                 </div>
                 <button
                   onClick={() => setMoveQuizModal("bulk")}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2 text-sm"
                 >
                   <Move size={16} />
-                  Move
+                  {t('manager.move')}
                 </button>
                 <button
                   onClick={bulkDeleteQuizzes}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm"
                 >
                   <Trash2 size={16} />
-                  Delete
+                  {t('common.delete')}
                 </button>
                 <button
                   onClick={clearSelection}
                   className="px-3 py-2 text-gray-600 hover:text-gray-800 text-sm"
                 >
-                  Clear
+                  {t('manager.clear')}
                 </button>
               </>
             )}
@@ -981,14 +988,14 @@ export default function ManageQuizzes({ setView, appState }) {
                   className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition flex items-center gap-2 text-sm font-medium"
                 >
                   <FolderPlus size={16} />
-                  New Folder
+                  {t('folder.newFolder')}
                 </button>
                 <button
                   onClick={() => setView("create-quiz")}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 text-sm font-medium"
                 >
                   <Plus size={16} />
-                  Create Quiz
+                  {t('nav.createQuiz')}
                 </button>
               </>
             )}
@@ -1000,13 +1007,13 @@ export default function ManageQuizzes({ setView, appState }) {
         <div className="flex h-[calc(100vh-140px)]">
         {loading && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-600">Loading quizzes...</p>
+            <p className="text-gray-600">{t('common.loading')}</p>
           </div>
         )}
 
         {error && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-red-600">Error: {error}</p>
+            <p className="text-red-600">{t('common.error')}: {error}</p>
           </div>
         )}
 
@@ -1016,13 +1023,13 @@ export default function ManageQuizzes({ setView, appState }) {
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Plus size={32} className="text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No quizzes yet</h3>
-              <p className="text-gray-600 mb-6">Get started by creating your first quiz!</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{t('quiz.noQuizzes')}</h3>
+              <p className="text-gray-600 mb-6">{t('manager.getStarted')}</p>
               <button
                 onClick={() => setView("create-quiz")}
                 className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
               >
-                Create Your First Quiz
+                {t('manager.createYourFirstQuiz')}
               </button>
             </div>
           </div>
@@ -1033,7 +1040,7 @@ export default function ManageQuizzes({ setView, appState }) {
             {/* Left Sidebar: Folder Tree */}
             <div className="w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto">
               <div className="p-4">
-                <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">Folders</h3>
+                <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">{t('folder.folders')}</h3>
                 <div className="space-y-0.5">
                   {/* All Quizzes */}
                   <div
@@ -1043,7 +1050,7 @@ export default function ManageQuizzes({ setView, appState }) {
                     }`}
                   >
                     <Archive size={18} className={activeFolder === null ? "text-purple-600" : "text-gray-600"} />
-                    <span className="flex-1 text-sm">All Quizzes</span>
+                    <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       activeFolder === null ? "bg-purple-200 text-purple-700" : "bg-gray-200 text-gray-600"
                     }`}>
@@ -1061,7 +1068,7 @@ export default function ManageQuizzes({ setView, appState }) {
                     }`}
                   >
                     <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-purple-600" : "text-gray-600"} />
-                    <span className="flex-1 text-sm">Unfiled Quizzes</span>
+                    <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       activeFolder === "unfiled" ? "bg-purple-200 text-purple-700" : "bg-gray-200 text-gray-600"
                     }`}>
@@ -1085,14 +1092,14 @@ export default function ManageQuizzes({ setView, appState }) {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
                       {activeFolder === null
-                        ? "All Quizzes"
+                        ? t('folder.allQuizzes')
                         : activeFolder === "unfiled"
-                          ? "Unfiled Quizzes"
-                          : folders.find((f) => f.id === activeFolder)?.name || "Folder"}
+                          ? t('folder.unfiledQuizzes')
+                          : folders.find((f) => f.id === activeFolder)?.name || t('folder.folder')}
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      {getDisplayedQuizzes().length} {getDisplayedQuizzes().length !== 1 ? "quizzes" : "quiz"}
-                      {searchQuery && ` matching "${searchQuery}"`}
+                      {getDisplayedQuizzes().length} {getDisplayedQuizzes().length !== 1 ? t('quiz.quizzes') : t('quiz.quiz')}
+                      {searchQuery && ` ${t('manager.matchingSearch', { query: searchQuery })}`}
                     </p>
                   </div>
 
@@ -1101,7 +1108,7 @@ export default function ManageQuizzes({ setView, appState }) {
                       onClick={selectAllQuizzes}
                       className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                     >
-                      Select All
+                      {t('manager.selectAll')}
                     </button>
                   )}
                 </div>
@@ -1113,7 +1120,7 @@ export default function ManageQuizzes({ setView, appState }) {
                       <Search size={32} className="text-gray-400" />
                     </div>
                     <p className="text-gray-600">
-                      {searchQuery ? `No quizzes found matching "${searchQuery}"` : "No quizzes in this folder"}
+                      {searchQuery ? t('manager.noQuizzesFound', { query: searchQuery }) : t('manager.noQuizzesInFolder')}
                     </p>
                   </div>
                 ) : (
@@ -1132,11 +1139,11 @@ export default function ManageQuizzes({ setView, appState }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-96">
             <h3 className="text-xl font-bold mb-4">
-              {selectedParentFolder ? "Create Subfolder" : "Create New Folder"}
+              {selectedParentFolder ? t('folder.createSubfolder') : t('folder.createFolder')}
             </h3>
             <input
               type="text"
-              placeholder="Folder name"
+              placeholder={t('folder.folderName')}
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createFolder()}
@@ -1152,13 +1159,13 @@ export default function ManageQuizzes({ setView, appState }) {
                 }}
                 className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={createFolder}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >
-                Create
+                {t('common.create')}
               </button>
             </div>
           </div>
@@ -1170,9 +1177,9 @@ export default function ManageQuizzes({ setView, appState }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-h-[80vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-2">
-              {moveQuizModal === "bulk" ? `Move ${selectedQuizzes.size} Quizzes` : "Move Quiz to Folder"}
+              {moveQuizModal === "bulk" ? t('folder.moveToFolder') + ` (${selectedQuizzes.size})` : t('folder.moveToFolder')}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">Select a destination folder</p>
+            <p className="text-sm text-gray-600 mb-4">{t('folder.folder')}</p>
 
             <div className="space-y-1 max-h-96 overflow-y-auto">
               <button
@@ -1186,7 +1193,7 @@ export default function ManageQuizzes({ setView, appState }) {
                 className="w-full text-left px-4 py-3 hover:bg-purple-50 rounded-lg transition flex items-center gap-3 group"
               >
                 <FolderOpen size={18} className="text-gray-600 group-hover:text-purple-600" />
-                <span className="text-sm group-hover:text-purple-700 font-medium">Unfiled Quizzes</span>
+                <span className="text-sm group-hover:text-purple-700 font-medium">{t('folder.unfiledQuizzes')}</span>
               </button>
 
               {folders.map((folder) => {
@@ -1226,7 +1233,7 @@ export default function ManageQuizzes({ setView, appState }) {
                 onClick={() => setMoveQuizModal(null)}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

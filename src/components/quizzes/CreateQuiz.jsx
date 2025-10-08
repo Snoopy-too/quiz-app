@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import {
   Plus,
@@ -44,6 +45,7 @@ const createEmptyQuestion = (type = "multiple_choice") => ({
 });
 
 export default function CreateQuiz({ onQuizCreated, setView, appState }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [themeId, setThemeId] = useState(null);
   const [customThemeUrl, setCustomThemeUrl] = useState(null);
@@ -400,30 +402,30 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       {heading && <h3 className="text-xl font-bold mb-4">{heading}</h3>}
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Question</label>
+          <label className="block text-sm font-medium mb-1">{t('quiz.question')}</label>
           <input
             type="text"
             value={questionForm.question_text}
             onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_text: e.target.value }))}
             className="w-full border rounded px-3 py-2"
-            placeholder="Enter your question"
+            placeholder={t('quiz.questionText')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Question Type</label>
+          <label className="block text-sm font-medium mb-1">{t('quiz.questionType')}</label>
           <select
             value={questionForm.question_type}
             onChange={(e) => handleQuestionTypeChange(e.target.value)}
             className="w-full border rounded px-3 py-2"
           >
-            <option value="multiple_choice">Multiple Choice</option>
-            <option value="true_false">True/False</option>
+            <option value="multiple_choice">{t('quiz.multipleChoice')}</option>
+            <option value="true_false">{t('quiz.trueFalse')}</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Media (Optional)</label>
+          <label className="block text-sm font-medium mb-2">{t('quiz.questionText')} ({t('common.or')} Media)</label>
           <div className="grid grid-cols-3 gap-4">
             <div>
               {questionForm.image_url ? (
@@ -503,12 +505,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               )}
             </div>
           </div>
-          {uploading && <p className="text-sm text-purple-600 mt-2">Uploading...</p>}
+          {uploading && <p className="text-sm text-purple-600 mt-2">{t('common.loading')}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Time Limit (seconds)</label>
+            <label className="block text-sm font-medium mb-1">{t('quiz.timeLimit')}</label>
             <input
               type="number"
               value={questionForm.time_limit}
@@ -525,7 +527,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Points</label>
+            <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
             <input
               type="number"
               value={questionForm.points}
@@ -544,7 +546,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Answer Options</label>
+          <label className="block text-sm font-medium mb-2">{t('quiz.answers')}</label>
           <div className="space-y-2">
             {questionForm.options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 items-center">
@@ -553,7 +555,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                   value={opt.text}
                   onChange={(e) => updateOption(idx, "text", e.target.value)}
                   className="flex-1 border rounded px-3 py-2"
-                  placeholder={`Option ${idx + 1}`}
+                  placeholder={`${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
                 <label className="flex items-center gap-2 whitespace-nowrap">
@@ -563,7 +565,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                     onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
                     className="w-5 h-5"
                   />
-                  <span className="text-sm">Correct</span>
+                  <span className="text-sm">{t('quiz.correctAnswer')}</span>
                 </label>
               </div>
             ))}
@@ -578,13 +580,13 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
           >
             <Save size={18} />
-            Save Question
+            {t('common.save')}
           </button>
           <button
             onClick={resetQuestionForm}
             className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -598,14 +600,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       <div className="flex-1 ml-64">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-purple-600">Create New Quiz</h1>
+            <h1 className="text-2xl font-bold text-purple-600">{t('nav.createQuiz')}</h1>
             <button
               onClick={handleSaveQuiz}
               disabled={saving}
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={18} />
-              {saving ? "Saving..." : "Save Quiz"}
+              {saving ? t('common.loading') : t('common.save')}
             </button>
           </div>
           {(error || success) && (
@@ -627,7 +629,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                 }`}
                 onClick={() => setActiveTab("settings")}
               >
-                Settings
+                {t('nav.settings')}
               </button>
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${
@@ -637,7 +639,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                 }`}
                 onClick={() => setActiveTab("questions")}
               >
-                Questions ({questions.length})
+                {t('quiz.questions')} ({questions.length})
               </button>
             </div>
 
@@ -645,14 +647,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               {activeTab === "settings" ? (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Quiz Title</label>
+                    <label className="block text-sm font-medium mb-1">{t('quiz.title')}</label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
                       className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
-                      placeholder="Enter quiz title"
+                      placeholder={t('quiz.title')}
                     />
                   </div>
 
@@ -674,7 +676,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Folder</label>
+                    <label className="block text-sm font-medium mb-1">{t('folder.folder')}</label>
                     <select
                       value={folderId}
                       onChange={(e) => setFolderId(e.target.value)}
@@ -689,13 +691,13 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                     </select>
                     {folders.length === 0 && (
                       <p className="mt-2 text-xs text-gray-500">
-                        No folders yet. You can organize quizzes into folders from the Manage Quizzes page.
+                        {t('folder.noFolders')}
                       </p>
                     )}
                   </div>
 
                   <div className="border-t pt-4 space-y-3">
-                    <h3 className="font-semibold text-gray-700">Quiz Settings</h3>
+                    <h3 className="font-semibold text-gray-700">{t('nav.settings')}</h3>
 
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -704,7 +706,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         onChange={(e) => setIsTemplate(e.target.checked)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">Save as template</span>
+                      <span className="text-sm">{t('quiz.isTemplate')}</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -714,7 +716,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         onChange={(e) => setIsPublic(e.target.checked)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">Make quiz public</span>
+                      <span className="text-sm">{t('quiz.isPublic')}</span>
                     </label>
                   </div>
                 </div>
@@ -723,10 +725,10 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-800">
-                        Questions ({questions.length})
+                        {t('quiz.questions')} ({questions.length})
                       </h2>
                       <p className="text-sm text-gray-500">
-                        {questions.length} question{questions.length === 1 ? "" : "s"} • {totalPoints} total points
+                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
                       </p>
                     </div>
                     <button
@@ -734,7 +736,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                       className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 text-sm font-medium"
                     >
                       <Plus size={16} />
-                      Add Question
+                      {t('quiz.addQuestion')}
                     </button>
                   </div>
 
@@ -743,13 +745,13 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
                         <Plus size={32} className="text-purple-600" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">No questions yet</h3>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('quiz.noQuestions')}</h3>
                       <p className="text-gray-600 mb-6">Start building your quiz by adding questions.</p>
                       <button
                         onClick={handleAddQuestion}
                         className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
                       >
-                        Add Your First Question
+                        {t('quiz.addQuestion')}
                       </button>
                     </div>
                   ) : (
@@ -894,7 +896,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
                   {questionFormMode === "add" && (
                     <div className="bg-white border border-purple-200 rounded-lg shadow-sm p-6">
-                      {renderQuestionEditor("Add New Question")}
+                      {renderQuestionEditor(t('quiz.addQuestion'))}
                     </div>
                   )}
                 </div>
@@ -908,7 +910,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={20} />
-              {saving ? "Saving..." : "Save Quiz"}
+              {saving ? t('common.loading') : t('common.save')}
             </button>
           </div>
         </div>

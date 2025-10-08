@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function Login({
   setView,
@@ -8,6 +10,7 @@ export default function Login({
   setError: setGlobalError, // optional from parent
   setSuccess: setGlobalSuccess, // optional from parent
 }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -102,7 +105,7 @@ export default function Login({
       });
 
       if (error) {
-        setErrorMsg(/invalid/i.test(error.message) ? "Invalid credentials" : error.message);
+        setErrorMsg(/invalid/i.test(error.message) ? t('auth.invalidCredentials') : error.message);
         return;
       }
 
@@ -180,7 +183,10 @@ export default function Login({
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-sm w-full p-6 rounded-xl shadow-lg bg-white">
-        <h1 className="text-2xl font-bold text-center mb-4">Login to QuizMaster</h1>
+        <div className="flex justify-center mb-4">
+          <LanguageSwitcher />
+        </div>
+        <h1 className="text-2xl font-bold text-center mb-4">{t('auth.loginToQuizMaster')}</h1>
 
         {errorMsg && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
@@ -190,20 +196,20 @@ export default function Login({
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.email')}</label>
             <input
               type="email"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border rounded px-3 py-2"
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
             <input
               type="password"
               autoComplete="current-password"
@@ -220,7 +226,7 @@ export default function Login({
             disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Login"}
+            {loading ? t('auth.signingIn') : t('auth.login')}
           </button>
         </form>
 
@@ -230,7 +236,7 @@ export default function Login({
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
@@ -257,17 +263,17 @@ export default function Login({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Sign in with Google
+            {t('auth.signInWithGoogle')}
           </button>
         </div>
 
         <p className="text-center text-sm mt-4">
-          Don't have an account?{" "}
+          {t('auth.dontHaveAccount')}{" "}
           <button
             onClick={() => setView("register")}
             className="text-purple-700 underline hover:text-purple-800"
           >
-            Register
+            {t('auth.register')}
           </button>
         </p>
       </div>
