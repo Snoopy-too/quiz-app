@@ -43,17 +43,24 @@ export default function ManageQuizzes({ setView, appState }) {
 
       const { data, error: fetchError } = await supabase
         .from("quizzes")
-        .select("id, title, theme, category_id, folder_id, created_at, categories(name), questions(id)")
+        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id), themes(id, name, background_image_url, primary_color, secondary_color, text_color)")
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
       // Add question count to each quiz
-      const quizzesWithCount = data?.map(quiz => ({
-        ...quiz,
-        questionCount: quiz.questions?.length || 0
-      })) || [];
+      const quizzesWithCount = (data || []).map((quiz) => {
+        const { questions, themes, ...rest } = quiz;
+        const themeDetails = Array.isArray(themes) ? themes[0] : themes;
+
+        return {
+          ...rest,
+          questions,
+          questionCount: questions?.length || 0,
+          themeDetails: themeDetails || null
+        };
+      });
 
       setQuizzes(quizzesWithCount);
     } catch (err) {
@@ -321,10 +328,10 @@ export default function ManageQuizzes({ setView, appState }) {
         .insert([
           {
             title: `${quiz.title} (Copy)`,
-            theme: quiz.theme,
+            theme_id: quiz.theme_id || null,
             category_id: quiz.category_id,
             created_by: appState.currentUser.id,
-            background_image_url: quiz.background_image_url,
+            background_image_url: quiz.background_image_url || null,
             randomize_questions: quiz.randomize_questions,
             randomize_answers: quiz.randomize_answers,
             is_template: quiz.is_template,
@@ -657,7 +664,21 @@ export default function ManageQuizzes({ setView, appState }) {
                     onClick={() => setActiveFolder(folder.id)}
                     className="py-1.5 px-3 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer transition-colors flex items-center gap-2"
                   >
-                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                    <div
+                      className="w-3 h-3 rounded-full border border-white/60 shadow"
+                      style={{
+                        backgroundImage: quiz.themeDetails?.background_image_url || quiz.background_image_url
+                          ? `url(${quiz.themeDetails?.background_image_url || quiz.background_image_url})`
+                          : undefined,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        background: quiz.themeDetails?.primary_color
+                          ? `linear-gradient(135deg, ${quiz.themeDetails.primary_color}, ${quiz.themeDetails.secondary_color || quiz.themeDetails.primary_color})`
+                          : quiz.background_image_url
+                            ? undefined
+                            : "linear-gradient(135deg, #7C3AED, #2563EB)"
+                      }}
+                    ></div>
                     <span className="flex-1">{quiz.title}</span>
                   </div>
                 ))}
@@ -670,17 +691,67 @@ export default function ManageQuizzes({ setView, appState }) {
   };
 
   // Quiz card renderer
+  const getThemeMeta = (quiz) => {
+    const theme = quiz.themeDetails;
+    const customBackground = quiz.background_image_url;
+
+    if (theme?.background_image_url) {
+      return {
+        label: theme.name || "Theme",
+        style: {
+          backgroundImage: `url(${theme.background_image_url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        },
+        textColor: theme.text_color || "#FFFFFF",
+        overlay: true,
+        isCustom: false
+      };
+    }
+
+    if (theme && (theme.primary_color || theme.secondary_color)) {
+      const primary = theme.primary_color || "#7C3AED";
+      const secondary = theme.secondary_color || primary;
+      return {
+        label: theme.name || "Theme",
+        style: {
+          background: `linear-gradient(135deg, ${primary}, ${secondary})`
+        },
+        textColor: theme.text_color || "#FFFFFF",
+        overlay: false,
+        isCustom: false
+      };
+    }
+
+    if (customBackground) {
+      return {
+        label: "Custom Theme",
+        style: {
+          backgroundImage: `url(${customBackground})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        },
+        textColor: "#FFFFFF",
+        overlay: true,
+        isCustom: true
+      };
+    }
+
+    return {
+      label: "Default Theme",
+      style: {
+        background: "linear-gradient(135deg, #7C3AED, #2563EB)"
+      },
+      textColor: "#FFFFFF",
+      overlay: false,
+      isCustom: false
+    };
+  };
+
   const renderQuizCard = (quiz) => {
     const isSelected = selectedQuizzes.has(quiz.id);
-    const themeColors = {
-      science: "bg-blue-100 text-blue-700 border-blue-300",
-      math: "bg-green-100 text-green-700 border-green-300",
-      history: "bg-yellow-100 text-yellow-700 border-yellow-300",
-      literature: "bg-purple-100 text-purple-700 border-purple-300",
-      default: "bg-gray-100 text-gray-700 border-gray-300"
-    };
-
-    const themeColor = themeColors[quiz.theme?.toLowerCase()] || themeColors.default;
+    const themeMeta = getThemeMeta(quiz);
+    const badgeLabel = themeMeta.label;
 
     return (
       <div
@@ -691,8 +762,22 @@ export default function ManageQuizzes({ setView, appState }) {
           isSelected ? "border-purple-500 ring-2 ring-purple-200" : "border-transparent"
         } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
       >
-        {/* Header with checkbox and theme badge */}
-        <div className={`h-2 ${themeColor.split(' ')[0]}`}></div>
+        {/* Theme Preview */}
+        <div className="relative h-28">
+          <div className="absolute inset-0" style={themeMeta.style}></div>
+          {themeMeta.overlay && <div className="absolute inset-0 bg-black/35" />}
+          <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+            <span
+              className="text-sm font-semibold drop-shadow"
+              style={{ color: themeMeta.textColor }}
+            >
+              {badgeLabel}
+            </span>
+            {themeMeta.isCustom && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700">Custom</span>
+            )}
+          </div>
+        </div>
 
         <div className="p-4">
           {/* Title and selection */}
@@ -715,9 +800,9 @@ export default function ManageQuizzes({ setView, appState }) {
 
               {/* Tags/Badges */}
               <div className="flex flex-wrap gap-2 mb-3">
-                {quiz.theme && (
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${themeColor}`}>
-                    {quiz.theme}
+                {badgeLabel && (
+                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                    {badgeLabel}
                   </span>
                 )}
                 {quiz.categories?.name && (
