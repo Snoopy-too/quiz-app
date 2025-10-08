@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { ArrowLeft, Users, Check } from "lucide-react";
 
-export default function CreateTeam({ appState, setView, error, setError, onBack }) {
+export default function CreateTeam({ appState, setView, error, setError, onBack, isApproved }) {
   const [teamName, setTeamName] = useState("");
   const [classmates, setClassmates] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -13,8 +13,12 @@ export default function CreateTeam({ appState, setView, error, setError, onBack 
   const [quizPin, setQuizPin] = useState("");
 
   useEffect(() => {
-    fetchClassmates();
-  }, []);
+    if (isApproved) {
+      fetchClassmates();
+    } else {
+      setLoadingClassmates(false);
+    }
+  }, [isApproved]);
 
   const fetchClassmates = async () => {
     try {
@@ -175,6 +179,27 @@ export default function CreateTeam({ appState, setView, error, setError, onBack 
   };
 
   if (!teamCreated) {
+    if (!isApproved) {
+      return (
+        <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl text-center">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+            >
+              <ArrowLeft size={20} />
+              Back to Dashboard
+            </button>
+
+            <div className="text-4xl mb-3">⏳</div>
+            <h1 className="text-3xl font-bold mb-2">Awaiting Approval</h1>
+            <p className="text-gray-600">
+              Team tools unlock once your teacher approves your account. Please check back later or contact your teacher if you need access.
+            </p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">

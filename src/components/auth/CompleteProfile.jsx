@@ -20,7 +20,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
     }
 
     const trimmedCode = teacherInviteCode?.trim();
-    if (!trimmedCode) {
+    if (role === "student" && !trimmedCode) {
       setLocalError("Please enter your teacher invitation code.");
       return;
     }
@@ -30,7 +30,6 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
     try {
       const updates = {
         role,
-        teacher_invite_code: trimmedCode,
       };
 
       let linkedTeacher = null;
@@ -94,7 +93,10 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
         }
 
         updates.teacher_id = null;
-        updates.teacher_invite_code = trimmedCode;
+        updates.teacher_invite_code = trimmedCode || null;
+      } else {
+        updates.teacher_id = null;
+        updates.teacher_invite_code = trimmedCode || null;
       }
 
       const { data: updatedUser, error: updateError } = await supabase
@@ -154,19 +156,22 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="teacher-invite" className="block text-sm font-medium text-gray-700">
-              Enter your Teacher Invitation Code
-            </label>
-            <input
-              id="teacher-invite"
-              type="text"
-              value={teacherInviteCode}
-              onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-              placeholder="e.g. ABCD-1234"
-            />
-          </div>
+          {role !== "teacher" && (
+            <div>
+              <label htmlFor="teacher-invite" className="block text-sm font-medium text-gray-700">
+                Enter your Teacher Invitation Code
+              </label>
+              <input
+                id="teacher-invite"
+                type="text"
+                value={teacherInviteCode}
+                onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                placeholder="e.g. ABCD-1234"
+              />
+              <p className="mt-1 text-xs text-gray-500">Students must enter the invitation code provided by their teacher.</p>
+            </div>
+          )}
 
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700">
@@ -175,7 +180,10 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
             <select
               id="role"
               value={role || ""}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => {
+                setRole(e.target.value);
+                setLocalError("");
+              }}
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               <option value="" disabled>
@@ -184,6 +192,9 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
             </select>
+            {role === "teacher" && (
+              <p className="mt-1 text-xs text-gray-500">Teachers can continue without an invitation code.</p>
+            )}
           </div>
 
           <button

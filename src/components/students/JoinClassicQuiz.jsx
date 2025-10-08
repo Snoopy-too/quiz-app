@@ -2,11 +2,16 @@ import { useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { ArrowLeft } from "lucide-react";
 
-export default function JoinClassicQuiz({ appState, setView, error, setError, onBack }) {
+export default function JoinClassicQuiz({ appState, setView, error, setError, onBack, isApproved }) {
   const [joinPin, setJoinPin] = useState("");
   const [loading, setLoading] = useState(false);
 
   const joinQuiz = async () => {
+    if (!isApproved) {
+      setError("Your account is awaiting approval. Please wait for your teacher to approve you before joining quizzes.");
+      return;
+    }
+
     if (!joinPin || joinPin.length !== 6) {
       setError("Please enter a valid 6-digit PIN");
       return;
@@ -125,11 +130,17 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
 
         <button
           onClick={joinQuiz}
-          disabled={loading}
+          disabled={loading || !isApproved}
           className="w-full bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Joining..." : "Join Quiz"}
         </button>
+
+        {!isApproved && (
+          <p className="mt-4 text-sm text-gray-500 text-center">
+            Waiting for teacher approval. You will be able to join quizzes once approved.
+          </p>
+        )}
       </div>
     </div>
   );
