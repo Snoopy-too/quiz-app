@@ -13,10 +13,17 @@ export default function StudentDashboard({ appState, setAppState, setView, error
     setError(null);
   };
 
+  const handleNavSelection = (nextView, sessionId) => {
+    if (nextView === "student-dashboard") {
+      handleBackToDashboard();
+    }
+    setView(nextView, sessionId);
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Vertical Navigation */}
-      <VerticalNav currentView="student-dashboard" setView={setView} appState={appState} />
+      <VerticalNav currentView="student-dashboard" setView={handleNavSelection} appState={appState} />
 
       {/* Main Content */}
       <div className="flex-1 ml-64">
