@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { User, Lock, Camera, Save } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
+import { useTranslation } from "react-i18next";
 
 export default function Settings({ setView, appState, setAppState }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -58,7 +60,7 @@ export default function Settings({ setView, appState, setAppState }) {
         }
       }));
 
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      setMessage({ type: "success", text: t("settings.profileUpdated") });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -72,13 +74,13 @@ export default function Settings({ setView, appState, setAppState }) {
     setMessage({ type: "", text: "" });
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setMessage({ type: "error", text: "New passwords do not match!" });
+      setMessage({ type: "error", text: t("settings.passwordsDoNotMatch") });
       setLoading(false);
       return;
     }
 
     if (passwordForm.newPassword.length < 6) {
-      setMessage({ type: "error", text: "Password must be at least 6 characters!" });
+      setMessage({ type: "error", text: t("settings.passwordTooShort") });
       setLoading(false);
       return;
     }
@@ -91,7 +93,7 @@ export default function Settings({ setView, appState, setAppState }) {
 
       if (error) throw error;
 
-      setMessage({ type: "success", text: "Password changed successfully!" });
+      setMessage({ type: "success", text: t("settings.passwordChanged") });
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {
       setMessage({ type: "error", text: error.message });
@@ -106,7 +108,7 @@ export default function Settings({ setView, appState, setAppState }) {
 
       <div className="flex-1 ml-64">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-purple-600">Settings</h1>
+          <h1 className="text-2xl font-bold text-purple-600">{t("settings.settings")}</h1>
         </nav>
 
         <div className="container mx-auto p-6 max-w-4xl">
@@ -122,7 +124,7 @@ export default function Settings({ setView, appState, setAppState }) {
                 }`}
               >
                 <User className="inline-block mr-2" size={20} />
-                Profile
+                {t("settings.profile")}
               </button>
               <button
                 onClick={() => setActiveTab("password")}
@@ -133,7 +135,7 @@ export default function Settings({ setView, appState, setAppState }) {
                 }`}
               >
                 <Lock className="inline-block mr-2" size={20} />
-                Password
+                {t("settings.password")}
               </button>
             </div>
 
@@ -151,7 +153,7 @@ export default function Settings({ setView, appState, setAppState }) {
               <form onSubmit={handleUpdateProfile} className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Name
+                    {t("settings.name")}
                   </label>
                   <input
                     type="text"
@@ -164,7 +166,7 @@ export default function Settings({ setView, appState, setAppState }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
+                    {t("settings.email")}
                   </label>
                   <input
                     type="email"
@@ -177,12 +179,12 @@ export default function Settings({ setView, appState, setAppState }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Avatar URL (Optional)
+                    {t("settings.avatarUrl")}
                   </label>
                   <div className="flex gap-3">
                     <input
                       type="url"
-                      placeholder="https://example.com/avatar.jpg"
+                      placeholder={t("settings.avatarUrlPlaceholder")}
                       value={profileForm.avatar_url}
                       onChange={(e) => setProfileForm({ ...profileForm, avatar_url: e.target.value })}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -197,7 +199,7 @@ export default function Settings({ setView, appState, setAppState }) {
                     )}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    Enter a URL to an image or upload to an image hosting service
+                    {t("settings.avatarUrlHelp")}
                   </p>
                 </div>
 
@@ -207,7 +209,7 @@ export default function Settings({ setView, appState, setAppState }) {
                   className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                   <Save size={20} />
-                  {loading ? "Saving..." : "Save Changes"}
+                  {loading ? t("settings.saving") : t("settings.saveChanges")}
                 </button>
               </form>
             )}
@@ -217,14 +219,13 @@ export default function Settings({ setView, appState, setAppState }) {
               <form onSubmit={handleChangePassword} className="p-6 space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> You can update your password directly without entering your current password.
-                    Supabase will handle the authentication.
+                    <strong>{t("common.note")}:</strong> {t("settings.passwordNote")}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Password
+                    {t("settings.newPassword")}
                   </label>
                   <input
                     type="password"
@@ -233,13 +234,13 @@ export default function Settings({ setView, appState, setAppState }) {
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="At least 6 characters"
+                    placeholder={t("settings.newPasswordPlaceholder")}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm New Password
+                    {t("settings.confirmNewPassword")}
                   </label>
                   <input
                     type="password"
@@ -248,7 +249,7 @@ export default function Settings({ setView, appState, setAppState }) {
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Re-enter new password"
+                    placeholder={t("settings.confirmPasswordPlaceholder")}
                   />
                 </div>
 
@@ -258,7 +259,7 @@ export default function Settings({ setView, appState, setAppState }) {
                   className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                   <Lock size={20} />
-                  {loading ? "Updating..." : "Change Password"}
+                  {loading ? t("settings.updating") : t("settings.changePassword")}
                 </button>
               </form>
             )}
@@ -266,27 +267,27 @@ export default function Settings({ setView, appState, setAppState }) {
 
           {/* Account Info */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Account Information</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("settings.accountInformation")}</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Role:</span>
+                <span className="text-gray-600">{t("settings.role")}</span>
                 <span className="font-medium capitalize">{appState.currentUser?.role}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Account Status:</span>
+                <span className="text-gray-600">{t("settings.accountStatus")}</span>
                 <span className={`font-medium ${
                   appState.currentUser?.verified && appState.currentUser?.approved
                     ? "text-green-600"
                     : "text-yellow-600"
                 }`}>
                   {appState.currentUser?.verified && appState.currentUser?.approved
-                    ? "Active"
-                    : "Pending Approval"}
+                    ? t("settings.active")
+                    : t("settings.pendingApproval")}
                 </span>
               </div>
               {appState.currentUser?.student_id && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Student ID:</span>
+                  <span className="text-gray-600">{t("settings.studentId")}</span>
                   <span className="font-medium">{appState.currentUser.student_id}</span>
                 </div>
               )}

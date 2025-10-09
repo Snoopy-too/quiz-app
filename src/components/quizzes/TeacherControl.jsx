@@ -5,6 +5,7 @@ import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock
 import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import AutoPlayVideo from "../common/AutoPlayVideo";
 
 export default function TeacherControl({ sessionId, setView }) {
   const { t } = useTranslation();
@@ -876,10 +877,10 @@ export default function TeacherControl({ sessionId, setView }) {
                 />
               )}
               {currentQuestion.video_url && (
-                <video
+                <AutoPlayVideo
                   src={currentQuestion.video_url}
-                  controls
                   className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  reloadKey={currentQuestion.id}
                 />
               )}
               {currentQuestion.gif_url && (
@@ -987,10 +988,10 @@ export default function TeacherControl({ sessionId, setView }) {
               />
             )}
             {currentQuestion.video_url && (
-              <video
+              <AutoPlayVideo
                 src={currentQuestion.video_url}
-                controls
                 className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+                reloadKey={currentQuestion.id}
               />
             )}
             {currentQuestion.gif_url && (

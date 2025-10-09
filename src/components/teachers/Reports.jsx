@@ -4,8 +4,10 @@ import { BarChart3, TrendingUp, Users, Award, Target, AlertCircle, ChevronDown, 
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import { useTranslation } from "react-i18next";
 
 export default function Reports({ setView, appState }) {
+  const { t } = useTranslation();
   const [quizzes, setQuizzes] = useState([]);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [quizStats, setQuizStats] = useState(null);
@@ -168,7 +170,7 @@ export default function Reports({ setView, appState }) {
             count: mostCommonWrong[1],
             text: q.options[mostCommonWrong[0]]?.text
           } : null,
-          difficulty: accuracy > 80 ? "Easy" : accuracy > 50 ? "Medium" : "Hard"
+          difficultyKey: accuracy > 80 ? "difficultyEasy" : accuracy > 50 ? "difficultyMedium" : "difficultyHard"
         };
       }) || [];
 
@@ -229,14 +231,14 @@ export default function Reports({ setView, appState }) {
   };
 
   const handleExport = (quiz) => {
-    setAlertModal({ isOpen: true, title: "Export", message: `Export functionality for "${quiz.title}" will be implemented`, type: "info" });
+    setAlertModal({ isOpen: true, title: t("reports.exportTitle"), message: t("reports.exportMessage", { title: quiz.title }), type: "info" });
   };
 
   const handleDelete = async (quiz) => {
     setConfirmModal({
       isOpen: true,
-      title: "Delete Quiz",
-      message: `Are you sure you want to delete "${quiz.title}"? This action cannot be undone.`,
+      title: t("reports.deleteQuizTitle"),
+      message: t("reports.deleteQuizMessage", { title: quiz.title }),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
@@ -249,7 +251,7 @@ export default function Reports({ setView, appState }) {
           await fetchTeacherQuizzes();
           setOpenMenuId(null);
         } catch (err) {
-          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting quiz: " + err.message, type: "error" });
+          setAlertModal({ isOpen: true, title: t("reports.errorTitle"), message: t("reports.errorDeletingQuiz") + err.message, type: "error" });
         }
       }
     });
@@ -270,7 +272,7 @@ export default function Reports({ setView, appState }) {
   if (loading && !selectedQuiz) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading reports...</p>
+        <p className="text-xl text-gray-600">{t("reports.loadingReports")}</p>
       </div>
     );
   }
@@ -279,12 +281,12 @@ export default function Reports({ setView, appState }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">Error: {error}</p>
+          <p className="text-xl text-red-600 mb-4">{t("reports.errorTitle")}: {error}</p>
           <button
             onClick={() => setView("teacher-dashboard")}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
           >
-            Back to Dashboard
+            {t("reports.backToDashboard")}
           </button>
         </div>
       </div>
@@ -299,23 +301,23 @@ export default function Reports({ setView, appState }) {
       {/* Main Content */}
       <div className="flex-1 ml-64">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-blue-600">Quiz Reports & Analytics</h1>
+          <h1 className="text-2xl font-bold text-blue-600">{t("reports.title")}</h1>
         </nav>
 
         <div className="container mx-auto p-6">
         {/* Quiz Selection */}
         {!selectedQuiz ? (
           <div>
-            <h2 className="text-2xl font-bold mb-6">Quiz Reports</h2>
+            <h2 className="text-2xl font-bold mb-6">{t("reports.quizReports")}</h2>
 
             {quizzes.length === 0 ? (
               <div className="bg-white rounded-xl shadow-md text-center py-12">
-                <p className="text-gray-600 mb-4">No quizzes found. Create a quiz to see reports.</p>
+                <p className="text-gray-600 mb-4">{t("reports.noQuizzesFound")}</p>
                 <button
                   onClick={() => setView("create-quiz")}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
                 >
-                  Create Quiz
+                  {t("reports.createQuiz")}
                 </button>
               </div>
             ) : (
@@ -331,10 +333,10 @@ export default function Reports({ setView, appState }) {
                           className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                         />
                       </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Quiz Title</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date/Time</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Mode</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Players</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderQuizTitle")}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderDateTime")}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderMode")}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderPlayers")}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 w-12"></th>
                     </tr>
                   </thead>
@@ -372,11 +374,11 @@ export default function Reports({ setView, appState }) {
                               ? "bg-purple-100 text-purple-800"
                               : "bg-green-100 text-green-800"
                           }`}>
-                            {quiz.mode === "Team" || quiz.mode === "team" ? "Team mode" : "Individual"}
+                            {quiz.mode === "Team" || quiz.mode === "team" ? t("reports.teamMode") : t("reports.individual")}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-600">
-                          {quiz.completedCount} session{quiz.completedCount !== 1 ? "s" : ""}
+                          {quiz.completedCount} {quiz.completedCount !== 1 ? t("reports.sessions") : t("reports.session")}
                         </td>
                         <td className="px-6 py-4 relative">
                           <button
@@ -400,7 +402,7 @@ export default function Reports({ setView, appState }) {
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               >
                                 <Eye size={16} />
-                                View
+                                {t("reports.actionView")}
                               </button>
                               <button
                                 onClick={(e) => {
@@ -411,7 +413,7 @@ export default function Reports({ setView, appState }) {
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               >
                                 <Download size={16} />
-                                Export
+                                {t("reports.actionExport")}
                               </button>
                               <button
                                 onClick={(e) => {
@@ -421,7 +423,7 @@ export default function Reports({ setView, appState }) {
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
                               >
                                 <Trash2 size={16} />
-                                Delete
+                                {t("reports.actionDelete")}
                               </button>
                             </div>
                           )}
@@ -443,10 +445,10 @@ export default function Reports({ setView, appState }) {
               }}
               className="mb-4 text-blue-600 hover:text-blue-700 font-medium"
             >
-              ← Back to Quiz List
+              {t("reports.backToQuizList")}
             </button>
 
-            <h2 className="text-3xl font-bold mb-6">{selectedQuiz.title} - Analytics</h2>
+            <h2 className="text-3xl font-bold mb-6">{selectedQuiz.title} - {t("reports.analytics")}</h2>
 
             {/* Overview Stats */}
             {quizStats && (
@@ -455,7 +457,7 @@ export default function Reports({ setView, appState }) {
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Total Sessions</p>
+                        <p className="text-sm text-gray-600">{t("reports.totalSessions")}</p>
                         <p className="text-3xl font-bold text-blue-600">{quizStats.sessions}</p>
                       </div>
                       <BarChart3 className="text-blue-600" size={40} />
@@ -465,7 +467,7 @@ export default function Reports({ setView, appState }) {
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Total Participants</p>
+                        <p className="text-sm text-gray-600">{t("reports.totalParticipants")}</p>
                         <p className="text-3xl font-bold text-green-600">{quizStats.totalParticipants}</p>
                       </div>
                       <Users className="text-green-600" size={40} />
@@ -475,7 +477,7 @@ export default function Reports({ setView, appState }) {
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Average Score</p>
+                        <p className="text-sm text-gray-600">{t("reports.averageScore")}</p>
                         <p className="text-3xl font-bold text-purple-600">{quizStats.averageScore}</p>
                       </div>
                       <Award className="text-purple-600" size={40} />
@@ -485,7 +487,7 @@ export default function Reports({ setView, appState }) {
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Overall Accuracy</p>
+                        <p className="text-sm text-gray-600">{t("reports.overallAccuracy")}</p>
                         <p className="text-3xl font-bold text-orange-600">{quizStats.overallAccuracy}%</p>
                       </div>
                       <Target className="text-orange-600" size={40} />
@@ -495,7 +497,7 @@ export default function Reports({ setView, appState }) {
 
                 {/* Question Analytics */}
                 <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                  <h3 className="text-2xl font-bold mb-4">Question Performance</h3>
+                  <h3 className="text-2xl font-bold mb-4">{t("reports.questionPerformance")}</h3>
                   <div className="space-y-4">
                     {quizStats.questionAnalytics.map((q, idx) => (
                       <div key={q.id} className="border rounded-lg p-4">
@@ -505,25 +507,25 @@ export default function Reports({ setView, appState }) {
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <span className="text-lg font-semibold">Q{idx + 1}:</span>
+                              <span className="text-lg font-semibold">{t("reports.questionLabel")}{idx + 1}:</span>
                               <span className="text-gray-800">{q.question_text}</span>
                             </div>
                             <div className="flex gap-4 text-sm">
                               <span className="text-gray-600">
-                                Answered: {q.totalAnswers} times
+                                {t("reports.answeredTimes", { count: q.totalAnswers })}
                               </span>
                               <span className={`font-semibold ${
                                 q.accuracy > 80 ? 'text-green-600' :
                                 q.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                               }`}>
-                                Accuracy: {q.accuracy}%
+                                {t("reports.accuracy", { percent: q.accuracy })}
                               </span>
                               <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                                q.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                                q.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                q.difficultyKey === 'difficultyEasy' ? 'bg-green-100 text-green-800' :
+                                q.difficultyKey === 'difficultyMedium' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-red-100 text-red-800'
                               }`}>
-                                {q.difficulty}
+                                {t(`reports.${q.difficultyKey}`)}
                               </span>
                             </div>
                           </div>
@@ -532,7 +534,7 @@ export default function Reports({ setView, appState }) {
 
                         {expandedQuestion === idx && (
                           <div className="mt-4 pt-4 border-t">
-                            <h4 className="font-semibold mb-3">Answer Distribution:</h4>
+                            <h4 className="font-semibold mb-3">{t("reports.answerDistribution")}</h4>
                             <div className="space-y-2">
                               {q.options?.map((opt, optIdx) => {
                                 const count = q.optionCounts[optIdx] || 0;
@@ -546,7 +548,7 @@ export default function Reports({ setView, appState }) {
                                     <div className={`w-24 px-2 py-1 rounded text-sm font-medium text-center ${
                                       isCorrect ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                     }`}>
-                                      {isCorrect ? '✓ Correct' : `Option ${optIdx + 1}`}
+                                      {isCorrect ? t("reports.correct") : t("reports.option", { number: optIdx + 1 })}
                                     </div>
                                     <div className="flex-1">
                                       <div className="text-sm mb-1">{opt.text}</div>
@@ -574,9 +576,9 @@ export default function Reports({ setView, appState }) {
                                 <div className="flex items-start gap-2">
                                   <AlertCircle className="text-red-600 mt-0.5" size={20} />
                                   <div>
-                                    <p className="text-sm font-semibold text-red-800">Most Common Mistake:</p>
+                                    <p className="text-sm font-semibold text-red-800">{t("reports.mostCommonMistake")}</p>
                                     <p className="text-sm text-red-700">
-                                      {q.mostCommonWrongAnswer.count} students selected: "{q.mostCommonWrongAnswer.text}"
+                                      {t("reports.studentsSelected", { count: q.mostCommonWrongAnswer.count, text: q.mostCommonWrongAnswer.text })}
                                     </p>
                                   </div>
                                 </div>
@@ -591,20 +593,20 @@ export default function Reports({ setView, appState }) {
 
                 {/* Student Performance Leaderboard */}
                 <div className="bg-white rounded-xl shadow-md p-6">
-                  <h3 className="text-2xl font-bold mb-4">Student Performance</h3>
+                  <h3 className="text-2xl font-bold mb-4">{t("reports.studentPerformance")}</h3>
                   {quizStats.studentPerformance.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8">No student data available yet.</p>
+                    <p className="text-gray-600 text-center py-8">{t("reports.noStudentData")}</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-gray-100 border-b">
                           <tr>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Rank</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Student</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Score</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Questions</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Accuracy</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.rank")}</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.student")}</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.email")}</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.score")}</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.questions")}</th>
+                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.accuracyHeader")}</th>
                           </tr>
                         </thead>
                         <tbody>

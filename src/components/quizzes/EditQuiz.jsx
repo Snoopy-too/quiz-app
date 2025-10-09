@@ -413,7 +413,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       const { error: updateError } = await supabase.from("quizzes").update(payload).eq("id", quizId);
       if (updateError) throw updateError;
 
-      setSuccess(t('quiz.quizUpdatedSuccess'));
+      setSuccess("Changes saved!");
     } catch (err) {
       setSaveError(err.message);
     } finally {
@@ -675,7 +675,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={18} />
-              {saving ? t('common.saving') : t('quiz.saveQuiz')}
+              {saving ? t('common.saving') : "Save Quiz"}
             </button>
           </div>
           {(saveError || success) && (
@@ -973,7 +973,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={20} />
-              {saving ? t('common.saving') : t('quiz.saveQuiz')}
+              {saving ? t('common.saving') : "Save Quiz"}
             </button>
           </div>
         </div>

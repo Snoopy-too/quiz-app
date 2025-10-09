@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import AutoPlayVideo from "../common/AutoPlayVideo";
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const { t } = useTranslation();
@@ -439,10 +440,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 />
               )}
               {currentQuestion.video_url && (
-                <video
+                <AutoPlayVideo
                   src={currentQuestion.video_url}
-                  controls
                   className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  reloadKey={currentQuestion.id}
                 />
               )}
               {currentQuestion.gif_url && (

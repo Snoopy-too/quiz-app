@@ -3,6 +3,7 @@ import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club, X, SkipForward } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import AutoPlayVideo from "../common/AutoPlayVideo";
 
 export default function PreviewQuiz({ quizId, setView, returnView = "manage-quizzes" }) {
   const [quiz, setQuiz] = useState(null);
@@ -371,10 +372,10 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
               />
             )}
             {currentQuestion.video_url && (
-              <video
+              <AutoPlayVideo
                 src={currentQuestion.video_url}
-                controls
                 className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                reloadKey={currentQuestion.id}
               />
             )}
             {currentQuestion.gif_url && (
