@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
-import { Search, UserCheck, UserX, TrendingUp, Award, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Search, UserCheck, TrendingUp, Award, Clock, CheckCircle, XCircle, UserPlus } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -18,6 +18,17 @@ export default function ManageStudents({ setView, appState }) {
   const [showDetails, setShowDetails] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newStudentForm, setNewStudentForm] = useState({
+    name: "",
+    email: "",
+    studentId: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [creatingStudent, setCreatingStudent] = useState(false);
+  const [createStudentError, setCreateStudentError] = useState("");
+  const [createStudentSuccess, setCreateStudentSuccess] = useState(null);
 
   useEffect(() => {
     fetchStudents();
@@ -128,6 +139,147 @@ export default function ManageStudents({ setView, appState }) {
         }
       }
     });
+  };
+
+  const resetCreateStudentState = () => {
+    setNewStudentForm({
+      name: "",
+      email: "",
+      studentId: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setCreateStudentError("");
+    setCreateStudentSuccess(null);
+  };
+
+  const closeCreateStudentModal = () => {
+    setShowCreateModal(false);
+    resetCreateStudentState();
+  };
+
+  const handleCreateStudent = async (event) => {
+    event.preventDefault();
+    setCreateStudentError("");
+    setCreateStudentSuccess(null);
+
+    const name = newStudentForm.name.trim();
+    const email = newStudentForm.email.trim().toLowerCase();
+    const studentId = newStudentForm.studentId.trim();
+    const password = newStudentForm.password;
+    const confirmPassword = newStudentForm.confirmPassword;
+
+    if (!name) {
+      setCreateStudentError(t("manageStudents.createStudentNameRequired"));
+      return;
+    }
+
+    if (!email) {
+      setCreateStudentError(t("manageStudents.createStudentEmailRequired"));
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setCreateStudentError(t("manageStudents.createStudentPasswordLength"));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setCreateStudentError(t("manageStudents.createStudentPasswordMismatch"));
+      return;
+    }
+
+    setCreatingStudent(true);
+
+    try {
+      const { data: existingUser, error: existingUserError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existingUserError && existingUserError.code !== "PGRST116") {
+        throw existingUserError;
+      }
+
+      if (existingUser) {
+        setCreateStudentError(t("manageStudents.createStudentEmailExists"));
+        setCreatingStudent(false);
+        return;
+      }
+
+      const { data: currentSessionData } = await supabase.auth.getSession();
+      const teacherSession = currentSessionData?.session;
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role: "student",
+            teacher_id: appState.currentUser.id,
+          },
+        },
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      const newUser = signUpData?.user;
+
+      if (!newUser) {
+        throw new Error(t("manageStudents.createStudentNoUser"));
+      }
+
+      const profilePayload = {
+        id: newUser.id,
+        name,
+        email,
+        role: "student",
+        student_id: studentId || null,
+        teacher_id: appState.currentUser.id,
+        approved: true,
+        verified: false,
+      };
+
+      const { error: profileError } = await supabase.from("users").insert([profilePayload]);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      if (teacherSession?.access_token && teacherSession?.refresh_token) {
+        const { error: restoreError } = await supabase.auth.setSession({
+          access_token: teacherSession.access_token,
+          refresh_token: teacherSession.refresh_token,
+        });
+
+        if (restoreError) {
+          console.error("Error restoring teacher session:", restoreError);
+        }
+      }
+
+      setCreateStudentSuccess({
+        name,
+        email,
+        password,
+      });
+      setNewStudentForm({
+        name: "",
+        email: "",
+        studentId: "",
+        password: "",
+        confirmPassword: "",
+      });
+      await fetchStudents();
+    } catch (err) {
+      console.error("Error creating student:", err);
+      setCreateStudentError(err.message || t("manageStudents.createStudentGenericError"));
+    } finally {
+      setCreatingStudent(false);
+    }
   };
 
   const fetchStudentPerformance = async (studentId) => {
@@ -244,7 +396,19 @@ export default function ManageStudents({ setView, appState }) {
       {/* Main Content */}
       <div className="flex-1 ml-64">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-green-600">{t("manageStudents.title")}</h1>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h1 className="text-2xl font-bold text-green-600">{t("manageStudents.title")}</h1>
+            <button
+              onClick={() => {
+                resetCreateStudentState();
+                setShowCreateModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition self-start md:self-auto"
+            >
+              <UserPlus size={18} />
+              {t("manageStudents.createStudentButton")}
+            </button>
+          </div>
         </nav>
 
         <div className="container mx-auto p-6">
@@ -306,8 +470,8 @@ export default function ManageStudents({ setView, appState }) {
 
         {/* Search and Filter */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+          <div className="space-y-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
@@ -317,7 +481,7 @@ export default function ManageStudents({ setView, appState }) {
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-300"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilterStatus("all")}
                 className={`px-4 py-2 rounded-lg ${
@@ -449,6 +613,137 @@ export default function ManageStudents({ setView, appState }) {
         </div>
         </div>
       </div>
+
+      {/* Create Student Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-800">{t("manageStudents.createStudentTitle")}</h2>
+              <button
+                type="button"
+                onClick={closeCreateStudentModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateStudent} className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                {t("manageStudents.createStudentDescription")}
+              </p>
+
+              {createStudentError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {createStudentError}
+                </div>
+              )}
+
+              {createStudentSuccess && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-700">
+                  <p className="font-semibold">{t("manageStudents.createStudentSuccess")}</p>
+                  <p className="mt-2">{t("manageStudents.createStudentCredentials")}</p>
+                  <div className="mt-3 space-y-1">
+                    <p>
+                      <span className="font-semibold">{t("manageStudents.createStudentCredentialsEmail")}:</span>{" "}
+                      {createStudentSuccess.email}
+                    </p>
+                    <p>
+                      <span className="font-semibold">{t("manageStudents.createStudentCredentialsPassword")}:</span>{" "}
+                      {createStudentSuccess.password}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manageStudents.createStudentNameLabel")}
+                </label>
+                <input
+                  type="text"
+                  value={newStudentForm.name}
+                  onChange={(e) => setNewStudentForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-300"
+                  placeholder={t("manageStudents.createStudentNamePlaceholder")}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manageStudents.createStudentEmailLabel")}
+                </label>
+                <input
+                  type="email"
+                  value={newStudentForm.email}
+                  onChange={(e) => setNewStudentForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-300"
+                  placeholder={t("manageStudents.createStudentEmailPlaceholder")}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manageStudents.createStudentIdLabel")}
+                </label>
+                <input
+                  type="text"
+                  value={newStudentForm.studentId}
+                  onChange={(e) => setNewStudentForm((prev) => ({ ...prev, studentId: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-300"
+                  placeholder={t("manageStudents.createStudentIdPlaceholder")}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manageStudents.createStudentPasswordLabel")}
+                </label>
+                <input
+                  type="password"
+                  value={newStudentForm.password}
+                  onChange={(e) => setNewStudentForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-300"
+                  placeholder={t("manageStudents.createStudentPasswordPlaceholder")}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manageStudents.createStudentConfirmPasswordLabel")}
+                </label>
+                <input
+                  type="password"
+                  value={newStudentForm.confirmPassword}
+                  onChange={(e) => setNewStudentForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-300"
+                  placeholder={t("manageStudents.createStudentConfirmPasswordPlaceholder")}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t("manageStudents.createStudentPasswordHint")}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeCreateStudentModal}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingStudent}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                >
+                  {creatingStudent ? t("manageStudents.creatingStudent") : t("manageStudents.createStudentSubmit")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Student Details Modal */}
       {showDetails && selectedStudent && (
