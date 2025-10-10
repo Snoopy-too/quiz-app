@@ -715,6 +715,18 @@ export default function ManageQuizzes({ setView, appState }) {
     );
   };
 
+  // Helper function to translate theme names
+  const translateThemeName = (themeName) => {
+    if (!themeName) return t('theme.defaultTheme');
+
+    const lowerName = themeName.toLowerCase();
+    const themeKey = `theme.${lowerName}`;
+
+    // Try to translate, if translation key doesn't exist, return original name
+    const translated = t(themeKey);
+    return translated === themeKey ? themeName : translated;
+  };
+
   // Quiz card renderer
   const getThemeMeta = (quiz) => {
     const theme = quiz.themeDetails || themesById[quiz.theme_id] || null;
@@ -722,7 +734,7 @@ export default function ManageQuizzes({ setView, appState }) {
 
     if (theme?.background_image_url) {
       return {
-        label: theme.name || "Theme",
+        label: translateThemeName(theme.name),
         style: {
           backgroundImage: `url(${theme.background_image_url})`,
           backgroundSize: "cover",
@@ -738,7 +750,7 @@ export default function ManageQuizzes({ setView, appState }) {
       const primary = theme.primary_color || "#7C3AED";
       const secondary = theme.secondary_color || primary;
       return {
-        label: theme.name || "Theme",
+        label: translateThemeName(theme.name),
         style: {
           background: `linear-gradient(135deg, ${primary}, ${secondary})`
         },
@@ -750,7 +762,7 @@ export default function ManageQuizzes({ setView, appState }) {
 
     if (customBackground) {
       return {
-        label: "Custom Theme",
+        label: t('theme.customTheme'),
         style: {
           backgroundImage: `url(${customBackground})`,
           backgroundSize: "cover",
@@ -763,7 +775,7 @@ export default function ManageQuizzes({ setView, appState }) {
     }
 
     return {
-      label: "Default Theme",
+      label: t('theme.defaultTheme'),
       style: {
         background: "linear-gradient(135deg, #7C3AED, #2563EB)"
       },
@@ -799,7 +811,7 @@ export default function ManageQuizzes({ setView, appState }) {
               {badgeLabel}
             </span>
             {themeMeta.isCustom && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700">Custom</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700">{t('theme.custom')}</span>
             )}
           </div>
         </div>
@@ -841,7 +853,7 @@ export default function ManageQuizzes({ setView, appState }) {
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>{new Date(quiz.created_at).toLocaleDateString()}</span>
                 <span>•</span>
-                <span>{quiz.questionCount} question{quiz.questionCount !== 1 ? 's' : ''}</span>
+                <span>{t('quiz.questionCount', { count: quiz.questionCount })}</span>
               </div>
             </div>
           </div>

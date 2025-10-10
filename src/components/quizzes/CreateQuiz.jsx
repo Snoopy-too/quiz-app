@@ -894,6 +894,18 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                     </div>
                   )}
 
+                  {questions.length > 0 && questionFormMode !== "add" && (
+                    <div className="flex justify-center mt-6">
+                      <button
+                        onClick={handleAddQuestion}
+                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 font-medium"
+                      >
+                        <Plus size={18} />
+                        {t('quiz.addQuestion')}
+                      </button>
+                    </div>
+                  )}
+
                   {questionFormMode === "add" && (
                     <div className="bg-white border border-purple-200 rounded-lg shadow-sm p-6">
                       {renderQuestionEditor(t('quiz.addQuestion'))}
