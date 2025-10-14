@@ -3,3 +3,9 @@ dist
 .env
 .DS_Store
 *.log
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Windows null device file (shouldn't be tracked)
+nul
