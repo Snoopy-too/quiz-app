@@ -6,7 +6,15 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(npm run build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(node:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)",
+      "Bash(git ls-tree:*)"
     ],
     "deny": [],
     "ask": []
