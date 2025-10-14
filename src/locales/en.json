@@ -6,6 +6,7 @@
     "edit": "Edit",
     "create": "Create",
     "back": "Back",
+    "back_to_reports": "Back to Reports",
     "next": "Next",
     "previous": "Previous",
     "submit": "Submit",
@@ -34,6 +35,7 @@
     "themes": "Themes",
     "categories": "Categories",
     "reports": "Reports",
+    "publicQuizzes": "Public Quizzes",
     "settings": "Settings",
     "logout": "Logout",
     "home": "Home"
@@ -382,6 +384,20 @@
     "export": "Export",
     "import": "Import"
   },
+  "publicQuizzes": {
+    "description": "Discover and import quizzes shared by other teachers",
+    "searchPlaceholder": "Search quizzes or creators...",
+    "sortByCreator": "Sort: Creator",
+    "noPublicQuizzes": "No Public Quizzes Yet",
+    "noPublicQuizzesDescription": "No teachers have shared public quizzes yet. You can make your own quizzes public from the Create Quiz or Edit Quiz page.",
+    "availableQuizzes": "Available Public Quizzes",
+    "import": "Import",
+    "importQuiz": "Import Quiz",
+    "importQuizConfirm": "This will create a copy of this quiz in your account. Do you want to continue?",
+    "importSuccess": "Quiz imported successfully! You can find it in 'My Quizzes'.",
+    "importError": "Error importing quiz",
+    "yourQuiz": "Your Quiz"
+  },
   "time": {
     "seconds": "seconds",
     "minutes": "minutes",
@@ -421,6 +437,11 @@
     "title": "Quiz Reports & Analytics",
     "loadingReports": "Loading reports...",
     "backToDashboard": "Back to Dashboard",
+    "studentPerformanceGlobal": "Student Performance Overview",
+    "loadingStudentPerformance": "Loading student performance...",
+    "noStudentDataAvailable": "No student data available yet.",
+    "quizzesParticipated": "Quizzes Participated",
+    "averageAccuracy": "Average Accuracy",
     "quizReports": "Quiz Reports",
     "noQuizzesFound": "No quizzes found. Create a quiz to see reports.",
     "createQuiz": "Create Quiz",
@@ -467,6 +488,16 @@
     "deleteQuizMessage": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "errorTitle": "Error",
     "errorDeletingQuiz": "Error deleting quiz: "
+  },
+  "studentReport": {
+    "totalQuizzes": "Total Quizzes",
+    "averageScore": "Average Score",
+    "averageAccuracy": "Average Accuracy",
+    "quizHistory": "Quiz History",
+    "quizTitle": "Quiz Title",
+    "dateTaken": "Date Taken",
+    "score": "Score",
+    "accuracy": "Accuracy"
   },
   "manageStudents": {
     "title": "Manage Students",

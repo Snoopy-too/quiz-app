@@ -22,6 +22,8 @@ import PreviewQuiz from "./components/quizzes/PreviewQuiz";
 import ManageQuizzes from "./components/teachers/ManageQuizzes";
 import ManageStudents from "./components/teachers/ManageStudents";
 import Reports from "./components/teachers/Reports";
+import StudentReport from "./components/teachers/StudentReport";
+import PublicQuizzes from "./components/teachers/PublicQuizzes";
 
 // Student components
 import StudentQuiz from "./components/students/StudentQuiz";
@@ -98,6 +100,7 @@ export default function QuizApp() {
     }
     return null;
   });
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -155,7 +158,7 @@ export default function QuizApp() {
         'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
         'manage-students', 'manage-quizzes', 'reports', 'settings',
         'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
-        'create-quiz', 'complete-profile'
+        'create-quiz', 'complete-profile', 'student-report', 'public-quizzes'
       ];
 
       console.log('[routeByRole] Current view state:', view);
@@ -374,7 +377,7 @@ export default function QuizApp() {
               'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
               'manage-students', 'manage-quizzes', 'reports', 'settings',
               'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
-              'create-quiz', 'complete-profile'
+              'create-quiz', 'complete-profile', 'student-report', 'public-quizzes'
             ];
 
             console.log('[onAuthStateChange] Current view:', view);
@@ -566,7 +569,9 @@ export default function QuizApp() {
       />
     );
   if (view === "manage-students") return <ManageStudents setView={setView} appState={appState} />;
-  if (view === "reports") return <Reports setView={setView} appState={appState} />;
+  if (view === "reports") return <Reports setView={(v, data) => { if (data?.studentId) { setSelectedStudentId(data.studentId); } setView(v); }} appState={appState} />;
+  if (view === 'student-report') return <StudentReport setView={setView} studentId={selectedStudentId} appState={appState} />;
+  if (view === "public-quizzes") return <PublicQuizzes setView={(v, id) => { if (v === "preview-quiz") setSelectedQuizId(id); setView(v); }} appState={appState} />;
   if (view === "settings") return <Settings setView={setView} appState={appState} setAppState={setAppState} />;
 
   return (

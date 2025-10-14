@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield } from "lucide-react";
+import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import ConfirmModal from "../common/ConfirmModal";
@@ -29,6 +29,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
         { id: "create-quiz", label: t('nav.createQuiz'), icon: FileText },
         { id: "manage-students", label: t('teacher.students'), icon: Users },
         { id: "reports", label: t('nav.reports'), icon: BarChart3 },
+        { id: "public-quizzes", label: t('nav.publicQuizzes'), icon: Globe },
       ];
     } else if (userRole === "student") {
       return [

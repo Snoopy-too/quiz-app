@@ -18,10 +18,73 @@ export default function Reports({ setView, appState }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [studentPerformance, setStudentPerformance] = useState([]);
+  const [studentPerformanceLoading, setStudentPerformanceLoading] = useState(true);
 
   useEffect(() => {
     fetchTeacherQuizzes();
+    fetchStudentPerformance();
   }, []);
+
+  const fetchStudentPerformance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. Get teacher's students
+      const { data: students, error: studentsError } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('teacher_id', user.id)
+        .eq('role', 'student');
+
+      if (studentsError) throw studentsError;
+
+      const studentIds = students.map(s => s.id);
+
+      // 2. Get all session participations for these students
+      const { data: participations, error: participationsError } = await supabase
+        .from('session_participants')
+        .select(`
+          user_id,
+          quiz_answers ( is_correct ),
+          session_id
+        `)
+        .in('user_id', studentIds);
+
+      if (participationsError) throw participationsError;
+
+      // 3. Process the data
+      const performanceData = students.map(student => {
+        const studentParticipations = participations.filter(p => p.user_id === student.id);
+
+        const quizzesParticipated = new Set(studentParticipations.map(p => p.session_id)).size;
+        
+        let totalCorrect = 0;
+        let totalAnswered = 0;
+
+        studentParticipations.forEach(p => {
+          totalCorrect += p.quiz_answers.filter(a => a.is_correct).length;
+          totalAnswered += p.quiz_answers.length;
+        });
+
+        const averageAccuracy = totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0;
+
+        return {
+          student_id: student.id,
+          name: student.name,
+          quizzesParticipated,
+          averageAccuracy: averageAccuracy.toFixed(1),
+        };
+      });
+
+      setStudentPerformance(performanceData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setStudentPerformanceLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -305,6 +368,55 @@ export default function Reports({ setView, appState }) {
         </nav>
 
         <div className="container mx-auto p-6">
+          {/* Student Performance Section */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-6">{t("reports.studentPerformanceGlobal")}</h2>
+            {studentPerformanceLoading ? (
+              <div className="bg-white rounded-xl shadow-md text-center py-12">
+                <p className="text-gray-600">{t("reports.loadingStudentPerformance")}</p>
+              </div>
+            ) : studentPerformance.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md text-center py-12">
+                <p className="text-gray-600">{t("reports.noStudentDataAvailable")}</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-100 border-b">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.student")}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.quizzesParticipated")}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.averageAccuracy")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentPerformance.map((student) => (
+                      <tr key={student.student_id} className="border-b hover:bg-blue-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <button 
+                            onClick={() => setView('student-report', { studentId: student.student_id })}
+                            className="font-bold text-gray-900 hover:text-blue-600 text-left"
+                          >
+                            {student.name}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{student.quizzesParticipated}</td>
+                        <td className="px-6 py-4">
+                          <span className={`font-semibold ${
+                            student.averageAccuracy > 80 ? 'text-green-600' :
+                            student.averageAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {student.averageAccuracy}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         {/* Quiz Selection */}
         {!selectedQuiz ? (
           <div>
