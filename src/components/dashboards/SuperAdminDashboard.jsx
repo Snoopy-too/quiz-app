@@ -308,7 +308,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
       {/* Main Content */}
       <div className="flex-1 ml-64">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-purple-600">Super Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold text-blue-700">Super Admin Dashboard</h1>
         </nav>
 
         <div className="container mx-auto p-6">
@@ -318,9 +318,9 @@ export default function SuperAdminDashboard({ setView, appState }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Users</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.total}</p>
+                <p className="text-3xl font-bold text-blue-700">{stats.total}</p>
               </div>
-              <Users className="text-purple-600" size={40} />
+              <Users className="text-blue-700" size={40} />
             </div>
           </div>
 
@@ -376,14 +376,14 @@ export default function SuperAdminDashboard({ setView, appState }) {
                   placeholder="Search by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500"
+                className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="all">All Roles</option>
                 <option value="student">Students</option>
@@ -394,7 +394,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
 
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+              className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
             >
               <UserPlus size={20} />
               Create User
@@ -464,7 +464,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
                           </button>
                           <button
                             onClick={() => openPasswordModal(user)}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded"
+                            className="p-2 text-blue-700 hover:bg-blue-50 rounded"
                             title="Reset Password"
                           >
                             <Key size={18} />
@@ -572,7 +572,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
                 <div className="flex gap-2 mt-6">
                   <button
                     type="submit"
-                    className="flex-1 bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+                    className="flex-1 bg-blue-700 text-white py-2 rounded hover:bg-blue-800"
                   >
                     Create User
                   </button>

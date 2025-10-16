@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
-import { Search, UserCheck, TrendingUp, Award, Clock, CheckCircle, XCircle, UserPlus } from "lucide-react";
+import { Search, UserCheck, TrendingUp, Award, Clock, CheckCircle, XCircle, UserPlus, ChevronUp, ChevronDown } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -29,6 +29,8 @@ export default function ManageStudents({ setView, appState }) {
   const [creatingStudent, setCreatingStudent] = useState(false);
   const [createStudentError, setCreateStudentError] = useState("");
   const [createStudentSuccess, setCreateStudentSuccess] = useState(null);
+  const [sortColumn, setSortColumn] = useState("name");
+  const [sortDirection, setSortDirection] = useState("asc");
 
   useEffect(() => {
     fetchStudents();
@@ -344,19 +346,56 @@ export default function ManageStudents({ setView, appState }) {
     setSelectedStudent({ ...student, performance });
   };
 
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and reset to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
 
-    const matchesFilter =
-      filterStatus === "all" ||
-      (filterStatus === "approved" && student.approved && student.verified) ||
-      (filterStatus === "pending" && !student.approved) ||
-      (filterStatus === "unverified" && !student.verified);
+  const filteredStudents = students
+    .filter((student) => {
+      const matchesSearch =
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesFilter;
-  });
+      const matchesFilter =
+        filterStatus === "all" ||
+        (filterStatus === "approved" && student.approved && student.verified) ||
+        (filterStatus === "pending" && !student.approved) ||
+        (filterStatus === "unverified" && !student.verified);
+
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      let valueA, valueB;
+
+      switch (sortColumn) {
+        case "name":
+          valueA = (a.name || "").toLowerCase();
+          valueB = (b.name || "").toLowerCase();
+          break;
+        case "studentId":
+          valueA = (a.student_id || "").toLowerCase();
+          valueB = (b.student_id || "").toLowerCase();
+          break;
+        case "joined":
+          valueA = new Date(a.created_at).getTime();
+          valueB = new Date(b.created_at).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (valueA < valueB) return sortDirection === "asc" ? -1 : 1;
+      if (valueA > valueB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
 
   if (loading) {
     return (
@@ -378,7 +417,7 @@ export default function ManageStudents({ setView, appState }) {
             <p className="text-xl text-red-600 mb-4">{t("manageStudents.errorTitle")}: {error}</p>
             <button
               onClick={() => setView("teacher-dashboard")}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
             >
               {t("manageStudents.backToDashboard")}
             </button>
@@ -395,7 +434,7 @@ export default function ManageStudents({ setView, appState }) {
 
       {/* Main Content */}
       <div className="flex-1 ml-64">
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 relative z-10">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h1 className="text-2xl font-bold text-green-600">{t("manageStudents.title")}</h1>
             <button
@@ -411,7 +450,7 @@ export default function ManageStudents({ setView, appState }) {
           </div>
         </nav>
 
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 relative z-0">
         {/* Info Banner */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-800">
@@ -531,17 +570,42 @@ export default function ManageStudents({ setView, appState }) {
           <table className="w-full">
             <thead className="bg-gray-100 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderName")}</th>
+                <th
+                  onClick={() => handleSort("name")}
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    {t("manageStudents.tableHeaderName")}
+                    {sortColumn === "name" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderEmail")}</th>
+                <th
+                  onClick={() => handleSort("studentId")}
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    {t("manageStudents.tableHeaderStudentId")}
+                    {sortColumn === "studentId" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderStatus")}</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderJoined")}</th>
+                <th
+                  onClick={() => handleSort("joined")}
+                  className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    {t("manageStudents.tableHeaderJoined")}
+                    {sortColumn === "joined" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderActions")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                     {t("manageStudents.noStudentsFound")}
                   </td>
                 </tr>
@@ -552,6 +616,7 @@ export default function ManageStudents({ setView, appState }) {
                       <div className="font-medium text-gray-900">{student.name}</div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{student.email}</td>
+                    <td className="px-6 py-4 text-gray-600">{student.student_id || "-"}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         {student.approved ? (
@@ -616,7 +681,7 @@ export default function ManageStudents({ setView, appState }) {
 
       {/* Create Student Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-800">{t("manageStudents.createStudentTitle")}</h2>
@@ -747,7 +812,7 @@ export default function ManageStudents({ setView, appState }) {
 
       {/* Student Details Modal */}
       {showDetails && selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-800">{t("manageStudents.studentDetails")}</h2>
@@ -814,10 +879,10 @@ export default function ManageStudents({ setView, appState }) {
                         {selectedStudent.performance.totalScore}
                       </p>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-4 text-center">
-                      <CheckCircle className="mx-auto mb-2 text-purple-600" size={32} />
+                    <div className="bg-blue-50 rounded-lg p-4 text-center">
+                      <CheckCircle className="mx-auto mb-2 text-blue-700" size={32} />
                       <p className="text-sm text-gray-600">{t("manageStudents.accuracy")}</p>
-                      <p className="text-2xl font-bold text-purple-600">
+                      <p className="text-2xl font-bold text-blue-700">
                         {selectedStudent.performance.accuracy}%
                       </p>
                     </div>

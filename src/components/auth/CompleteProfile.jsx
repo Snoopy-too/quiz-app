@@ -145,13 +145,13 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white shadow-lg rounded-xl p-6 space-y-6">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
+      <div className="max-w-md w-full bg-white/95 backdrop-blur-sm shadow-2xl rounded-xl p-6 space-y-6">
         <div className="flex justify-center">
           <LanguageSwitcher />
         </div>
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">{t('auth.almostDone')}</h1>
+          <h1 className="text-2xl font-semibold" style={{ color: '#2c5aa0' }}>{t('auth.almostDone')}</h1>
           <p className="text-sm text-gray-600">{t('auth.completeProfileBelow')}</p>
         </div>
 
@@ -172,7 +172,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
                 type="text"
                 value={teacherInviteCode}
                 onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 placeholder={t('auth.teacherCodeExample')}
               />
               <p className="mt-1 text-xs text-gray-500">{t('auth.studentsMustEnterCode')}</p>
@@ -190,7 +190,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
                 setRole(e.target.value);
                 setLocalError("");
               }}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
               <option value="" disabled>
                 {t('auth.selectRole')}
@@ -206,7 +206,8 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-purple-600 px-4 py-2 text-white font-medium hover:bg-purple-700 disabled:opacity-60"
+            className="w-full rounded-lg px-4 py-2.5 text-white font-medium transition-all duration-200 disabled:opacity-60"
+            style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}
           >
             {submitting ? t('auth.saving') : t('common.submit')}
           </button>

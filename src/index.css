@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Webkit Compatibility */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Podium Animation */
 @keyframes bounce-in {
   0% {
@@ -79,4 +85,10 @@
 
 .animate-scaleIn {
   animation: scaleIn 0.2s ease-out;
+}
+
+/* Backdrop Filter Webkit Compatibility */
+.backdrop-blur {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }

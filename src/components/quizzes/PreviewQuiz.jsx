@@ -208,7 +208,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
           <p className="text-xl text-red-600 mb-4">Error: {error}</p>
           <button
             onClick={() => setView(returnView)}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
           >
             Back
           </button>
@@ -224,11 +224,11 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
         <nav className="bg-white/95 backdrop-blur-sm shadow-md p-4 flex justify-between items-center">
           <div>
             <span className="text-sm text-gray-600">Preview Mode</span>
-            <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+            <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           </div>
           <button
             onClick={() => setView(returnView)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800"
           >
             Exit Preview
           </button>
@@ -239,9 +239,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
             <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
             <h2 className="text-4xl font-bold mb-6">Preview Complete!</h2>
 
-            <div className="bg-purple-100 rounded-xl p-8 mb-6">
+            <div className="bg-blue-50 rounded-xl p-8 mb-6">
               <p className="text-gray-600 mb-2">Final Score</p>
-              <p className="text-5xl font-bold text-purple-600">{score}</p>
+              <p className="text-5xl font-bold text-blue-700">{score}</p>
               <p className="text-gray-600 mt-2">points</p>
             </div>
 
@@ -269,7 +269,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
               </button>
               <button
                 onClick={() => setView(returnView)}
-                className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
+                className="flex-1 bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 font-semibold"
               >
                 Exit Preview
               </button>
@@ -325,7 +325,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                 PREVIEW MODE
               </span>
-              <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+              <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
             </div>
             <p className="text-sm text-gray-600 mt-1">
               Question {currentQuestionIndex + 1} of {questions.length}
@@ -346,14 +346,14 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 mb-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <Clock size={24} className="text-purple-600" />
-              <span className="text-3xl font-bold text-purple-600">
+              <Clock size={24} className="text-blue-700" />
+              <span className="text-3xl font-bold text-blue-700">
                 {timeRemaining}s
               </span>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Preview Score</p>
-              <p className="text-2xl font-bold text-purple-600">{score}</p>
+              <p className="text-2xl font-bold text-blue-700">{score}</p>
             </div>
           </div>
         </div>

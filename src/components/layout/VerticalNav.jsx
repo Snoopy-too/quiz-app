@@ -46,33 +46,45 @@ export default function VerticalNav({ currentView, setView, appState }) {
   const navItems = getNavItems();
 
   return (
-    <div className="w-64 bg-gradient-to-b from-purple-700 to-purple-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl">
+    <div className="w-64 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-40" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
       {/* Logo/Brand */}
-      <div className="p-6 border-b border-purple-600">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-2xl font-bold text-purple-700">Q</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">QuizMaster</h1>
-            <p className="text-xs text-purple-200">
-              {userRole === "teacher" ? t('teacher.teacherDashboard') : userRole === "student" ? t('student.studentDashboard') : "Admin Portal"}
-            </p>
-          </div>
-        </div>
+      <div className="p-4 flex items-center justify-center border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+        <img
+          src="http://pierenglishschool.com/quizapp/images/logo.png"
+          alt="QuizMaster Logo"
+          className="max-w-full h-auto"
+          style={{ maxHeight: '112px', width: 'auto' }}
+          onError={(e) => {
+            // Fallback to placeholder if image fails to load
+            e.target.style.display = 'none';
+          }}
+        />
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-purple-600">
+      <div className="p-4 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold">
-              {appState?.currentUser?.name?.charAt(0).toUpperCase() || appState?.currentUser?.email?.charAt(0).toUpperCase()}
-            </span>
-          </div>
+          {appState?.currentUser?.avatar_url ? (
+            <img
+              src={appState.currentUser.avatar_url}
+              alt={appState.currentUser.name}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0 border"
+              style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}
+              onError={(e) => {
+                // If avatar fails to load, hide it
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}>
+              <span className="text-sm font-bold">
+                {appState?.currentUser?.name?.charAt(0).toUpperCase() || appState?.currentUser?.email?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate">{appState?.currentUser?.name || "User"}</p>
-            <p className="text-xs text-purple-200 truncate">{appState?.currentUser?.email}</p>
+            <p className="text-xs text-blue-50 truncate">{appState?.currentUser?.email}</p>
           </div>
         </div>
 
@@ -93,11 +105,12 @@ export default function VerticalNav({ currentView, setView, appState }) {
                   onClick={() => setView(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? "bg-white text-purple-700 font-semibold shadow-md"
-                      : "text-purple-100 hover:bg-purple-600 hover:text-white"
+                      ? "font-semibold shadow-md"
+                      : "text-gray-200 hover:text-white"
                   }`}
+                  style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.15)' } : { backgroundColor: 'transparent' }}
                 >
-                  <Icon size={20} className={isActive ? "text-purple-700" : "text-purple-200"} />
+                  <Icon size={20} className={isActive ? "" : "text-gray-300"} />
                   <span className="text-sm">{item.label}</span>
                 </button>
               </li>
@@ -107,22 +120,26 @@ export default function VerticalNav({ currentView, setView, appState }) {
       </nav>
 
       {/* Settings & Logout */}
-      <div className="p-4 border-t border-purple-600 space-y-2">
+      <div className="p-4 border-t space-y-2" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
         <button
           onClick={() => setView("settings")}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
             currentView === "settings"
-              ? "bg-white text-purple-700 font-semibold shadow-md"
-              : "text-purple-100 hover:bg-purple-600 hover:text-white"
+              ? "font-semibold shadow-md"
+              : "text-gray-200 hover:text-white"
           }`}
+          style={currentView === "settings" ? { backgroundColor: 'rgba(255, 255, 255, 0.15)' } : { backgroundColor: 'transparent' }}
         >
-          <Settings size={20} className={currentView === "settings" ? "text-purple-700" : "text-purple-200"} />
+          <Settings size={20} className={currentView === "settings" ? "" : "text-gray-300"} />
           <span className="text-sm">{t('nav.settings')}</span>
         </button>
 
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-purple-100 hover:bg-red-600 hover:text-white transition-all duration-200"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-200 hover:text-white transition-all duration-200"
+          style={{ backgroundColor: 'transparent' }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(220, 38, 38, 0.2)'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
         >
           <LogOut size={20} />
           <span className="text-sm">{t('nav.logout')}</span>

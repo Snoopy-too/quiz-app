@@ -234,7 +234,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   if (!teamCreated) {
     if (!isApproved) {
       return (
-        <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl text-center">
             <button
               onClick={onBack}
@@ -254,7 +254,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       );
     }
     return (
-      <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">
           <button
             onClick={onBack}
@@ -349,7 +349,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
   // Team created - show join quiz option
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <button
           onClick={onBack}

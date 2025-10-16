@@ -85,30 +85,30 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
       <div className="flex-1 ml-64">
         {/* Top Bar */}
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-purple-600">{t('teacher.teacherDashboard')}</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#2c5aa0' }}>{t('teacher.teacherDashboard')}</h1>
         </nav>
 
       {/* Dashboard Content */}
       <div className="container mx-auto p-6">
-        <h2 className="text-3xl font-bold mb-6">{t('teacher.teacherDashboard')}</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1f3a52' }}>{t('teacher.teacherDashboard')}</h2>
 
         {/* Teacher Invitation Code */}
         {generatingCode ? (
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-xl shadow-lg mb-6">
+          <div className="text-white p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
             <div className="flex items-center justify-center">
               <p className="text-lg">{t('teacher.generatingTeacherCode')}</p>
             </div>
           </div>
         ) : teacher?.teacher_code ? (
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-xl shadow-lg mb-6">
+          <div className="text-white p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div className="mb-4 md:mb-0">
                 <h3 className="text-lg font-semibold mb-2">{t('teacher.yourTeacherInvitationCode')}</h3>
-                <p className="text-sm text-purple-100 mb-3">
+                <p className="text-sm mb-3" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   {t('teacher.shareCodeWithStudents')}
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="bg-white text-purple-900 px-6 py-3 rounded-lg font-mono text-2xl font-bold tracking-wider">
+                  <div className="bg-white px-6 py-3 rounded-lg font-mono text-2xl font-bold tracking-wider" style={{ color: '#2c5aa0' }}>
                     {formatTeacherCode(teacher.teacher_code)}
                   </div>
                   <button
@@ -139,8 +139,8 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
             onClick={() => handleNavigation("Manage Quizzes")}
             className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
           >
-            <BookOpen className="text-purple-600 mb-4" size={40} />
-            <h3 className="text-xl font-bold mb-2">{t('nav.manageQuizzes')}</h3>
+            <BookOpen className="mb-4" size={40} style={{ color: '#2c5aa0' }} />
+            <h3 className="text-xl font-bold mb-2" style={{ color: '#1f3a52' }}>{t('nav.manageQuizzes')}</h3>
             <p className="text-gray-600">
               {t('teacher.manageQuizzesDescription')}
             </p>
@@ -151,8 +151,8 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
             onClick={() => handleNavigation("Manage Students")}
             className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
           >
-            <Users className="text-green-600 mb-4" size={40} />
-            <h3 className="text-xl font-bold mb-2">{t('teacher.manageStudents')}</h3>
+            <Users className="mb-4" size={40} style={{ color: '#4db8d8' }} />
+            <h3 className="text-xl font-bold mb-2" style={{ color: '#1f3a52' }}>{t('teacher.manageStudents')}</h3>
             <p className="text-gray-600">
               {t('teacher.manageStudentsDescription')}
             </p>
@@ -163,8 +163,8 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
             onClick={() => handleNavigation("Reports")}
             className="cursor-pointer bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
           >
-            <BarChart3 className="text-blue-600 mb-4" size={40} />
-            <h3 className="text-xl font-bold mb-2">{t('nav.reports')}</h3>
+            <BarChart3 className="mb-4" size={40} style={{ color: '#4a7c7e' }} />
+            <h3 className="text-xl font-bold mb-2" style={{ color: '#1f3a52' }}>{t('nav.reports')}</h3>
             <p className="text-gray-600">
               {t('teacher.reportsDescription')}
             </p>

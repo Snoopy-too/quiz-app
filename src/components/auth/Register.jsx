@@ -268,23 +268,27 @@ export default function Register({ setView, setAppState, error, setError, succes
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-400 to-blue-500">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
+      <div className="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-2xl w-96">
+        <div className="flex justify-center mb-6">
           <LanguageSwitcher />
         </div>
-        <h2 className="text-2xl font-bold mb-6 text-center">{t('auth.registerForQuizMaster')}</h2>
-        {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-        {success && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{success}</div>}
+        <h2 className="text-2xl font-bold mb-2 text-center" style={{ color: '#2c5aa0' }}>{t('auth.registerForQuizMaster')}</h2>
+        <p className="text-center text-sm text-gray-600 mb-6">{t('auth.createAccount')}</p>
+        {error && <div className="bg-red-50 text-red-700 p-3 mb-4 rounded-lg border border-red-200 text-sm">{error}</div>}
+        {success && <div className="bg-green-50 text-green-700 p-3 mb-4 rounded-lg border border-green-200 text-sm">{success}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
             name="name"
             placeholder={t('auth.fullName')}
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
+            className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+            style={{ borderColor: '#e0e0e0' }}
+            onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
             required
           />
           <input
@@ -293,7 +297,10 @@ export default function Register({ setView, setAppState, error, setError, succes
             placeholder={t('auth.email')}
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
+            className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+            style={{ borderColor: '#e0e0e0' }}
+            onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
             required
           />
           <input
@@ -302,7 +309,10 @@ export default function Register({ setView, setAppState, error, setError, succes
             placeholder={t('auth.password')}
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
+            className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+            style={{ borderColor: '#e0e0e0' }}
+            onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
             required
           />
 
@@ -310,7 +320,10 @@ export default function Register({ setView, setAppState, error, setError, succes
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full px-4 py-2 mb-4 border rounded-lg"
+            className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+            style={{ borderColor: '#e0e0e0', color: '#1f3a52' }}
+            onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
           >
             <option value="student">{t('auth.student')}</option>
             <option value="teacher">{t('auth.teacher')}</option>
@@ -324,7 +337,10 @@ export default function Register({ setView, setAppState, error, setError, succes
                 placeholder={t('auth.studentId')}
                 value={formData.studentId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 mb-4 border rounded-lg"
+                className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+                style={{ borderColor: '#e0e0e0' }}
+                onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                 required
               />
               <input
@@ -333,11 +349,14 @@ export default function Register({ setView, setAppState, error, setError, succes
                 placeholder={t('auth.teacherCodePlaceholder')}
                 value={formData.teacherCode}
                 onChange={handleChange}
-                className="w-full px-4 py-2 mb-4 border rounded-lg uppercase"
+                className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors uppercase"
+                style={{ borderColor: '#e0e0e0' }}
+                onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                 maxLength="9"
                 required
               />
-              <p className="text-xs text-gray-600 -mt-3 mb-4 px-2">
+              <p className="text-xs text-gray-600 px-2">
                 {t('auth.teacherCodeHelp')}
               </p>
             </>
@@ -345,26 +364,30 @@ export default function Register({ setView, setAppState, error, setError, succes
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+            className="w-full text-white font-semibold py-2.5 rounded-lg transition-all duration-200"
+            style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}
           >
             {t('auth.register')}
           </button>
         </form>
 
-        <div className="mt-4">
+        <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full" style={{ borderTop: '1px solid #e0e0e0' }}></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">{t('auth.orContinueWith')}</span>
+              <span className="px-2 text-gray-500" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             type="button"
-            className="mt-4 w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-50 transition-colors shadow-sm"
+            className="mt-4 w-full flex items-center justify-center gap-3 border-2 font-medium py-2.5 px-4 rounded-lg transition-all duration-200"
+            style={{ borderColor: '#4db8d8', color: '#2c5aa0' }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(77, 184, 216, 0.1)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -388,14 +411,16 @@ export default function Register({ setView, setAppState, error, setError, succes
           </button>
         </div>
 
-        <div className="mt-4 text-center">
+        <p className="mt-6 text-center text-sm text-gray-700">
+          {t('auth.alreadyHaveAccount')}{" "}
           <button
             onClick={() => setView("login")}
-            className="text-green-700 hover:underline"
+            className="font-semibold transition-colors hover:opacity-80"
+            style={{ color: '#2c5aa0' }}
           >
-            {t('auth.alreadyHaveAccount')} {t('auth.login')}
+            {t('auth.login')}
           </button>
-        </div>
+        </p>
       </div>
     </div>
   );

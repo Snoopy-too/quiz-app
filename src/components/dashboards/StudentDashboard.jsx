@@ -30,7 +30,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
       {/* Main Content */}
       <div className="flex-1 ml-64">
         {currentView === "dashboard" && (
-          <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-8">
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-8">
             <div className="max-w-6xl w-full">
               <h1 className="text-4xl font-bold text-white text-center mb-6">
                 {t('student.welcome', { name: appState.currentUser?.name })}
@@ -58,8 +58,8 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                       : "cursor-not-allowed opacity-60"
                   }`}
                 >
-                  <div className="bg-purple-100 rounded-full p-6 mb-4">
-                    <BookOpen size={48} className="text-purple-600" />
+                  <div className="bg-blue-50 rounded-full p-6 mb-4">
+                    <BookOpen size={48} className="text-blue-700" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-3">
                     {t('student.joinQuiz')}
@@ -73,7 +73,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     <span
                       className={`inline-block px-6 py-2 rounded-lg font-semibold ${
                         isApproved
-                          ? "bg-purple-600 text-white hover:bg-purple-700"
+                          ? "bg-blue-700 text-white hover:bg-blue-800"
                           : "bg-gray-300 text-gray-600"
                       }`}
                     >

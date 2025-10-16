@@ -181,12 +181,13 @@ export default function Login({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-sm w-full p-6 rounded-xl shadow-lg bg-white">
-        <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
+      <div className="max-w-sm w-full p-8 rounded-xl shadow-2xl bg-white/95 backdrop-blur-sm">
+        <div className="flex justify-center mb-6">
           <LanguageSwitcher />
         </div>
-        <h1 className="text-2xl font-bold text-center mb-4">{t('auth.loginToQuizMaster')}</h1>
+        <h1 className="text-2xl font-bold text-center mb-2" style={{ color: '#2c5aa0' }}>{t('auth.loginToQuizMaster')}</h1>
+        <p className="text-center text-sm text-gray-600 mb-6">{t('auth.welcomeBack')}</p>
 
         {errorMsg && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
@@ -194,28 +195,34 @@ export default function Login({
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-1">{t('auth.email')}</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#1f3a52' }}>{t('auth.email')}</label>
             <input
               type="email"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border-2 rounded-lg px-4 py-2.5 focus:outline-none transition-colors"
+              style={{ borderColor: '#e0e0e0' }}
+              onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
               placeholder={t('auth.emailPlaceholder')}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#1f3a52' }}>{t('auth.password')}</label>
             <input
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border-2 rounded-lg px-4 py-2.5 focus:outline-none transition-colors"
+              style={{ borderColor: '#e0e0e0' }}
+              onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
               placeholder="••••••••"
               required
             />
@@ -224,26 +231,31 @@ export default function Login({
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded disabled:opacity-50"
+            className="w-full text-white font-semibold py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50"
+            style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)', backgroundSize: '200% 100%' }}
+            onHover={(e) => e.target.style.backgroundPosition = '100% 0'}
           >
             {loading ? t('auth.signingIn') : t('auth.login')}
           </button>
         </form>
 
-        <div className="mt-4">
+        <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full" style={{ borderTop: '1px solid #e0e0e0' }}></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">{t('auth.orContinueWith')}</span>
+              <span className="px-2 text-gray-500" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>{t('auth.orContinueWith')}</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             type="button"
-            className="mt-4 w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded hover:bg-gray-50 transition-colors shadow-sm"
+            className="mt-4 w-full flex items-center justify-center gap-3 border-2 font-medium py-2.5 px-4 rounded-lg transition-all duration-200"
+            style={{ borderColor: '#4db8d8', color: '#2c5aa0' }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(77, 184, 216, 0.1)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -267,11 +279,12 @@ export default function Login({
           </button>
         </div>
 
-        <p className="text-center text-sm mt-4">
+        <p className="text-center text-sm mt-6 text-gray-700">
           {t('auth.dontHaveAccount')}{" "}
           <button
             onClick={() => setView("register")}
-            className="text-purple-700 underline hover:text-purple-800"
+            className="font-semibold transition-colors hover:opacity-80"
+            style={{ color: '#2c5aa0' }}
           >
             {t('auth.register')}
           </button>

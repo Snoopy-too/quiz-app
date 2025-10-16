@@ -101,7 +101,7 @@ export default function StudentReport({ setView, studentId, appState }) {
                 </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <p className="text-sm text-gray-600">{t('studentReport.averageScore')}</p>
-                  <p className="text-3xl font-bold text-purple-600">{performanceData.averageScore}</p>
+                  <p className="text-3xl font-bold text-blue-700">{performanceData.averageScore}</p>
                 </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <p className="text-sm text-gray-600">{t('studentReport.averageAccuracy')}</p>

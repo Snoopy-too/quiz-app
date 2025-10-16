@@ -347,7 +347,7 @@ export default function Reports({ setView, appState }) {
           <p className="text-xl text-red-600 mb-4">{t("reports.errorTitle")}: {error}</p>
           <button
             onClick={() => setView("teacher-dashboard")}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
           >
             {t("reports.backToDashboard")}
           </button>
@@ -483,7 +483,7 @@ export default function Reports({ setView, appState }) {
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                             quiz.mode === "Team" || quiz.mode === "team"
-                              ? "bg-purple-100 text-purple-800"
+                              ? "bg-blue-50 text-blue-800"
                               : "bg-green-100 text-green-800"
                           }`}>
                             {quiz.mode === "Team" || quiz.mode === "team" ? t("reports.teamMode") : t("reports.individual")}
@@ -590,9 +590,9 @@ export default function Reports({ setView, appState }) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">{t("reports.averageScore")}</p>
-                        <p className="text-3xl font-bold text-purple-600">{quizStats.averageScore}</p>
+                        <p className="text-3xl font-bold text-blue-700">{quizStats.averageScore}</p>
                       </div>
-                      <Award className="text-purple-600" size={40} />
+                      <Award className="text-blue-700" size={40} />
                     </div>
                   </div>
 

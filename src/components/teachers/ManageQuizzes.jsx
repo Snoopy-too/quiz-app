@@ -599,7 +599,7 @@ export default function ManageQuizzes({ setView, appState }) {
           onDrop={(e) => handleDrop(e, folder)}
           onClick={() => setActiveFolder(folder.id)}
           className={`flex items-center gap-2 py-2 px-3 rounded-lg group cursor-pointer transition-colors ${
-            isActive ? "bg-purple-100 text-purple-700 font-medium" : "hover:bg-gray-200 text-gray-700"
+            isActive ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
           } ${draggedItem?.item.id === folder.id ? "opacity-50" : ""}`}
         >
           <button
@@ -615,7 +615,7 @@ export default function ManageQuizzes({ setView, appState }) {
               <span className="w-4" />
             )}
           </button>
-          {isExpanded ? <FolderOpen size={18} className={isActive ? "text-purple-600" : "text-yellow-600"} /> : <Folder size={18} className={isActive ? "text-purple-600" : "text-yellow-600"} />}
+          {isExpanded ? <FolderOpen size={18} className={isActive ? "text-blue-700" : "text-yellow-600"} /> : <Folder size={18} className={isActive ? "text-blue-700" : "text-yellow-600"} />}
 
           {editingFolder === folder.id ? (
             <input
@@ -634,7 +634,7 @@ export default function ManageQuizzes({ setView, appState }) {
             <span className="flex-1 text-sm">{folder.name}</span>
           )}
 
-          <span className={`text-xs px-2 py-0.5 rounded-full ${isActive ? "bg-purple-200 text-purple-700" : "bg-gray-200 text-gray-600"}`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${isActive ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"}`}>
             {folderQuizzes.length}
           </span>
 
@@ -796,7 +796,7 @@ export default function ManageQuizzes({ setView, appState }) {
         draggable
         onDragStart={(e) => handleDragStart(e, quiz, "quiz")}
         className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${
-          isSelected ? "border-purple-500 ring-2 ring-purple-200" : "border-transparent"
+          isSelected ? "border-cyan-400 ring-2 ring-blue-100" : "border-transparent"
         } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
       >
         {/* Theme Preview */}
@@ -805,7 +805,7 @@ export default function ManageQuizzes({ setView, appState }) {
           {themeMeta.overlay && <div className="absolute inset-0 bg-black/35" />}
           <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
             <span
-              className="text-sm font-semibold drop-shadow"
+              className="text-sm text-blue-700 drop-shadow"
               style={{ color: themeMeta.textColor }}
             >
               {badgeLabel}
@@ -827,9 +827,9 @@ export default function ManageQuizzes({ setView, appState }) {
               className="mt-1 flex-shrink-0"
             >
               {isSelected ? (
-                <CheckSquare size={20} className="text-purple-600" />
+                <CheckSquare size={20} className="text-blue-700" />
               ) : (
-                <Square size={20} className="text-gray-400 hover:text-purple-600" />
+                <Square size={20} className="text-gray-400 hover:text-blue-700" />
               )}
             </button>
             <div className="flex-1 min-w-0">
@@ -838,7 +838,7 @@ export default function ManageQuizzes({ setView, appState }) {
               {/* Tags/Badges */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {badgeLabel && (
-                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-50 text-blue-800 border border-blue-100">
                     {badgeLabel}
                   </span>
                 )}
@@ -884,7 +884,7 @@ export default function ManageQuizzes({ setView, appState }) {
             </button>
             <button
               onClick={() => handleDuplicate(quiz.id)}
-              className="p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition"
+              className="p-2 bg-blue-50 text-blue-800 rounded-md hover:bg-blue-50 transition"
               title={t('actions.duplicate')}
             >
               <Copy size={16} />
@@ -920,7 +920,7 @@ export default function ManageQuizzes({ setView, appState }) {
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-purple-600">{t('manager.quizManager')}</h1>
+              <h1 className="text-2xl font-bold text-blue-700">{t('manager.quizManager')}</h1>
               <div className="h-6 w-px bg-gray-300"></div>
               <span className="text-sm text-gray-600">
                 {t('manager.quizzesAndFolders', {
@@ -946,14 +946,14 @@ export default function ManageQuizzes({ setView, appState }) {
                 placeholder={t('manager.searchQuizzes')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               />
             </div>
 
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
             >
               <option value="created_at">{t('manager.sortNewest')}</option>
               <option value="title">{t('manager.sortAZ')}</option>
@@ -964,7 +964,7 @@ export default function ManageQuizzes({ setView, appState }) {
           <div className="flex items-center gap-2">
             {selectedQuizzes.size > 0 && (
               <>
-                <div className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
+                <div className="px-3 py-2 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium">
                   {t('manager.selected', { count: selectedQuizzes.size })}
                 </div>
                 <button
@@ -1004,7 +1004,7 @@ export default function ManageQuizzes({ setView, appState }) {
                 </button>
                 <button
                   onClick={() => setView("create-quiz")}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
                 >
                   <Plus size={16} />
                   {t('nav.createQuiz')}
@@ -1032,14 +1032,14 @@ export default function ManageQuizzes({ setView, appState }) {
         {!loading && !error && quizzes.length === 0 && folders.length === 0 && (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus size={32} className="text-purple-600" />
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Plus size={32} className="text-blue-700" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">{t('quiz.noQuizzes')}</h3>
               <p className="text-gray-600 mb-6">{t('manager.getStarted')}</p>
               <button
                 onClick={() => setView("create-quiz")}
-                className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
+                className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
               >
                 {t('manager.createYourFirstQuiz')}
               </button>
@@ -1058,13 +1058,13 @@ export default function ManageQuizzes({ setView, appState }) {
                   <div
                     onClick={() => setActiveFolder(null)}
                     className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                      activeFolder === null ? "bg-purple-100 text-purple-700 font-medium" : "hover:bg-gray-200 text-gray-700"
+                      activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                     }`}
                   >
-                    <Archive size={18} className={activeFolder === null ? "text-purple-600" : "text-gray-600"} />
+                    <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
                     <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      activeFolder === null ? "bg-purple-200 text-purple-700" : "bg-gray-200 text-gray-600"
+                      activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                     }`}>
                       {quizzes.length}
                     </span>
@@ -1076,13 +1076,13 @@ export default function ManageQuizzes({ setView, appState }) {
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, null)}
                     className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                      activeFolder === "unfiled" ? "bg-purple-100 text-purple-700 font-medium" : "hover:bg-gray-200 text-gray-700"
+                      activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                     }`}
                   >
-                    <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-purple-600" : "text-gray-600"} />
+                    <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
                     <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      activeFolder === "unfiled" ? "bg-purple-200 text-purple-700" : "bg-gray-200 text-gray-600"
+                      activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                     }`}>
                       {getQuizzesWithoutFolder().length}
                     </span>
@@ -1118,7 +1118,7 @@ export default function ManageQuizzes({ setView, appState }) {
                   {getDisplayedQuizzes().length > 0 && (
                     <button
                       onClick={selectAllQuizzes}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      className="text-sm text-blue-700 hover:text-blue-800 font-medium"
                     >
                       {t('manager.selectAll')}
                     </button>
@@ -1175,7 +1175,7 @@ export default function ManageQuizzes({ setView, appState }) {
               </button>
               <button
                 onClick={createFolder}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
               >
                 {t('common.create')}
               </button>
@@ -1202,10 +1202,10 @@ export default function ManageQuizzes({ setView, appState }) {
                     moveQuizToFolder(moveQuizModal, null);
                   }
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-purple-50 rounded-lg transition flex items-center gap-3 group"
+                className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
               >
-                <FolderOpen size={18} className="text-gray-600 group-hover:text-purple-600" />
-                <span className="text-sm group-hover:text-purple-700 font-medium">{t('folder.unfiledQuizzes')}</span>
+                <FolderOpen size={18} className="text-gray-600 group-hover:text-blue-700" />
+                <span className="text-sm group-hover:text-blue-800 font-medium">{t('folder.unfiledQuizzes')}</span>
               </button>
 
               {folders.map((folder) => {
@@ -1230,11 +1230,11 @@ export default function ManageQuizzes({ setView, appState }) {
                         moveQuizToFolder(moveQuizModal, folder.id);
                       }
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-purple-50 rounded-lg transition flex items-center gap-3 group"
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
                     style={{ paddingLeft: `${16 + depth * 20}px` }}
                   >
-                    <Folder size={18} className="text-yellow-600 group-hover:text-purple-600" />
-                    <span className="text-sm group-hover:text-purple-700">{folder.name}</span>
+                    <Folder size={18} className="text-yellow-600 group-hover:text-blue-700" />
+                    <span className="text-sm group-hover:text-blue-800">{folder.name}</span>
                   </button>
                 );
               })}

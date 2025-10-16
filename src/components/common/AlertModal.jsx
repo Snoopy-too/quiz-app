@@ -38,14 +38,14 @@ export default function AlertModal({
   };
 
   const buttonStyles = {
-    info: "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700",
+    info: "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
     success: "bg-green-600 hover:bg-green-700",
     error: "bg-red-600 hover:bg-red-700"
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fadeIn"
       onClick={onClose}
     >
       {/* Overlay */}

@@ -35,11 +35,11 @@ export default function ConfirmModal({
 
   const confirmButtonClass = confirmStyle === "danger"
     ? "bg-red-600 hover:bg-red-700 text-white"
-    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white";
+    : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fadeIn"
       onClick={onCancel}
     >
       {/* Overlay */}

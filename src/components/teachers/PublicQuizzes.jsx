@@ -338,7 +338,7 @@ export default function PublicQuizzes({ setView, appState }) {
             {!quiz.isOwnQuiz && (
               <button
                 onClick={() => handleImportQuiz(quiz.id)}
-                className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                className="flex-1 bg-blue-700 text-white px-3 py-2 rounded-md hover:bg-blue-800 transition text-sm font-medium flex items-center justify-center gap-1.5"
                 title={t('publicQuizzes.import')}
               >
                 <Copy size={14} />
@@ -367,9 +367,9 @@ export default function PublicQuizzes({ setView, appState }) {
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <Globe size={28} className="text-purple-600" />
+              <Globe size={28} className="text-blue-700" />
               <div>
-                <h1 className="text-2xl font-bold text-purple-600">{t('nav.publicQuizzes')}</h1>
+                <h1 className="text-2xl font-bold text-blue-700">{t('nav.publicQuizzes')}</h1>
                 <p className="text-sm text-gray-600">{t('publicQuizzes.description')}</p>
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function PublicQuizzes({ setView, appState }) {
                 placeholder={t('publicQuizzes.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               />
             </div>
 
@@ -395,7 +395,7 @@ export default function PublicQuizzes({ setView, appState }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
             >
               <option value="created_at">{t('manager.sortNewest')}</option>
               <option value="title">{t('manager.sortAZ')}</option>
@@ -421,8 +421,8 @@ export default function PublicQuizzes({ setView, appState }) {
           {!loading && !error && publicQuizzes.length === 0 && (
             <div className="flex items-center justify-center py-16">
               <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Globe size={32} className="text-purple-600" />
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Globe size={32} className="text-blue-700" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{t('publicQuizzes.noPublicQuizzes')}</h3>
                 <p className="text-gray-600">{t('publicQuizzes.noPublicQuizzesDescription')}</p>

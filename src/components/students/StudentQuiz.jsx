@@ -346,7 +346,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <p className="text-xl text-red-600 mb-4">{t('common.error')}: {error}</p>
           <button
             onClick={() => setView("student-dashboard")}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
           >
             {t('student.backToDashboard')}
           </button>
@@ -409,14 +409,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 mb-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <Clock size={24} className="text-purple-600" />
-                <span className="text-3xl font-bold text-purple-600">
+                <Clock size={24} className="text-blue-700" />
+                <span className="text-3xl font-bold text-blue-700">
                   {timeRemaining}s
                 </span>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">{t('session.yourScore')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-2xl font-bold text-blue-700">
                   {participant?.score || 0}
                 </p>
               </div>
@@ -537,9 +537,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             </div>
           )}
 
-          <div className="bg-purple-100 rounded-xl p-6">
+          <div className="bg-blue-50 rounded-xl p-6">
             <p className="text-gray-600 mb-1">{t('session.yourScore')}</p>
-            <p className="text-4xl font-bold text-purple-600">
+            <p className="text-4xl font-bold text-blue-700">
               {participant?.score || 0}
             </p>
           </div>
@@ -558,9 +558,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
           <h2 className="text-4xl font-bold mb-6">{t('student.quizComplete')}</h2>
 
-          <div className="bg-purple-100 rounded-xl p-8 mb-6">
+          <div className="bg-blue-50 rounded-xl p-8 mb-6">
             <p className="text-gray-600 mb-2">{t('student.finalScore')}</p>
-            <p className="text-5xl font-bold text-purple-600">
+            <p className="text-5xl font-bold text-blue-700">
               {participant?.score || 0}
             </p>
             <p className="text-gray-600 mt-2">{t('quiz.points')}</p>
@@ -570,7 +570,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
           <button
             onClick={() => setView("student-dashboard")}
-            className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 text-xl font-semibold"
+            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
           >
             {t('student.backToDashboard')}
           </button>

@@ -8,7 +8,7 @@
   to = "/index.html"
   status = 200
 
-# Security and Performance Headers
+# Security and Performance Headers - All Routes
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,6 +17,8 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Cache-Control = "public, max-age=3600, must-revalidate"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.dicebear.com https://apis.google.com https://*.supabase.co; frame-ancestors 'none';"
 
 # Cache static assets (JS, CSS, images)
 [[headers]]
@@ -29,6 +31,12 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# API routes - no caching
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
 
 # Environment variables (these should also be set in Netlify UI)
 # Note: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify Dashboard > Site settings > Environment variables

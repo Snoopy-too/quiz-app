@@ -515,6 +515,7 @@
     "filterUnverified": "Unverified",
     "tableHeaderName": "Name",
     "tableHeaderEmail": "Email",
+    "tableHeaderStudentId": "Student ID",
     "tableHeaderStatus": "Status",
     "tableHeaderJoined": "Joined",
     "tableHeaderActions": "Actions",

@@ -515,6 +515,7 @@
     "filterUnverified": "未確認",
     "tableHeaderName": "名前",
     "tableHeaderEmail": "メールアドレス",
+    "tableHeaderStudentId": "学生ID",
     "tableHeaderStatus": "ステータス",
     "tableHeaderJoined": "登録日",
     "tableHeaderActions": "操作",

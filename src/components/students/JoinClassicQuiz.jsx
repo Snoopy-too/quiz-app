@@ -116,7 +116,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <button
           onClick={onBack}
@@ -147,7 +147,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         <button
           onClick={joinQuiz}
           disabled={loading || !isApproved}
-          className="w-full bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-700 text-white p-4 rounded-lg hover:bg-blue-800 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? t('student.joining') : t('student.joinQuiz')}
         </button>

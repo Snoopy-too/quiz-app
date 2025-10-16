@@ -599,7 +599,7 @@ export default function TeacherControl({ sessionId, setView }) {
             <p className="text-xl text-red-600 mb-4">Error: {error}</p>
             <button
               onClick={() => setView("manage-quizzes")}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
             >
               Back to Quizzes
             </button>
@@ -614,7 +614,7 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
           <button
             onClick={closeSession}
             className="text-red-600 hover:text-red-700"
@@ -633,10 +633,10 @@ export default function TeacherControl({ sessionId, setView }) {
                 {/* Classic Mode */}
                 <div
                   onClick={() => selectMode("classic")}
-                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-purple-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-700 hover:shadow-lg transition cursor-pointer group bg-white"
                 >
                   <div className="text-6xl mb-4">🎯</div>
-                  <h3 className="text-2xl font-bold mb-3 group-hover:text-purple-600">Classic Mode</h3>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-700">Classic Mode</h3>
                   <p className="text-gray-600 mb-4">
                     Students join individually using the PIN and compete on their own.
                   </p>
@@ -678,10 +678,10 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
             <span className={`px-4 py-2 rounded-lg font-semibold ${
-              isTeamMode ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+              isTeamMode ? "bg-blue-100 text-blue-800" : "bg-blue-50 text-blue-800"
             }`}>
               {isTeamMode ? "Team Mode" : "Classic Mode"}
             </span>
@@ -700,7 +700,7 @@ export default function TeacherControl({ sessionId, setView }) {
               <h2 className="text-4xl font-bold mb-6">Join at QuizMaster</h2>
               <div className="bg-gray-100 rounded-xl p-8 mb-6">
                 <p className="text-gray-600 text-xl mb-2">Game PIN:</p>
-                <p className="text-7xl font-bold text-purple-600">{session.pin}</p>
+                <p className="text-7xl font-bold text-blue-700">{session.pin}</p>
               </div>
 
               {isTeamMode ? (
@@ -807,7 +807,7 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
           <button
             onClick={closeSession}
             className="text-red-600 hover:text-red-700"
@@ -822,7 +822,7 @@ export default function TeacherControl({ sessionId, setView }) {
               <h2 className="text-4xl font-bold text-gray-800 mb-8">{quiz.title}</h2>
               <div className="mb-4">
                 <p className="text-gray-600 mb-4">Starting in...</p>
-                <div className="text-8xl font-bold text-purple-600 animate-pulse">
+                <div className="text-8xl font-bold text-blue-700 animate-pulse">
                   {countdownValue}
                 </div>
               </div>
@@ -841,11 +841,11 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-purple-100 px-4 py-2 rounded-lg">
-              <Clock size={20} className="text-purple-600" />
-              <span className="text-2xl font-bold text-purple-600">
+            <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg">
+              <Clock size={20} className="text-blue-700" />
+              <span className="text-2xl font-bold text-blue-700">
                 {questionTimeRemaining}s
               </span>
             </div>
@@ -930,7 +930,7 @@ export default function TeacherControl({ sessionId, setView }) {
               {allStudentsAnswered ? (
                 <button
                   onClick={handleShowResults}
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
+                  className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 font-semibold"
                 >
                   Show Results
                 </button>
@@ -963,7 +963,7 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           <button
             onClick={closeSession}
             className="text-red-600 hover:text-red-700"
@@ -1048,7 +1048,7 @@ export default function TeacherControl({ sessionId, setView }) {
               ) : (
                 <button
                   onClick={endQuiz}
-                  className="bg-purple-600 text-white px-12 py-4 rounded-xl hover:bg-purple-700 text-xl font-bold flex items-center gap-3"
+                  className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3"
                 >
                   <Trophy size={24} />
                   Show Final Results
@@ -1074,7 +1074,7 @@ export default function TeacherControl({ sessionId, setView }) {
                       {p.users?.name || "Anonymous"}
                     </span>
                   </div>
-                  <span className="text-xl font-bold text-purple-600">
+                  <span className="text-xl font-bold text-blue-700">
                     {p.score} pts
                   </span>
                 </div>
@@ -1094,10 +1094,10 @@ export default function TeacherControl({ sessionId, setView }) {
     return renderWithBackground(
       <>
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">{quiz.title}</h1>
+          <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
           <button
             onClick={() => setView("manage-quizzes")}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800"
           >
             Back to Quizzes
           </button>
@@ -1137,7 +1137,7 @@ export default function TeacherControl({ sessionId, setView }) {
                         {p.users?.name || "Anonymous"}
                       </span>
                     </div>
-                    <span className="text-2xl font-bold text-purple-600">
+                    <span className="text-2xl font-bold text-blue-700">
                       {p.score} pts
                     </span>
                   </div>
@@ -1148,7 +1148,7 @@ export default function TeacherControl({ sessionId, setView }) {
             <div className="flex justify-center mt-8">
               <button
                 onClick={() => setView("manage-quizzes")}
-                className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 text-xl font-semibold"
+                className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
               >
                 Back to Dashboard
               </button>

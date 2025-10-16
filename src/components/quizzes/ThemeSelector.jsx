@@ -111,8 +111,8 @@ export default function ThemeSelector({
               onClick={() => handleThemeSelect(theme.id)}
               className={`relative rounded-lg overflow-hidden border-2 transition-all ${
                 isSelected
-                  ? "border-purple-600 ring-2 ring-purple-300"
-                  : "border-gray-200 hover:border-purple-400"
+                  ? "border-blue-700 ring-2 ring-cyan-300"
+                  : "border-gray-200 hover:border-cyan-400"
               }`}
               style={{ height: "120px" }}
             >
@@ -143,7 +143,7 @@ export default function ThemeSelector({
                 </div>
 
                 {isSelected && (
-                  <div className="absolute top-2 right-2 bg-purple-600 text-white rounded-full p-1">
+                  <div className="absolute top-2 right-2 bg-blue-700 text-white rounded-full p-1">
                     <Check size={16} />
                   </div>
                 )}
@@ -156,8 +156,8 @@ export default function ThemeSelector({
         <label
           className={`relative rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-all ${
             uploading
-              ? "border-purple-400 bg-purple-50 text-purple-600"
-              : "border-gray-300 hover:border-purple-400 hover:bg-purple-50"
+              ? "border-cyan-400 bg-blue-50 text-blue-700"
+              : "border-gray-300 hover:border-cyan-400 hover:bg-blue-50"
           }`}
           style={{ minHeight: "120px" }}
         >
@@ -168,7 +168,7 @@ export default function ThemeSelector({
             className="hidden"
             onChange={handleCustomUpload}
           />
-          <ImagePlus size={28} className="mx-auto mb-2 text-purple-600" />
+          <ImagePlus size={28} className="mx-auto mb-2 text-blue-700" />
           <p className="text-sm font-semibold text-gray-700">Upload Custom</p>
           <p className="text-xs text-gray-500 mt-1">
             {uploading ? "Uploading..." : "Use your own background"}
@@ -185,7 +185,7 @@ export default function ThemeSelector({
         <div
           className={`mt-4 relative rounded-lg overflow-hidden border-2 transition-all ${
             isCustomSelected
-              ? "border-purple-600 ring-2 ring-purple-300"
+              ? "border-blue-700 ring-2 ring-cyan-300"
               : "border-gray-200"
           }`}
           style={{ height: "140px" }}

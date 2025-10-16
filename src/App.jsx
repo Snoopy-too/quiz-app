@@ -218,7 +218,7 @@ export default function QuizApp() {
 
       const { data: profile, error: pErr } = await supabase
         .from("users")
-        .select("id, email, name, role, approved, verified, teacher_code, teacher_id, teacher_invite_code")
+        .select("id, email, name, role, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url")
         .eq("id", userId)
         .maybeSingle();
 
@@ -295,7 +295,7 @@ export default function QuizApp() {
         (async () => {
           const { data: profile, error: profileError } = await supabase
             .from("users")
-            .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code")
+            .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url")
             .eq("id", session.user.id)
             .maybeSingle();
 

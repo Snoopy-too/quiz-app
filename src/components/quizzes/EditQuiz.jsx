@@ -468,7 +468,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
+                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
                   <Upload size={20} className="text-gray-400 mb-1" />
                   <span className="text-xs text-gray-500">{t('quiz.image')}</span>
                   <input
@@ -494,7 +494,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
+                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
                   <Upload size={20} className="text-gray-400 mb-1" />
                   <span className="text-xs text-gray-500">{t('quiz.video')}</span>
                   <input
@@ -520,7 +520,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500">
+                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
                   <Upload size={20} className="text-gray-400 mb-1" />
                   <span className="text-xs text-gray-500">{t('quiz.gif')}</span>
                   <input
@@ -534,7 +534,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               )}
             </div>
           </div>
-          {uploading && <p className="text-sm text-purple-600 mt-2">{t('common.uploading')}</p>}
+          {uploading && <p className="text-sm text-blue-700 mt-2">{t('common.uploading')}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -638,7 +638,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
           <p className="text-xl text-red-600 mb-4">{t('common.error')}: {loadError}</p>
           <button
             onClick={() => setView("manage-quizzes")}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
           >
             {t('quiz.backToQuizzes')}
           </button>
@@ -672,7 +672,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             <button
               onClick={handleSaveQuiz}
               disabled={saving}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+              className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={18} />
               {saving ? t('common.saving') : "Save Quiz"}
@@ -692,8 +692,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${
                   activeTab === "settings"
-                    ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-600"
+                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                    : "text-gray-600 hover:text-blue-700"
                 }`}
                 onClick={() => setActiveTab("settings")}
               >
@@ -702,8 +702,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${
                   activeTab === "questions"
-                    ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-600"
+                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                    : "text-gray-600 hover:text-blue-700"
                 }`}
                 onClick={() => setActiveTab("questions")}
               >
@@ -800,7 +800,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     </div>
                     <button
                       onClick={handleAddQuestion}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 text-sm font-medium"
+                      className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
                     >
                       <Plus size={16} />
                       {t('quiz.addQuestion')}
@@ -808,15 +808,15 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   </div>
 
                   {questions.length === 0 ? (
-                    <div className="bg-gray-50 border border-dashed border-purple-200 rounded-lg p-10 text-center">
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
-                        <Plus size={32} className="text-purple-600" />
+                    <div className="bg-gray-50 border border-dashed border-blue-100 rounded-lg p-10 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+                        <Plus size={32} className="text-blue-700" />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('quiz.noQuestions')}</h3>
                       <p className="text-gray-600 mb-6">{t('quiz.startBuildingQuiz')}</p>
                       <button
                         onClick={handleAddQuestion}
-                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
+                        className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
                       >
                         {t('quiz.addFirstQuestion')}
                       </button>
@@ -840,7 +840,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                             }}
                             className={`bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
                               draggedQuestion?.question.id === question.id ? "opacity-50" : ""
-                            } ${isEditing ? "ring-2 ring-purple-200 border-purple-300" : ""}`}
+                            } ${isEditing ? "ring-2 ring-blue-100 border-cyan-300" : ""}`}
                           >
                             <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -852,7 +852,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                   <GripVertical size={20} />
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-lg font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full">
+                                  <span className="text-lg font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full">
                                     Q{index + 1}
                                   </span>
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -873,14 +873,14 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                   <>
                                     <button
                                       onClick={() => handleEditQuestion(question)}
-                                      className="text-gray-600 hover:text-purple-600 px-2 py-1 rounded"
+                                      className="text-gray-600 hover:text-blue-700 px-2 py-1 rounded"
                                       title={t('quiz.editQuestion')}
                                     >
                                       <Edit2 size={16} />
                                     </button>
                                     <button
                                       onClick={() => handleDuplicateQuestion(question)}
-                                      className="text-gray-600 hover:text-purple-600 px-2 py-1 rounded"
+                                      className="text-gray-600 hover:text-blue-700 px-2 py-1 rounded"
                                       title={t('quiz.duplicateQuestion')}
                                     >
                                       <Copy size={16} />
@@ -960,7 +960,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     <div className="flex justify-center mt-6">
                       <button
                         onClick={handleAddQuestion}
-                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 font-medium"
+                        className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 font-medium"
                       >
                         <Plus size={18} />
                         {t('quiz.addQuestion')}
@@ -969,7 +969,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   )}
 
                   {questionFormMode === "add" && (
-                    <div className="bg-white border border-purple-200 rounded-lg shadow-sm p-6">
+                    <div className="bg-white border border-blue-100 rounded-lg shadow-sm p-6">
                       {renderQuestionEditor(t('quiz.addNewQuestion'))}
                     </div>
                   )}
@@ -982,7 +982,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             <button
               onClick={handleSaveQuiz}
               disabled={saving}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={20} />
               {saving ? t('common.saving') : "Save Quiz"}
