@@ -116,21 +116,21 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4 pt-20 md:pt-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-4 md:p-8 w-full max-w-sm md:max-w-md">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-3 md:mb-4 text-sm md:text-base"
         >
           <ArrowLeft size={20} />
           {t('student.backToDashboard')}
         </button>
 
-        <h1 className="text-3xl font-bold text-center mb-6">{t('student.joinQuiz')}</h1>
-        <p className="text-center text-gray-600 mb-6">{t('student.enterPinFromTeacher')}</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-6">{t('student.joinQuiz')}</h1>
+        <p className="text-center text-gray-600 mb-4 md:mb-6 text-sm md:text-base">{t('student.enterPinFromTeacher')}</p>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 md:px-4 md:py-3 rounded mb-3 md:mb-4 text-sm md:text-base">
             {error}
           </div>
         )}
@@ -140,20 +140,20 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           placeholder={t('session.enterPin')}
           value={joinPin}
           onChange={(e) => setJoinPin(e.target.value)}
-          className="w-full p-4 border-2 rounded-lg text-center text-2xl mb-4"
+          className="w-full p-3 md:p-4 border-2 rounded-lg text-center text-xl md:text-2xl mb-3 md:mb-4"
           maxLength="6"
         />
 
         <button
           onClick={joinQuiz}
           disabled={loading || !isApproved}
-          className="w-full bg-blue-700 text-white p-4 rounded-lg hover:bg-blue-800 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-700 text-white p-3 md:p-4 rounded-lg hover:bg-blue-800 text-base md:text-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? t('student.joining') : t('student.joinQuiz')}
         </button>
 
         {!isApproved && (
-          <p className="mt-4 text-sm text-gray-500 text-center">
+          <p className="mt-3 md:mt-4 text-xs md:text-sm text-gray-500 text-center">
             {t('student.waitingForTeacherApprovalMessage')}
           </p>
         )}

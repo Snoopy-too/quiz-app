@@ -306,7 +306,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
       <VerticalNav currentView="superadmin-dashboard" setView={setView} appState={appState} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <h1 className="text-2xl font-bold text-blue-700">Super Admin Dashboard</h1>
         </nav>

@@ -364,7 +364,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
               <p className="text-gray-600 mb-4">{t('student.startingIn')}</p>
-              <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
+              <div className="text-6xl md:text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
                 {countdown}
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             </div>
 
             {/* Answer Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {currentQuestion.options?.map((opt, idx) => {
                 const style = answerStyles[idx];
                 const IconComponent = style.icon;
@@ -470,7 +470,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                       !hasAnswered && timeRemaining > 0 ? style.hover : ""
                     } ${
                       selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                    } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative`}
+                    } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 relative`}
                   >
                     <IconComponent size={28} className="absolute left-4 top-4" fill="white" />
                     <span>{opt.text}</span>

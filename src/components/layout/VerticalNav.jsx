@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield, Globe } from "lucide-react";
+import { Home, LayoutDashboard, FileText, Users, Settings, LogOut, PlayCircle, Trophy, BarChart3, FolderOpen, UserCheck, Shield, Globe, Menu, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import ConfirmModal from "../common/ConfirmModal";
@@ -9,6 +9,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
   const { t } = useTranslation();
   const userRole = appState?.currentUser?.role;
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -45,8 +46,15 @@ export default function VerticalNav({ currentView, setView, appState }) {
 
   const navItems = getNavItems();
 
+  const handleNavClick = (itemId) => {
+    setView(itemId);
+    setMobileMenuOpen(false); // Close mobile menu after selection
+  };
+
   return (
-    <div className="w-64 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-40" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
+    <>
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden md:flex w-64 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-40" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
       {/* Logo/Brand */}
       <div className="p-4 flex items-center justify-center border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
         <img
@@ -102,7 +110,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => setView(item.id)}
+                  onClick={() => handleNavClick(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive
                       ? "font-semibold shadow-md"
@@ -122,7 +130,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
       {/* Settings & Logout */}
       <div className="p-4 border-t space-y-2" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
         <button
-          onClick={() => setView("settings")}
+          onClick={() => handleNavClick("settings")}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
             currentView === "settings"
               ? "font-semibold shadow-md"
@@ -145,6 +153,104 @@ export default function VerticalNav({ currentView, setView, appState }) {
           <span className="text-sm">{t('nav.logout')}</span>
         </button>
       </div>
+    </div>
+
+      {/* Mobile Header with Hamburger Menu - Visible only on mobile */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {appState?.currentUser?.avatar_url ? (
+            <img
+              src={appState.currentUser.avatar_url}
+              alt={appState.currentUser.name}
+              className="w-8 h-8 rounded-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500 text-white text-sm font-bold">
+              {appState?.currentUser?.name?.charAt(0).toUpperCase() || "U"}
+            </div>
+          )}
+          <span className="text-sm font-semibold text-gray-800 truncate">
+            {appState?.currentUser?.name || "User"}
+          </span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          {mobileMenuOpen ? (
+            <X size={24} className="text-gray-700" />
+          ) : (
+            <Menu size={24} className="text-gray-700" />
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Menu - Visible only on mobile when open */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed top-16 left-0 right-0 bottom-0 bg-black/50 z-40" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            className="absolute top-16 left-0 right-0 bg-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <nav className="p-4">
+              <ul className="space-y-2">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentView === item.id;
+
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => handleNavClick(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                          isActive
+                            ? "font-semibold bg-blue-100 text-blue-700"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="border-t pt-4 mt-4 space-y-2">
+                <button
+                  onClick={() => handleNavClick("settings")}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    currentView === "settings"
+                      ? "font-semibold bg-blue-100 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Settings size={20} />
+                  <span className="text-sm">{t('nav.settings')}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowLogoutModal(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200"
+                >
+                  <LogOut size={20} />
+                  <span className="text-sm">{t('nav.logout')}</span>
+                </button>
+
+                <div className="border-t pt-4 mt-4">
+                  <LanguageSwitcher compact={true} />
+                </div>
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={showLogoutModal}
@@ -155,6 +261,6 @@ export default function VerticalNav({ currentView, setView, appState }) {
         confirmText={t('nav.logout')}
         confirmStyle="danger"
       />
-    </div>
+    </>
   );
 }

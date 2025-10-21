@@ -82,7 +82,7 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
       <VerticalNav currentView="teacher-dashboard" setView={setView} appState={appState} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
         {/* Top Bar */}
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <h1 className="text-2xl font-bold" style={{ color: '#2c5aa0' }}>{t('teacher.teacherDashboard')}</h1>
