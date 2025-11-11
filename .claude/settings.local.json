@@ -17,7 +17,11 @@
       "Bash(git ls-tree:*)",
       "Bash(git log:*)",
       "Bash(git fetch:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"=== Your Supabase credentials ===\")",
+      "Bash(else echo \".env file not found - check .env.example\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
