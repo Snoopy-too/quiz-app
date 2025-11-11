@@ -28,14 +28,17 @@ jobs:
           node << 'EOF'
           const { createClient } = require('@supabase/supabase-js');
 
-          // Trim whitespace from environment variables
-          const supabaseUrl = (process.env.SUPABASE_URL || '').trim();
-          const supabaseKey = (process.env.SUPABASE_KEY || '').trim();
+          // Aggressively clean environment variables - remove all whitespace and newlines
+          const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
+          const supabaseKey = (process.env.SUPABASE_KEY || '').replace(/\s+/g, '');
 
           if (!supabaseUrl || !supabaseKey) {
             console.error('Missing SUPABASE_URL or SUPABASE_KEY');
             process.exit(1);
           }
+
+          console.log('URL length:', supabaseUrl.length);
+          console.log('Key length:', supabaseKey.length);
 
           const supabase = createClient(supabaseUrl, supabaseKey);
 
