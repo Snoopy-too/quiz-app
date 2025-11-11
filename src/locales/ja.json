@@ -26,7 +26,9 @@
     "and": "と",
     "note": "注意",
     "uploading": "アップロード中...",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "noDataAvailable": "データがありません",
+    "view": "表示"
   },
   "nav": {
     "dashboard": "ダッシュボード",

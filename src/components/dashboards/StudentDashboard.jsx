@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import VerticalNav from "../layout/VerticalNav";
 import JoinClassicQuiz from "../students/JoinClassicQuiz";
 import CreateTeam from "../students/CreateTeam";
+import StudentResults from "../students/StudentResults";
 
 export default function StudentDashboard({ appState, setAppState, setView, error, setError }) {
   const { t } = useTranslation();
-  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, join-classic, create-team
+  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, join-classic, create-team, results
   const isApproved = appState.currentUser?.approved;
 
   const handleBackToDashboard = () => {
@@ -115,9 +116,10 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                   </div>
                 </div>
 
-                {/* Card 3: View My Results (Placeholder) */}
+                {/* Card 3: View My Results */}
                 <div
-                  className="bg-white rounded-2xl shadow-2xl p-8 cursor-not-allowed opacity-75 flex flex-col items-center text-center"
+                  onClick={() => setCurrentView("results")}
+                  className="bg-white rounded-2xl shadow-2xl p-8 cursor-pointer hover:scale-105 transition-transform duration-200 flex flex-col items-center text-center"
                 >
                   <div className="bg-green-100 rounded-full p-6 mb-4">
                     <Trophy size={48} className="text-green-600" />
@@ -129,8 +131,8 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     {t('student.seeQuizHistoryAndScores')}
                   </p>
                   <div className="mt-auto">
-                    <span className="inline-block bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold">
-                      {t('student.comingSoon')}
+                    <span className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">
+                      {t('common.view')}
                     </span>
                   </div>
                 </div>
@@ -158,6 +160,13 @@ export default function StudentDashboard({ appState, setAppState, setView, error
             setError={setError}
             onBack={handleBackToDashboard}
             isApproved={isApproved}
+          />
+        )}
+
+        {currentView === "results" && (
+          <StudentResults
+            appState={appState}
+            onBack={handleBackToDashboard}
           />
         )}
       </div>

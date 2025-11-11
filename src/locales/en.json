@@ -26,7 +26,9 @@
     "and": "and",
     "note": "Note",
     "uploading": "Uploading...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "noDataAvailable": "No data available",
+    "view": "View"
   },
   "nav": {
     "dashboard": "Dashboard",
