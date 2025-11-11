@@ -2,8 +2,8 @@ name: Ping Supabase
 
 on:
   schedule:
-    - cron: '0 9 * * 1,4'  # 9 AM UTC every Monday and Thursday
-  workflow_dispatch:  # Allows manual triggering from GitHub UI
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -25,7 +25,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          node -e "
+          node << 'EOF'
           const { createClient } = require('@supabase/supabase-js');
           const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
@@ -40,7 +40,7 @@ jobs:
                 console.error('Ping failed:', error.message);
                 process.exit(1);
               } else {
-                console.log(' Supabase ping successful at', new Date().toISOString());
+                console.log('Supabase ping successful at', new Date().toISOString());
                 console.log('Database connection verified');
               }
             } catch (err) {
@@ -48,4 +48,4 @@ jobs:
               process.exit(1);
             }
           })();
-          "
+          EOF
