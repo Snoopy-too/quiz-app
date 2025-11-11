@@ -15,7 +15,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Supabase client
         run: npm install @supabase/supabase-js
@@ -27,7 +27,17 @@ jobs:
         run: |
           node << 'EOF'
           const { createClient } = require('@supabase/supabase-js');
-          const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+          // Trim whitespace from environment variables
+          const supabaseUrl = (process.env.SUPABASE_URL || '').trim();
+          const supabaseKey = (process.env.SUPABASE_KEY || '').trim();
+
+          if (!supabaseUrl || !supabaseKey) {
+            console.error('Missing SUPABASE_URL or SUPABASE_KEY');
+            process.exit(1);
+          }
+
+          const supabase = createClient(supabaseUrl, supabaseKey);
 
           (async () => {
             try {
