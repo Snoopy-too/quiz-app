@@ -21,7 +21,9 @@
       "Bash(if [ -f .env ])",
       "Bash(then echo \"=== Your Supabase credentials ===\")",
       "Bash(else echo \".env file not found - check .env.example\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
