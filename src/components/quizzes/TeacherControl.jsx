@@ -204,7 +204,7 @@ export default function TeacherControl({ sessionId, setView }) {
     console.log('[TeacherControl] Loading participants for session:', sessionId);
     let { data, error } = await supabase
       .from("session_participants")
-      .select("*, users(name), teams(id, team_name)")
+      .select("*, users(name, avatar_url), teams(id, team_name)")
       .eq("session_id", sessionId)
       .order("score", { ascending: false });
 
@@ -221,7 +221,7 @@ export default function TeacherControl({ sessionId, setView }) {
       console.log('[TeacherControl] Attempting fallback query without teams...');
       const fallbackResult = await supabase
         .from("session_participants")
-        .select("*, users(name)")
+        .select("*, users(name, avatar_url)")
         .eq("session_id", sessionId)
         .order("score", { ascending: false });
 
@@ -1181,6 +1181,13 @@ export default function TeacherControl({ sessionId, setView }) {
                     <span className="text-2xl font-bold text-gray-400">
                       #{idx + 1}
                     </span>
+                    {p.users?.avatar_url && (
+                      <img
+                        src={p.users.avatar_url}
+                        alt={p.users?.name || "Avatar"}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    )}
                     <span className="text-lg font-semibold">
                       {p.users?.name || "Anonymous"}
                     </span>
@@ -1244,6 +1251,13 @@ export default function TeacherControl({ sessionId, setView }) {
                       <span className="text-3xl font-bold">
                         {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
                       </span>
+                      {p.users?.avatar_url && (
+                        <img
+                          src={p.users.avatar_url}
+                          alt={p.users?.name || "Avatar"}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      )}
                       <span className="text-xl font-semibold">
                         {p.users?.name || "Anonymous"}
                       </span>
