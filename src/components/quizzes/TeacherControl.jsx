@@ -47,6 +47,12 @@ export default function TeacherControl({ sessionId, setView }) {
           console.log('[TeacherControl] Polling for participant updates (fallback)');
           loadParticipants();
         }
+
+        // Poll for live answers while question is active
+        if (session?.status === 'question_active' && currentQuestion) {
+          console.log('[TeacherControl] Polling for live answers (fallback)');
+          loadLiveAnswers(currentQuestion.id);
+        }
       }, 3000);
 
       return () => {
@@ -54,7 +60,7 @@ export default function TeacherControl({ sessionId, setView }) {
         clearInterval(pollInterval);
       };
     }
-  }, [sessionId, session?.status]);
+  }, [sessionId, session?.status, currentQuestion?.id]);
 
   // Keep ref in sync with currentQuestion state
   useEffect(() => {
@@ -278,7 +284,12 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const loadLiveAnswers = async (questionId) => {
-    if (!questionId) return;
+    if (!questionId) {
+      console.log('[TeacherControl] loadLiveAnswers called with no questionId');
+      return;
+    }
+
+    console.log('[TeacherControl] Loading live answers for question:', questionId);
 
     const { data, error } = await supabase
       .from("quiz_answers")
@@ -287,7 +298,10 @@ export default function TeacherControl({ sessionId, setView }) {
       .eq("question_id", questionId);
 
     if (!error) {
+      console.log('[TeacherControl] Loaded live answers:', data?.length || 0, 'answers');
       setLiveAnswers(data || []);
+    } else {
+      console.error('[TeacherControl] Error loading live answers:', error);
     }
   };
 
@@ -335,17 +349,31 @@ export default function TeacherControl({ sessionId, setView }) {
         },
         (payload) => {
           console.log('[TeacherControl] New answer detected:', payload);
+          console.log('[TeacherControl] Answer details:', {
+            participant_id: payload.new.participant_id,
+            question_id: payload.new.question_id,
+            is_correct: payload.new.is_correct
+          });
           loadParticipants();
           // Reload live answers if this answer is for the current question
           // Use ref to avoid stale closure
           const activeQuestion = currentQuestionRef.current;
+          console.log('[TeacherControl] Current active question:', activeQuestion?.id);
           if (activeQuestion && payload.new.question_id === activeQuestion.id) {
+            console.log('[TeacherControl] Answer is for current question - reloading live answers');
             loadLiveAnswers(activeQuestion.id);
+          } else {
+            console.log('[TeacherControl] Answer is NOT for current question - ignoring');
           }
         }
       )
       .subscribe((status) => {
         console.log('[TeacherControl] Answer subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[TeacherControl] Successfully subscribed to answer changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[TeacherControl] Error subscribing to answer channel');
+        }
       });
 
     return () => {
