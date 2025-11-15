@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock } from "lucide-react";
+import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock, RefreshCw } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -39,9 +39,22 @@ export default function TeacherControl({ sessionId, setView }) {
     if (sessionId) {
       loadSession();
       const cleanup = setupRealtimeSubscriptions();
-      return cleanup;
+
+      // Add polling as a fallback mechanism for participant updates
+      // Poll every 3 seconds while in waiting status
+      const pollInterval = setInterval(() => {
+        if (session?.status === 'waiting') {
+          console.log('[TeacherControl] Polling for participant updates (fallback)');
+          loadParticipants();
+        }
+      }, 3000);
+
+      return () => {
+        cleanup();
+        clearInterval(pollInterval);
+      };
     }
-  }, [sessionId]);
+  }, [sessionId, session?.status]);
 
   // Keep ref in sync with currentQuestion state
   useEffect(() => {
@@ -287,11 +300,19 @@ export default function TeacherControl({ sessionId, setView }) {
         },
         (payload) => {
           console.log('[TeacherControl] Participant change detected:', payload);
+          console.log('[TeacherControl] Event type:', payload.eventType);
+          console.log('[TeacherControl] New data:', payload.new);
+          console.log('[TeacherControl] Old data:', payload.old);
           loadParticipants();
         }
       )
       .subscribe((status) => {
         console.log('[TeacherControl] Participant subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[TeacherControl] Successfully subscribed to participant changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[TeacherControl] Error subscribing to participant channel');
+        }
       });
 
     // Subscribe to answer submissions
@@ -753,6 +774,13 @@ export default function TeacherControl({ sessionId, setView }) {
                     <Users className="text-blue-600" size={32} />
                     <p className="text-3xl font-bold">{teams.length}</p>
                     <p className="text-xl text-gray-600">teams joined</p>
+                    <button
+                      onClick={loadParticipants}
+                      className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Refresh team count"
+                    >
+                      <RefreshCw size={24} />
+                    </button>
                   </div>
 
                   {teams.length > 0 && (
@@ -785,6 +813,13 @@ export default function TeacherControl({ sessionId, setView }) {
                         ? "participants"
                         : "players"}
                     </p>
+                    <button
+                      onClick={loadParticipants}
+                      className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Refresh participant count"
+                    >
+                      <RefreshCw size={24} />
+                    </button>
                   </div>
 
                   {participants.length > 0 && (
