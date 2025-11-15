@@ -175,17 +175,48 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const loadParticipants = async () => {
-    const { data, error } = await supabase
+    console.log('[TeacherControl] Loading participants for session:', sessionId);
+    let { data, error } = await supabase
       .from("session_participants")
       .select("*, users(name), teams(id, team_name)")
       .eq("session_id", sessionId)
       .order("score", { ascending: false });
 
-    if (!error) {
-      // Fetch team members for team entries
-      const participantsWithTeams = await Promise.all(
-        (data || []).map(async (p) => {
-          if (p.is_team_entry && p.team_id) {
+    if (error) {
+      console.error('[TeacherControl] Error loading participants:', error);
+      console.error('[TeacherControl] Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+
+      // Try a simpler query as fallback (in case teams table or is_team_entry column doesn't exist)
+      console.log('[TeacherControl] Attempting fallback query without teams...');
+      const fallbackResult = await supabase
+        .from("session_participants")
+        .select("*, users(name)")
+        .eq("session_id", sessionId)
+        .order("score", { ascending: false });
+
+      if (fallbackResult.error) {
+        console.error('[TeacherControl] Fallback query also failed:', fallbackResult.error);
+      } else {
+        console.log('[TeacherControl] Fallback query succeeded!');
+        data = fallbackResult.data;
+        error = null;
+      }
+    }
+
+    console.log('[TeacherControl] Loaded participants data:', data);
+    console.log('[TeacherControl] Number of participants:', data?.length || 0);
+
+    // Fetch team members for team entries
+    const participantsWithTeams = await Promise.all(
+      (data || []).map(async (p) => {
+        // Check if is_team_entry exists and is true
+        if (p.is_team_entry === true && p.team_id) {
+          try {
             // Fetch team members
             const { data: members } = await supabase
               .from("team_members")
@@ -196,29 +227,33 @@ export default function TeacherControl({ sessionId, setView }) {
               ...p,
               teamMembers: members || []
             };
+          } catch (err) {
+            console.error('[TeacherControl] Error fetching team members:', err);
+            return p;
           }
-          return p;
-        })
-      );
+        }
+        return p;
+      })
+    );
 
-      setParticipants(participantsWithTeams);
+    setParticipants(participantsWithTeams);
+    console.log('[TeacherControl] Set participants state with', participantsWithTeams.length, 'participants');
 
-      // Group by teams if in team mode
-      if (session?.mode === "team") {
-        const teamMap = {};
-        data?.forEach(p => {
-          const teamName = p.team_name || "No Team";
-          if (!teamMap[teamName]) {
-            teamMap[teamName] = [];
-          }
-          teamMap[teamName].push(p);
-        });
-        setTeams(Object.entries(teamMap).map(([name, members]) => ({
-          name,
-          members,
-          score: members.reduce((sum, m) => sum + (m.score || 0), 0)
-        })));
-      }
+    // Group by teams if in team mode
+    if (session?.mode === "team") {
+      const teamMap = {};
+      data?.forEach(p => {
+        const teamName = p.team_name || "No Team";
+        if (!teamMap[teamName]) {
+          teamMap[teamName] = [];
+        }
+        teamMap[teamName].push(p);
+      });
+      setTeams(Object.entries(teamMap).map(([name, members]) => ({
+        name,
+        members,
+        score: members.reduce((sum, m) => sum + (m.score || 0), 0)
+      })));
     }
   };
 
@@ -237,6 +272,8 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const setupRealtimeSubscriptions = () => {
+    console.log('[TeacherControl] Setting up realtime subscriptions for session:', sessionId);
+
     // Subscribe to new participants
     const participantChannel = supabase
       .channel(`session-${sessionId}-participants`)
@@ -248,11 +285,14 @@ export default function TeacherControl({ sessionId, setView }) {
           table: "session_participants",
           filter: `session_id=eq.${sessionId}`,
         },
-        () => {
+        (payload) => {
+          console.log('[TeacherControl] Participant change detected:', payload);
           loadParticipants();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[TeacherControl] Participant subscription status:', status);
+      });
 
     // Subscribe to answer submissions
     const answerChannel = supabase
@@ -266,6 +306,7 @@ export default function TeacherControl({ sessionId, setView }) {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
+          console.log('[TeacherControl] New answer detected:', payload);
           loadParticipants();
           // Reload live answers if this answer is for the current question
           // Use ref to avoid stale closure
@@ -275,9 +316,12 @@ export default function TeacherControl({ sessionId, setView }) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[TeacherControl] Answer subscription status:', status);
+      });
 
     return () => {
+      console.log('[TeacherControl] Cleaning up realtime subscriptions');
       participantChannel.unsubscribe();
       answerChannel.unsubscribe();
     };
@@ -737,7 +781,7 @@ export default function TeacherControl({ sessionId, setView }) {
                     <Users className="text-blue-600" size={32} />
                     <p className="text-3xl font-bold">{participants.length}</p>
                     <p className="text-xl text-gray-600">
-                      {participants.filter(p => p.is_team_entry).length > 0
+                      {participants.filter(p => p.is_team_entry === true).length > 0
                         ? "participants"
                         : "players"}
                     </p>
@@ -747,7 +791,7 @@ export default function TeacherControl({ sessionId, setView }) {
                     <div className="mb-6 max-h-60 overflow-y-auto">
                       <div className="space-y-2">
                         {participants.map((p) => {
-                          if (p.is_team_entry && p.teams) {
+                          if (p.is_team_entry === true && p.teams) {
                             return (
                               <div
                                 key={p.id}
