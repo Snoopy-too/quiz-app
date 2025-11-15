@@ -570,6 +570,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     ? `+${currentQuestion.points} ${t('quiz.points')}!`
                     : t('student.betterLuckNextTime')}
                 </p>
+                <p className="text-sm mt-2 opacity-75">
+                  Waiting for other players...
+                </p>
               </div>
             )}
 

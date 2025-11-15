@@ -97,9 +97,16 @@ export default function TeacherControl({ sessionId, setView }) {
 
       if (allAnswered && autoAdvanceTimer) {
         // All students have answered - cancel the auto-advance timer
-        // Timer stops, "Show Results" button appears
+        console.log('[TeacherControl] All students answered! Auto-advancing to results in 2 seconds...');
         clearTimeout(autoAdvanceTimer);
-        setAutoAdvanceTimer(null);
+
+        // Auto-advance to results after 2 seconds so everyone can see they've all answered
+        const earlyAdvanceTimer = setTimeout(() => {
+          console.log('[TeacherControl] Auto-advancing to results now');
+          showQuestionResults(session.current_question_index);
+        }, 2000);
+
+        setAutoAdvanceTimer(earlyAdvanceTimer);
       }
     }
   }, [liveAnswers, participants, session?.status]);
@@ -1007,14 +1014,11 @@ export default function TeacherControl({ sessionId, setView }) {
                 </span>
               </div>
               {allStudentsAnswered ? (
-                <button
-                  onClick={handleShowResults}
-                  className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 font-semibold"
-                >
-                  Show Results
-                </button>
+                <div className="bg-green-100 text-green-800 px-6 py-3 rounded-lg font-semibold animate-pulse">
+                  All answered! Showing results...
+                </div>
               ) : (
-                <div className="text-gray-200 text-sm">
+                <div className="text-gray-600 text-sm">
                   Waiting for all students...
                 </div>
               )}
