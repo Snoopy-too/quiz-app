@@ -140,42 +140,44 @@ export default function Settings({ setView, appState, setAppState }) {
     <div className="flex min-h-screen bg-gray-50">
       <VerticalNav currentView="settings" setView={setView} appState={appState} />
 
-      <div className="flex-1 ml-64">
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-blue-700">{t("settings.settings")}</h1>
+      <div className="flex-1 md:ml-64 ml-0">
+        <nav className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
+          <h1 className="text-xl md:text-2xl font-bold text-blue-700">{t("settings.settings")}</h1>
         </nav>
 
-        <div className="container mx-auto p-6 max-w-4xl">
+        <div className="container mx-auto p-4 md:p-6 max-w-4xl">
           {/* Tabs */}
-          <div className="bg-white rounded-lg shadow-md mb-6">
+          <div className="bg-white rounded-lg shadow-md mb-4 md:mb-6">
             <div className="flex border-b">
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                className={`flex-1 px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
                   activeTab === "profile"
                     ? "text-blue-700 border-b-2 border-blue-700"
                     : "text-gray-600 hover:text-blue-700"
                 }`}
               >
-                <User className="inline-block mr-2" size={20} />
-                {t("settings.profile")}
+                <User className="inline-block mr-1 md:mr-2" size={18} />
+                <span className="hidden sm:inline">{t("settings.profile")}</span>
+                <span className="sm:hidden">Profile</span>
               </button>
               <button
                 onClick={() => setActiveTab("password")}
-                className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                className={`flex-1 px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
                   activeTab === "password"
                     ? "text-blue-700 border-b-2 border-blue-700"
                     : "text-gray-600 hover:text-blue-700"
                 }`}
               >
-                <Lock className="inline-block mr-2" size={20} />
-                {t("settings.password")}
+                <Lock className="inline-block mr-1 md:mr-2" size={18} />
+                <span className="hidden sm:inline">{t("settings.password")}</span>
+                <span className="sm:hidden">Password</span>
               </button>
             </div>
 
             {/* Messages */}
             {message.text && (
-              <div className={`mx-6 mt-6 p-4 rounded-lg ${
+              <div className={`mx-4 md:mx-6 mt-4 md:mt-6 p-3 md:p-4 rounded-lg text-sm md:text-base ${
                 message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
               }`}>
                 {message.text}
@@ -184,7 +186,7 @@ export default function Settings({ setView, appState, setAppState }) {
 
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <form onSubmit={handleUpdateProfile} className="p-6 space-y-6">
+              <form onSubmit={handleUpdateProfile} className="p-4 md:p-6 space-y-4 md:space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t("settings.name")}
@@ -222,14 +224,14 @@ export default function Settings({ setView, appState, setAppState }) {
                   </label>
 
                   {/* Avatar Grid */}
-                  <div className="grid grid-cols-5 md:grid-cols-6 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4 mb-4 md:mb-6 p-3 md:p-4 bg-gray-50 rounded-lg max-h-80 overflow-y-auto">
                     {DEFAULT_AVATARS.map((avatar, index) => (
                       <button
                         key={index}
                         type="button"
                         title={`Select avatar ${index + 1}`}
                         onClick={() => setProfileForm({ ...profileForm, avatar_url: avatar })}
-                        className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-110 ${
+                        className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all active:scale-95 md:hover:scale-110 ${
                           profileForm.avatar_url === avatar
                             ? "border-blue-700 shadow-lg"
                             : "border-gray-300 hover:border-cyan-400"
@@ -242,7 +244,7 @@ export default function Settings({ setView, appState, setAppState }) {
                         />
                         {profileForm.avatar_url === avatar && (
                           <div className="absolute inset-0 bg-blue-700 bg-opacity-20 flex items-center justify-center">
-                            <Check className="text-blue-700 bg-white rounded-full p-1" size={24} />
+                            <Check className="text-blue-700 bg-white rounded-full p-1" size={20} />
                           </div>
                         )}
                       </button>
@@ -290,7 +292,7 @@ export default function Settings({ setView, appState, setAppState }) {
 
             {/* Password Tab */}
             {activeTab === "password" && (
-              <form onSubmit={handleChangePassword} className="p-6 space-y-6">
+              <form onSubmit={handleChangePassword} className="p-4 md:p-6 space-y-4 md:space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <p className="text-sm text-blue-800">
                     <strong>{t("common.note")}:</strong> {t("settings.passwordNote")}
@@ -340,19 +342,19 @@ export default function Settings({ setView, appState, setAppState }) {
           </div>
 
           {/* Account Info */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("settings.accountInformation")}</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
+            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">{t("settings.accountInformation")}</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">{t("settings.role")}</span>
-                <span className="font-medium capitalize">{appState.currentUser?.role}</span>
+                <span className="font-medium capitalize text-blue-700">{appState.currentUser?.role}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">{t("settings.accountStatus")}</span>
-                <span className={`font-medium ${
+                <span className={`font-medium px-3 py-1 rounded-full text-xs ${
                   appState.currentUser?.verified && appState.currentUser?.approved
-                    ? "text-green-600"
-                    : "text-yellow-600"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
                 }`}>
                   {appState.currentUser?.verified && appState.currentUser?.approved
                     ? t("settings.active")
@@ -360,9 +362,9 @@ export default function Settings({ setView, appState, setAppState }) {
                 </span>
               </div>
               {appState.currentUser?.student_id && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center py-2">
                   <span className="text-gray-600">{t("settings.studentId")}</span>
-                  <span className="font-medium">{appState.currentUser.student_id}</span>
+                  <span className="font-medium text-gray-800">{appState.currentUser.student_id}</span>
                 </div>
               )}
             </div>
