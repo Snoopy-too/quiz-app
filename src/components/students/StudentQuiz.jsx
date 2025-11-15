@@ -15,6 +15,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const questionsRef = useRef([]);
+  const currentQuestionIndexRef = useRef(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -30,63 +31,84 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   useEffect(() => {
     if (sessionId) {
       joinSession();
-      const cleanup = setupRealtimeSubscriptions();
+    }
+  }, [sessionId]);
 
-      // Add polling as a fallback mechanism for session updates
-      // Poll every 2 seconds to check for session status changes
-      const pollInterval = setInterval(async () => {
-        console.log('[StudentQuiz] Polling for session updates (fallback)');
-        try {
-          const { data: sessionData, error } = await supabase
-            .from("quiz_sessions")
-            .select("*")
-            .eq("id", sessionId)
-            .single();
+  // Separate effect for realtime subscriptions and polling
+  useEffect(() => {
+    if (!sessionId) return;
 
-          if (!error && sessionData) {
-            console.log('[StudentQuiz] Polled session status:', sessionData.status);
-            console.log('[StudentQuiz] Current local status:', session?.status);
+    console.log('[StudentQuiz] Setting up realtime and polling');
+    const cleanup = setupRealtimeSubscriptions();
 
-            // Only update if status actually changed
-            if (session && sessionData.status !== session.status) {
-              console.log('[StudentQuiz] Status changed via polling:', session.status, '->', sessionData.status);
+    // Add polling as a fallback mechanism for session updates
+    // Poll every 2 seconds to check for session status changes
+    const pollInterval = setInterval(async () => {
+      console.log('[StudentQuiz] Polling for session updates (fallback)');
+      try {
+        const { data: sessionData, error } = await supabase
+          .from("quiz_sessions")
+          .select("*")
+          .eq("id", sessionId)
+          .single();
+
+        if (!error && sessionData) {
+          console.log('[StudentQuiz] Polled session status:', sessionData.status);
+          console.log('[StudentQuiz] Current local status:', session?.status);
+
+          // Only update if status or question index changed
+          if (session && (
+            sessionData.status !== session.status ||
+            sessionData.current_question_index !== currentQuestionIndexRef.current
+          )) {
+            console.log('[StudentQuiz] Status/question changed via polling');
+
+            // Update question index ref
+            if (sessionData.current_question_index !== currentQuestionIndexRef.current) {
+              currentQuestionIndexRef.current = sessionData.current_question_index;
+            }
+
+            // Manually trigger the same logic as realtime subscription
+            if (sessionData.status === "active" && sessionData.current_question_index === 0) {
+              console.log('[StudentQuiz] Quiz starting (via polling) - showing countdown');
               setSession(sessionData);
-
-              // Manually trigger the same logic as realtime subscription
-              if (sessionData.status === "active" && sessionData.current_question_index === 0) {
-                console.log('[StudentQuiz] Quiz starting (via polling) - showing countdown');
-                setShowCountdown(true);
-                setCountdown(5);
-              } else if (sessionData.status === "question_active") {
-                const currentQuestions = questionsRef.current;
-                const questionData = currentQuestions[sessionData.current_question_index];
-                if (questionData) {
-                  console.log('[StudentQuiz] Showing question (via polling):', questionData.question_text);
-                  setShowCountdown(false);
-                  setCurrentQuestion(questionData);
-                  setTimeRemaining(questionData.time_limit);
-                  setHasAnswered(false);
-                  setSelectedOption(null);
-                  setShowCorrectAnswer(false);
-                  setWasCorrect(false);
-                }
-              } else if (sessionData.status === "showing_results") {
-                console.log('[StudentQuiz] Showing results (via polling)');
-                setShowCorrectAnswer(true);
+              setShowCountdown(true);
+              setCountdown(5);
+            } else if (sessionData.status === "question_active") {
+              const currentQuestions = questionsRef.current;
+              const questionData = currentQuestions[sessionData.current_question_index];
+              if (questionData) {
+                console.log('[StudentQuiz] Showing question (via polling):', questionData.question_text);
+                setSession(sessionData);
+                setShowCountdown(false);
+                setCurrentQuestion(questionData);
+                setTimeRemaining(questionData.time_limit);
+                setHasAnswered(false);
+                setSelectedOption(null);
+                setShowCorrectAnswer(false);
+                setWasCorrect(false);
               }
+            } else if (sessionData.status === "showing_results") {
+              console.log('[StudentQuiz] Showing results (via polling)');
+              setSession(sessionData);
+              setShowCorrectAnswer(true);
+            } else if (sessionData.status === "completed") {
+              console.log('[StudentQuiz] Quiz completed (via polling)');
+              setSession(sessionData);
             }
           }
-        } catch (err) {
-          console.error('[StudentQuiz] Error polling session:', err);
         }
-      }, 2000);
+      } catch (err) {
+        console.error('[StudentQuiz] Error polling session:', err);
+      }
+    }, 2000);
 
-      return () => {
-        cleanup();
-        clearInterval(pollInterval);
-      };
-    }
-  }, [sessionId, session?.status]);
+    return () => {
+      console.log('[StudentQuiz] Cleaning up realtime and polling');
+      cleanup();
+      clearInterval(pollInterval);
+    };
+  }, [sessionId]); // Only depend on sessionId, not session state
 
   // Keep questionsRef in sync with questions state
   useEffect(() => {
@@ -210,6 +232,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         if (participantError) throw participantError;
         setParticipant(newParticipant);
       }
+
+      // Initialize question index ref
+      currentQuestionIndexRef.current = session.current_question_index;
 
       // If session is already active, load current question
       if (session.status === "question_active" && orderedQuestions.length > 0) {
