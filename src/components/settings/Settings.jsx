@@ -43,6 +43,7 @@ export default function Settings({ setView, appState, setAppState }) {
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
 
   // Profile form
   const [profileForm, setProfileForm] = useState({
@@ -64,6 +65,19 @@ export default function Settings({ setView, appState, setAppState }) {
       email: appState.currentUser?.email || "",
       avatar_url: appState.currentUser?.avatar_url || ""
     });
+
+    // Check if user authenticated with Google
+    const checkAuthProvider = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Check if user has a Google provider
+        const hasGoogleProvider = user.app_metadata?.provider === 'google' ||
+                                   user.app_metadata?.providers?.includes('google');
+        setIsGoogleUser(hasGoogleProvider);
+      }
+    };
+
+    checkAuthProvider();
   }, [appState.currentUser]);
 
   const handleUpdateProfile = async (e) => {
@@ -151,7 +165,7 @@ export default function Settings({ setView, appState, setAppState }) {
             <div className="flex border-b">
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`flex-1 px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
+                className={`${isGoogleUser ? 'w-full' : 'flex-1'} px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
                   activeTab === "profile"
                     ? "text-blue-700 border-b-2 border-blue-700"
                     : "text-gray-600 hover:text-blue-700"
@@ -161,18 +175,20 @@ export default function Settings({ setView, appState, setAppState }) {
                 <span className="hidden sm:inline">{t("settings.profile")}</span>
                 <span className="sm:hidden">Profile</span>
               </button>
-              <button
-                onClick={() => setActiveTab("password")}
-                className={`flex-1 px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
-                  activeTab === "password"
-                    ? "text-blue-700 border-b-2 border-blue-700"
-                    : "text-gray-600 hover:text-blue-700"
-                }`}
-              >
-                <Lock className="inline-block mr-1 md:mr-2" size={18} />
-                <span className="hidden sm:inline">{t("settings.password")}</span>
-                <span className="sm:hidden">Password</span>
-              </button>
+              {!isGoogleUser && (
+                <button
+                  onClick={() => setActiveTab("password")}
+                  className={`flex-1 px-3 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-medium transition-colors ${
+                    activeTab === "password"
+                      ? "text-blue-700 border-b-2 border-blue-700"
+                      : "text-gray-600 hover:text-blue-700"
+                  }`}
+                >
+                  <Lock className="inline-block mr-1 md:mr-2" size={18} />
+                  <span className="hidden sm:inline">{t("settings.password")}</span>
+                  <span className="sm:hidden">Password</span>
+                </button>
+              )}
             </div>
 
             {/* Messages */}
@@ -187,6 +203,14 @@ export default function Settings({ setView, appState, setAppState }) {
             {/* Profile Tab */}
             {activeTab === "profile" && (
               <form onSubmit={handleUpdateProfile} className="p-4 md:p-6 space-y-4 md:space-y-6">
+                {isGoogleUser && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>{t("common.note")}:</strong> You are signed in with Google. Your password is managed by Google and cannot be changed here.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t("settings.name")}
