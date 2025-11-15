@@ -853,7 +853,7 @@ export default function ManageQuizzes({ setView, appState }) {
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>{new Date(quiz.created_at).toLocaleDateString()}</span>
                 <span>•</span>
-                <span>{t('quiz.questionCount', { count: quiz.questionCount })}</span>
+                <span>{quiz.questionCount} {quiz.questionCount !== 1 ? t('quiz.questions') : t('quiz.question')}</span>
               </div>
             </div>
           </div>
