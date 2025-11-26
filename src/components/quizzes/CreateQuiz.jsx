@@ -17,6 +17,7 @@ import {
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
 import ThemeSelector from "./ThemeSelector";
+import AlertModal from "../common/AlertModal";
 
 const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -64,6 +65,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [success, setSuccess] = useState(null);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
 
   // Fetch folders and default theme from DB
   useEffect(() => {
@@ -248,13 +250,23 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
   const handleSaveQuestion = () => {
     if (!questionForm.question_text.trim()) {
-      setQuestionError("Question text is required.");
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.questionTextRequired') || "Question text is required.",
+        type: "error"
+      });
       return;
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
     if (!hasCorrectAnswer) {
-      setQuestionError("Please mark at least one answer as correct.");
+      setAlertModal({
+        isOpen: true,
+        title: t('common.attention'),
+        message: t('quiz.markCorrectAnswer') || "Please mark at least one answer as correct.",
+        type: "warning"
+      });
       return;
     }
 
@@ -640,8 +652,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             <div className="flex border-b border-gray-200">
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "settings"
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-700"
+                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-700"
                   }`}
                 onClick={() => setActiveTab("settings")}
               >
@@ -649,8 +661,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               </button>
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "questions"
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-700"
+                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-700"
                   }`}
                 onClick={() => setActiveTab("questions")}
               >
@@ -878,8 +890,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                       <div
                                         key={optionIndex}
                                         className={`p-3 rounded-lg border-2 transition-all ${option.is_correct
-                                            ? "bg-green-50 border-green-400 shadow-sm"
-                                            : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                                          ? "bg-green-50 border-green-400 shadow-sm"
+                                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
                                           }`}
                                       >
                                         <div className="flex items-start gap-2">
@@ -938,6 +950,13 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           </div>
         </div>
       </div>
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
     </div>
   );
 }

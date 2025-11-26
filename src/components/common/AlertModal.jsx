@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFocusTrap } from '../../utils/accessibility';
 
 export default function AlertModal({
   isOpen,
@@ -6,8 +7,10 @@ export default function AlertModal({
   message,
   onClose,
   buttonText = "OK",
-  type = "info" // "info", "success", "error"
+  type = "info" // "info", "success", "error", "warning"
 }) {
+  const modalRef = useRef(null);
+  useFocusTrap(modalRef, isOpen);
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -34,13 +37,15 @@ export default function AlertModal({
   const typeStyles = {
     info: "text-blue-600",
     success: "text-green-600",
-    error: "text-red-600"
+    error: "text-red-600",
+    warning: "text-orange-600"
   };
 
   const buttonStyles = {
     info: "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
     success: "bg-green-600 hover:bg-green-700",
-    error: "bg-red-600 hover:bg-red-700"
+    error: "bg-red-600 hover:bg-red-700",
+    warning: "bg-orange-600 hover:bg-orange-700"
   };
 
   return (
@@ -53,19 +58,24 @@ export default function AlertModal({
 
       {/* Modal */}
       <div
+        ref={modalRef}
         className="relative bg-white rounded-lg shadow-2xl max-w-md w-full animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="alert-modal-title"
+        aria-describedby="alert-modal-description"
       >
         {/* Header */}
         <div className="p-6 pb-4">
-          <h3 className={`text-xl font-semibold ${typeStyles[type]}`}>
+          <h3 id="alert-modal-title" className={`text-xl font-semibold ${typeStyles[type]}`}>
             {title}
           </h3>
         </div>
 
         {/* Body */}
         <div className="px-6 pb-6">
-          <p className="text-gray-600 whitespace-pre-line">
+          <p id="alert-modal-description" className="text-gray-600 whitespace-pre-line">
             {message}
           </p>
         </div>

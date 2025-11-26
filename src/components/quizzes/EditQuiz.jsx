@@ -189,13 +189,23 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
   const handleSaveQuestion = async () => {
     if (!questionForm.question_text.trim()) {
-      setQuestionError(t('quiz.questionTextRequired'));
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.questionTextRequired'),
+        type: "error"
+      });
       return;
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
     if (!hasCorrectAnswer) {
-      setQuestionError(t('quiz.markCorrectAnswer'));
+      setAlertModal({
+        isOpen: true,
+        title: t('common.attention'),
+        message: t('quiz.markCorrectAnswer'),
+        type: "warning"
+      });
       return;
     }
 
@@ -707,8 +717,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             <div className="flex border-b border-gray-200">
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "settings"
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-700"
+                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-700"
                   }`}
                 onClick={() => setActiveTab("settings")}
               >
@@ -716,8 +726,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               </button>
               <button
                 className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "questions"
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-700"
+                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-700"
                   }`}
                 onClick={() => setActiveTab("questions")}
               >
@@ -939,8 +949,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                       <div
                                         key={idx}
                                         className={`p-3 rounded-lg border-2 transition-all ${opt.is_correct
-                                            ? "bg-green-50 border-green-400 shadow-sm"
-                                            : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                                          ? "bg-green-50 border-green-400 shadow-sm"
+                                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
                                           }`}
                                       >
                                         <div className="flex items-start gap-2">
