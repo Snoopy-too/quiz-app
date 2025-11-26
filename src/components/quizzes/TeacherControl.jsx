@@ -1019,10 +1019,10 @@ export default function TeacherControl({ sessionId, setView }) {
                   return (
                     <div
                       key={idx}
-                      className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex items-center justify-center gap-3 relative`}
+                      className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex flex-col md:flex-row items-center justify-center gap-3 relative`}
                     >
                       <IconComponent size={28} className="shrink-0" fill="white" />
-                      <span>{opt.text}</span>
+                      <span className="text-center">{opt.text}</span>
                     </div>
                   );
                 })}

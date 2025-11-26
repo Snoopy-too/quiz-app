@@ -569,10 +569,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     disabled={hasAnswered || timeRemaining === 0}
                     className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
                       } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                      } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 relative`}
+                      } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 relative`}
                   >
                     <IconComponent size={28} className="shrink-0" fill="white" />
-                    <span>{opt.text}</span>
+                    <span className="text-center">{opt.text}</span>
                   </button>
                 );
               })}
