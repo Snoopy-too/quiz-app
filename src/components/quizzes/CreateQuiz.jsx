@@ -263,7 +263,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     if (!hasCorrectAnswer) {
       setAlertModal({
         isOpen: true,
-        title: t('common.attention'),
+        title: "Validation Error",
         message: t('quiz.markCorrectAnswer') || "Please mark at least one answer as correct.",
         type: "warning"
       });

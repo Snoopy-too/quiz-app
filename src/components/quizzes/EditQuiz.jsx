@@ -202,7 +202,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     if (!hasCorrectAnswer) {
       setAlertModal({
         isOpen: true,
-        title: t('common.attention'),
+        title: "Validation Error",
         message: t('quiz.markCorrectAnswer'),
         type: "warning"
       });
