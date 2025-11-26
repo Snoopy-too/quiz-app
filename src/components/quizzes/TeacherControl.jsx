@@ -425,12 +425,12 @@ export default function TeacherControl({ sessionId, setView }) {
 
       // Now try to update with question order if not already set
       const updateData = { status: "active" };
-      
+
       // Only set question_order if it hasn't been set yet
       if (!session.question_order && questionOrder) {
         updateData.question_order = questionOrder;
       }
-      
+
       const { data, error } = await supabase
         .from("quiz_sessions")
         .update(updateData)
@@ -780,9 +780,8 @@ export default function TeacherControl({ sessionId, setView }) {
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
-            <span className={`px-4 py-2 rounded-lg font-semibold ${
-              isTeamMode ? "bg-blue-100 text-blue-800" : "bg-blue-50 text-blue-800"
-            }`}>
+            <span className={`px-4 py-2 rounded-lg font-semibold ${isTeamMode ? "bg-blue-100 text-blue-800" : "bg-blue-50 text-blue-800"
+              }`}>
               {isTeamMode ? "Team Mode" : "Classic Mode"}
             </span>
             <button
@@ -983,76 +982,76 @@ export default function TeacherControl({ sessionId, setView }) {
                 <h2 className="text-4xl font-bold mb-6">{currentQuestion.question_text}</h2>
 
                 {/* Media Display */}
-              {currentQuestion.image_url && (
-                <img
-                  src={currentQuestion.image_url}
-                  alt="Question"
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
-                />
-              )}
-              {currentQuestion.video_url && (
-                <AutoPlayVideo
-                  src={currentQuestion.video_url}
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
-                  reloadKey={currentQuestion.id}
-                />
-              )}
-              {currentQuestion.gif_url && (
-                <img
-                  src={currentQuestion.gif_url}
-                  alt="GIF"
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
-                />
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {currentQuestion.options?.map((opt, idx) => {
-                const answerStyles = [
-                  { bg: "bg-red-500", icon: Heart },
-                  { bg: "bg-blue-600", icon: Spade },
-                  { bg: "bg-orange-500", icon: Diamond },
-                  { bg: "bg-green-500", icon: Club },
-                ];
-                const style = answerStyles[idx];
-                const IconComponent = style.icon;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex items-center justify-center gap-3 relative`}
-                  >
-                    <IconComponent size={28} className="absolute left-4 top-4" fill="white" />
-                    <span>{opt.text}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Users size={24} />
-                <span className="text-xl font-semibold">
-                  {participants.filter((p) =>
-                    liveAnswers.some((a) => a.participant_id === p.id)
-                  ).length}{" "}
-                  / {participants.length} answered
-                </span>
+                {currentQuestion.image_url && (
+                  <img
+                    src={currentQuestion.image_url}
+                    alt="Question"
+                    className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  />
+                )}
+                {currentQuestion.video_url && (
+                  <AutoPlayVideo
+                    src={currentQuestion.video_url}
+                    className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                    reloadKey={currentQuestion.id}
+                  />
+                )}
+                {currentQuestion.gif_url && (
+                  <img
+                    src={currentQuestion.gif_url}
+                    alt="GIF"
+                    className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  />
+                )}
               </div>
-              {allStudentsAnswered ? (
-                <div className="bg-green-100 text-green-800 px-6 py-3 rounded-lg font-semibold animate-pulse">
-                  All answered! Showing results...
+
+              <div className="grid grid-cols-2 gap-4">
+                {currentQuestion.options?.map((opt, idx) => {
+                  const answerStyles = [
+                    { bg: "bg-red-500", icon: Heart },
+                    { bg: "bg-blue-600", icon: Spade },
+                    { bg: "bg-orange-500", icon: Diamond },
+                    { bg: "bg-green-500", icon: Club },
+                  ];
+                  const style = answerStyles[idx];
+                  const IconComponent = style.icon;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex items-center justify-center gap-3 relative`}
+                    >
+                      <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
+                      <span>{opt.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Users size={24} />
+                  <span className="text-xl font-semibold">
+                    {participants.filter((p) =>
+                      liveAnswers.some((a) => a.participant_id === p.id)
+                    ).length}{" "}
+                    / {participants.length} answered
+                  </span>
                 </div>
-              ) : (
-                <div className="text-gray-600 text-sm">
-                  Waiting for all students...
-                </div>
-              )}
+                {allStudentsAnswered ? (
+                  <div className="bg-green-100 text-green-800 px-6 py-3 rounded-lg font-semibold animate-pulse">
+                    All answered! Showing results...
+                  </div>
+                ) : (
+                  <div className="text-gray-600 text-sm">
+                    Waiting for all students...
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </>
     );
@@ -1091,115 +1090,114 @@ export default function TeacherControl({ sessionId, setView }) {
               </h2>
 
               {/* Media Display in Results */}
-            {currentQuestion.image_url && (
-              <img
-                src={currentQuestion.image_url}
-                alt="Question"
-                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
-              />
-            )}
-            {currentQuestion.video_url && (
-              <AutoPlayVideo
-                src={currentQuestion.video_url}
-                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
-                reloadKey={currentQuestion.id}
-              />
-            )}
-            {currentQuestion.gif_url && (
-              <img
-                src={currentQuestion.gif_url}
-                alt="GIF"
-                className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
-              />
-            )}
-
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              {currentQuestion.options?.map((opt, idx) => {
-                const answerStyles = [
-                  { bg: "bg-red-500", icon: Heart },
-                  { bg: "bg-blue-600", icon: Spade },
-                  { bg: "bg-orange-500", icon: Diamond },
-                  { bg: "bg-green-500", icon: Club },
-                ];
-                const style = answerStyles[idx];
-                const IconComponent = style.icon;
-                const isCorrect = opt.is_correct;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`${style.bg} ${
-                      isCorrect ? "ring-4 ring-white" : "opacity-60"
-                    } text-white p-6 rounded-lg relative`}
-                  >
-                    <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
-                    <div className="text-xl font-bold mb-2 mt-8">{opt.text}</div>
-                    <div className="text-lg">
-                      {answerCounts[idx]} answer{answerCounts[idx] !== 1 ? "s" : ""}
-                    </div>
-                    {isCorrect && (
-                      <div className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-2 font-bold">
-                        ✓
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-center">
-              {session.current_question_index < questions.length - 1 ? (
-                <button
-                  onClick={nextQuestion}
-                  className="bg-blue-600 text-white px-12 py-4 rounded-xl hover:bg-blue-700 text-xl font-bold flex items-center gap-3"
-                >
-                  Next Question
-                  <SkipForward size={24} />
-                </button>
-              ) : (
-                <button
-                  onClick={endQuiz}
-                  className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3"
-                >
-                  <Trophy size={24} />
-                  Show Final Results
-                </button>
+              {currentQuestion.image_url && (
+                <img
+                  src={currentQuestion.image_url}
+                  alt="Question"
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+                />
               )}
-            </div>
-          </div>
+              {currentQuestion.video_url && (
+                <AutoPlayVideo
+                  src={currentQuestion.video_url}
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+                  reloadKey={currentQuestion.id}
+                />
+              )}
+              {currentQuestion.gif_url && (
+                <img
+                  src={currentQuestion.gif_url}
+                  alt="GIF"
+                  className="max-w-md mx-auto rounded-lg shadow-lg mb-6"
+                />
+              )}
 
-          {/* Leaderboard */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold mb-4 text-center">Leaderboard</h3>
-            <div className="space-y-2">
-              {participants.slice(0, 5).map((p, idx) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between bg-gray-50 rounded-lg p-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-bold text-gray-400">
-                      #{idx + 1}
-                    </span>
-                    {p.users?.avatar_url && (
-                      <img
-                        src={p.users.avatar_url}
-                        alt={p.users?.name || "Avatar"}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    )}
-                    <span className="text-lg font-semibold">
-                      {p.users?.name || "Anonymous"}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                {currentQuestion.options?.map((opt, idx) => {
+                  const answerStyles = [
+                    { bg: "bg-red-500", icon: Heart },
+                    { bg: "bg-blue-600", icon: Spade },
+                    { bg: "bg-orange-500", icon: Diamond },
+                    { bg: "bg-green-500", icon: Club },
+                  ];
+                  const style = answerStyles[idx];
+                  const IconComponent = style.icon;
+                  const isCorrect = opt.is_correct;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`${style.bg} ${isCorrect ? "ring-4 ring-white" : "opacity-60"
+                        } text-white p-6 rounded-lg relative`}
+                    >
+                      <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
+                      <div className="text-xl font-bold mb-2 mt-8">{opt.text}</div>
+                      <div className="text-lg">
+                        {answerCounts[idx]} answer{answerCounts[idx] !== 1 ? "s" : ""}
+                      </div>
+                      {isCorrect && (
+                        <div className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-2 font-bold">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-center">
+                {session.current_question_index < questions.length - 1 ? (
+                  <button
+                    onClick={nextQuestion}
+                    className="bg-blue-600 text-white px-12 py-4 rounded-xl hover:bg-blue-700 text-xl font-bold flex items-center gap-3"
+                  >
+                    Next Question
+                    <SkipForward size={24} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={endQuiz}
+                    className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3"
+                  >
+                    <Trophy size={24} />
+                    Show Final Results
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Leaderboard */}
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-4 text-center">Leaderboard</h3>
+              <div className="space-y-2">
+                {participants.slice(0, 5).map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between bg-gray-50 rounded-lg p-4"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl font-bold text-gray-400">
+                        #{idx + 1}
+                      </span>
+                      {p.users?.avatar_url && (
+                        <img
+                          src={p.users.avatar_url}
+                          alt={p.users?.name || "Avatar"}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="text-lg font-semibold">
+                        {p.users?.name || "Anonymous"}
+                      </span>
+                    </div>
+                    <span className="text-xl font-bold text-blue-700">
+                      {p.score} pts
                     </span>
                   </div>
-                  <span className="text-xl font-bold text-blue-700">
-                    {p.score} pts
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </>
     );
@@ -1230,56 +1228,55 @@ export default function TeacherControl({ sessionId, setView }) {
               {/* Podium Animation */}
               {topThree.length >= 3 && <PodiumAnimation winners={topThree} />}
 
-            {/* Full Leaderboard */}
-            <div className="max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold mb-4 text-center">Final Rankings</h3>
-              <div className="space-y-3">
-                {participants.map((p, idx) => (
-                  <div
-                    key={p.id}
-                    className={`flex items-center justify-between p-4 rounded-xl ${
-                      idx === 0
-                        ? "bg-yellow-100 border-2 border-yellow-500"
-                        : idx === 1
-                        ? "bg-gray-100 border-2 border-gray-400"
-                        : idx === 2
-                        ? "bg-orange-100 border-2 border-orange-400"
-                        : "bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-3xl font-bold">
-                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
-                      </span>
-                      {p.users?.avatar_url && (
-                        <img
-                          src={p.users.avatar_url}
-                          alt={p.users?.name || "Avatar"}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      )}
-                      <span className="text-xl font-semibold">
-                        {p.users?.name || "Anonymous"}
+              {/* Full Leaderboard */}
+              <div className="max-w-2xl mx-auto">
+                <h3 className="text-2xl font-bold mb-4 text-center">Final Rankings</h3>
+                <div className="space-y-3">
+                  {participants.map((p, idx) => (
+                    <div
+                      key={p.id}
+                      className={`flex items-center justify-between p-4 rounded-xl ${idx === 0
+                          ? "bg-yellow-100 border-2 border-yellow-500"
+                          : idx === 1
+                            ? "bg-gray-100 border-2 border-gray-400"
+                            : idx === 2
+                              ? "bg-orange-100 border-2 border-orange-400"
+                              : "bg-gray-50"
+                        }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-3xl font-bold">
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                        </span>
+                        {p.users?.avatar_url && (
+                          <img
+                            src={p.users.avatar_url}
+                            alt={p.users?.name || "Avatar"}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        )}
+                        <span className="text-xl font-semibold">
+                          {p.users?.name || "Anonymous"}
+                        </span>
+                      </div>
+                      <span className="text-2xl font-bold text-blue-700">
+                        {p.score} pts
                       </span>
                     </div>
-                    <span className="text-2xl font-bold text-blue-700">
-                      {p.score} pts
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-center mt-8">
+                <button
+                  onClick={() => setView("manage-quizzes")}
+                  className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
+                >
+                  Back to Dashboard
+                </button>
               </div>
             </div>
-
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setView("manage-quizzes")}
-                className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
-              >
-                Back to Dashboard
-              </button>
-            </div>
           </div>
-        </div>
         </div>
       </>
     );

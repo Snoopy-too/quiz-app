@@ -399,13 +399,11 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                     key={idx}
                     onClick={() => submitAnswer(idx)}
                     disabled={hasAnswered || timeRemaining === 0}
-                    className={`${style.bg} ${
-                      !hasAnswered && timeRemaining > 0 ? style.hover : ""
-                    } ${
-                      selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                    } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative`}
+                    className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
+                      } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
+                      } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative`}
                   >
-                    <IconComponent size={28} className="absolute left-4 top-4" fill="white" />
+                    <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
                     <span>{opt.text}</span>
                   </button>
                 );
@@ -423,9 +421,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                   return (
                     <div
                       key={idx}
-                      className={`${style.bg} ${
-                        isCorrect ? "ring-4 ring-white" : "opacity-60"
-                      } text-white p-6 rounded-lg relative`}
+                      className={`${style.bg} ${isCorrect ? "ring-4 ring-white" : "opacity-60"
+                        } text-white p-6 rounded-lg relative`}
                     >
                       <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
                       <div className="text-xl font-bold mt-8">{opt.text}</div>
@@ -446,9 +443,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
               {/* Feedback */}
               <div
-                className={`p-4 rounded-xl text-center mb-4 ${
-                  wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
+                className={`p-4 rounded-xl text-center mb-4 ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
               >
                 <p className="text-2xl font-bold">
                   {wasCorrect ? "✓ Correct!" : "✗ Incorrect"}

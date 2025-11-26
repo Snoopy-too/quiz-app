@@ -573,7 +573,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                       selectedOption === idx ? `ring-4 ${style.ring}` : ""
                     } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 relative`}
                   >
-                    <IconComponent size={28} className="absolute left-4 top-4" fill="white" />
+                    <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
                     <span>{opt.text}</span>
                   </button>
                 );
