@@ -68,7 +68,7 @@ export default function AlertModal({
       >
         {/* Header */}
         <div className="p-6 pb-4">
-          <h3 id="alert-modal-title" className={`text-xl font-semibold ${typeStyles[type]}`}>
+          <h3 id="alert-modal-title" className={`text-xl font-semibold text-center ${typeStyles[type]}`}>
             {title}
           </h3>
         </div>
