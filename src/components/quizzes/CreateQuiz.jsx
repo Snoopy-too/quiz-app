@@ -23,15 +23,15 @@ const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).sl
 const getDefaultOptions = (type) =>
   type === "true_false"
     ? [
-        { text: "True", is_correct: false },
-        { text: "False", is_correct: false },
-      ]
+      { text: "True", is_correct: false },
+      { text: "False", is_correct: false },
+    ]
     : [
-        { text: "", is_correct: false },
-        { text: "", is_correct: false },
-        { text: "", is_correct: false },
-        { text: "", is_correct: false },
-      ];
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
+    ];
 
 const createEmptyQuestion = (type = "multiple_choice") => ({
   question_text: "",
@@ -316,7 +316,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     setDraggedQuestionIndex(null);
   };
 
-  const handleSaveQuiz = async () => {
+  const handleSaveQuiz = async (shouldExit = false) => {
+    const exit = typeof shouldExit === 'boolean' ? shouldExit : false;
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -372,6 +373,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
         const { error: insertQuestionsError } = await supabase.from("questions").insert(payload);
         if (insertQuestionsError) throw insertQuestionsError;
+      }
+
+      if (exit) {
+        if (onQuizCreated) onQuizCreated();
+        setView("manage-quizzes");
+        return;
       }
 
       setSuccess("Quiz created successfully!");
@@ -601,14 +608,24 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-blue-700">{t('nav.createQuiz')}</h1>
-            <button
-              onClick={handleSaveQuiz}
-              disabled={saving}
-              className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2"
-            >
-              <Save size={18} />
-              {saving ? t('common.loading') : t('common.save')}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleSaveQuiz(false)}
+                disabled={saving}
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Save size={18} />
+                {saving ? t('common.loading') : t('common.save')}
+              </button>
+              <button
+                onClick={() => handleSaveQuiz(true)}
+                disabled={saving}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                <Save size={18} />
+                Save & Exit
+              </button>
+            </div>
           </div>
           {(error || success) && (
             <div className="mt-3">
@@ -622,21 +639,19 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           <div className="bg-white shadow-md rounded-lg">
             <div className="flex border-b border-gray-200">
               <button
-                className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-                  activeTab === "settings"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "settings"
                     ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
                     : "text-gray-600 hover:text-blue-700"
-                }`}
+                  }`}
                 onClick={() => setActiveTab("settings")}
               >
                 {t('nav.settings')}
               </button>
               <button
-                className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-                  activeTab === "questions"
+                className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "questions"
                     ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
                     : "text-gray-600 hover:text-blue-700"
-                }`}
+                  }`}
                 onClick={() => setActiveTab("questions")}
               >
                 {t('quiz.questions')} ({questions.length})
@@ -771,16 +786,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                             onDrop={(e) => {
                               if (!isEditing) handleDrop(e, index);
                             }}
-                            className={`bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
-                              draggedQuestionIndex === index ? "opacity-50" : ""
-                            } ${isEditing ? "ring-2 ring-blue-100 border-cyan-300" : ""}`}
+                            className={`bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden ${draggedQuestionIndex === index ? "opacity-50" : ""
+                              } ${isEditing ? "ring-2 ring-blue-100 border-cyan-300" : ""}`}
                           >
                             <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`${
-                                    isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-move text-gray-400 hover:text-gray-600"
-                                  }`}
+                                  className={`${isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-move text-gray-400 hover:text-gray-600"
+                                    }`}
                                 >
                                   <GripVertical size={20} />
                                 </div>
@@ -864,20 +877,18 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                     {question.options.map((option, optionIndex) => (
                                       <div
                                         key={optionIndex}
-                                        className={`p-3 rounded-lg border-2 transition-all ${
-                                          option.is_correct
+                                        className={`p-3 rounded-lg border-2 transition-all ${option.is_correct
                                             ? "bg-green-50 border-green-400 shadow-sm"
                                             : "bg-gray-50 border-gray-200 hover:border-gray-300"
-                                        }`}
+                                          }`}
                                       >
                                         <div className="flex items-start gap-2">
                                           {option.is_correct && (
                                             <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                                           )}
                                           <span
-                                            className={`text-sm ${
-                                              option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
-                                            }`}
+                                            className={`text-sm ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
+                                              }`}
                                           >
                                             {option.text || <em className="text-gray-400">No answer text</em>}
                                           </span>
