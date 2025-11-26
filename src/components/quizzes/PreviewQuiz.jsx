@@ -403,7 +403,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                       } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
                       } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative`}
                   >
-                    <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
+                    <IconComponent size={28} className="shrink-0" fill="white" />
                     <span>{opt.text}</span>
                   </button>
                 );

@@ -1021,7 +1021,7 @@ export default function TeacherControl({ sessionId, setView }) {
                       key={idx}
                       className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex items-center justify-center gap-3 relative`}
                     >
-                      <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
+                      <IconComponent size={28} className="shrink-0" fill="white" />
                       <span>{opt.text}</span>
                     </div>
                   );
@@ -1236,12 +1236,12 @@ export default function TeacherControl({ sessionId, setView }) {
                     <div
                       key={p.id}
                       className={`flex items-center justify-between p-4 rounded-xl ${idx === 0
-                          ? "bg-yellow-100 border-2 border-yellow-500"
-                          : idx === 1
-                            ? "bg-gray-100 border-2 border-gray-400"
-                            : idx === 2
-                              ? "bg-orange-100 border-2 border-orange-400"
-                              : "bg-gray-50"
+                        ? "bg-yellow-100 border-2 border-yellow-500"
+                        : idx === 1
+                          ? "bg-gray-100 border-2 border-gray-400"
+                          : idx === 2
+                            ? "bg-orange-100 border-2 border-orange-400"
+                            : "bg-gray-50"
                         }`}
                     >
                       <div className="flex items-center gap-4">

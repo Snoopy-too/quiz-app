@@ -189,7 +189,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         .order("order_index", { ascending: true });
 
       if (questionsError) throw questionsError;
-      
+
       // If session has a question_order, use it to reorder questions
       let orderedQuestions = questionsData;
       if (session.question_order) {
@@ -197,7 +197,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           .map(id => questionsData.find(q => q.id === id))
           .filter(Boolean);
       }
-      
+
       setQuestions(orderedQuestions);
 
       // Check if already a participant
@@ -567,13 +567,11 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     key={idx}
                     onClick={() => submitAnswer(idx)}
                     disabled={hasAnswered || timeRemaining === 0}
-                    className={`${style.bg} ${
-                      !hasAnswered && timeRemaining > 0 ? style.hover : ""
-                    } ${
-                      selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                    } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 relative`}
+                    className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
+                      } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
+                      } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 relative`}
                   >
-                    <IconComponent size={28} className="md:absolute md:left-4 md:top-4 shrink-0" fill="white" />
+                    <IconComponent size={28} className="shrink-0" fill="white" />
                     <span>{opt.text}</span>
                   </button>
                 );
@@ -583,9 +581,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             {/* Feedback after answering */}
             {hasAnswered && (
               <div
-                className={`mt-6 p-4 rounded-xl text-center ${
-                  wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
+                className={`mt-6 p-4 rounded-xl text-center ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
               >
                 <p className="text-2xl font-bold">
                   {wasCorrect ? `✓ ${t('session.correctAnswer')}` : `✗ ${t('student.incorrect')}`}
