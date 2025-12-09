@@ -159,6 +159,12 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         }))
       ];
 
+      const { error: membersError } = await supabase
+        .from("team_members")
+        .insert(teamMembers);
+
+      if (membersError) throw membersError;
+
       // Join session immediately
       const { data: participant, error: participantError } = await supabase
         .from("session_participants")
