@@ -34,6 +34,8 @@ export default function TeacherControl({ sessionId, setView }) {
 
   // Ref to hold current question for real-time subscription
   const currentQuestionRef = useRef(null);
+  // Ref to hold current session for polling (avoids stale closure)
+  const sessionRef = useRef(null);
 
   useEffect(() => {
     if (sessionId) {
@@ -43,13 +45,15 @@ export default function TeacherControl({ sessionId, setView }) {
       // Add polling as a fallback mechanism for participant updates
       // Poll every 3 seconds while in waiting status
       const pollInterval = setInterval(() => {
-        if (session?.status === 'waiting') {
+        // Use ref to get latest session state (avoids stale closure)
+        const currentSession = sessionRef.current;
+        if (currentSession?.status === 'waiting') {
           console.log('[TeacherControl] Polling for participant updates (fallback)');
-          loadParticipants(session);
+          loadParticipants(currentSession);
         }
 
         // Poll for live answers while question is active
-        if (session?.status === 'question_active' && currentQuestion) {
+        if (currentSession?.status === 'question_active' && currentQuestion) {
           console.log('[TeacherControl] Polling for live answers (fallback)');
           loadLiveAnswers(currentQuestion.id);
         }
@@ -66,6 +70,11 @@ export default function TeacherControl({ sessionId, setView }) {
   useEffect(() => {
     currentQuestionRef.current = currentQuestion;
   }, [currentQuestion]);
+
+  // Keep sessionRef in sync with session state
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   // Countdown timer effect for quiz start
   useEffect(() => {
