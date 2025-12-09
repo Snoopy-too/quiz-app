@@ -77,7 +77,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         // 1. Get all teams the student belongs to
         const { data: myTeams, error: teamError } = await supabase
           .from('team_members')
-          .select('team_id, teams(name, team_name)')
+          .select('team_id, joined_at, teams(name, team_name)')
           .eq('student_id', appState.currentUser.id);
 
         if (teamError) {
@@ -124,6 +124,21 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           let candidateTeams = myTeams;
           if (myActiveTeams.length > 0) {
             candidateTeams = myActiveTeams;
+          } else {
+            // Heuristic Fallback: If no confirmed active teams found (e.g. RPC blocked/failed),
+            // prefer teams joined AFTER the session was created. This filters out 'defunct' teams.
+            if (session.created_at) {
+              const sessionTime = new Date(session.created_at).getTime();
+              const recentTeams = myTeams.filter(t => {
+                if (!t.joined_at) return false;
+                return new Date(t.joined_at).getTime() > sessionTime;
+              });
+
+              if (recentTeams.length > 0) {
+                console.log('Using recent membership heuristic to filter teams:', recentTeams);
+                candidateTeams = recentTeams;
+              }
+            }
           }
 
           if (candidateTeams.length === 1) {
