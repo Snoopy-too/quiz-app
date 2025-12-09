@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock, RefreshCw } from "lucide-react";
+import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock, RefreshCw, BrainCircuit } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -23,8 +23,9 @@ export default function TeacherControl({ sessionId, setView }) {
   const [liveAnswers, setLiveAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showModeSelection, setShowModeSelection] = useState(true);
-  const [selectedMode, setSelectedMode] = useState(null);
+  const [showModeSelection, setShowModeSelection] = useState(false);
+  const [selectedMode, setSelectedMode] = useState("classic");
+  const [isThinkingTime, setIsThinkingTime] = useState(false);
   const [countdownValue, setCountdownValue] = useState(5);
   const [questionTimeRemaining, setQuestionTimeRemaining] = useState(0);
   const [autoAdvanceTimer, setAutoAdvanceTimer] = useState(null);
@@ -570,22 +571,50 @@ export default function TeacherControl({ sessionId, setView }) {
       setCurrentQuestion(question);
       setShowResults(false);
       setLiveAnswers([]); // Reset live answers for new question
-      setQuestionTimeRemaining(question.time_limit); // Start countdown
       setAllStudentsAnswered(false); // Reset for new question
-      setSession({
-        ...session,
-        current_question_index: questionIndex,
-        status: "question_active",
-      });
 
-      // Load any existing answers for this question (in case of refresh)
-      await loadLiveAnswers(question.id);
+      const startActualTimer = () => {
+        setIsThinkingTime(false);
+        setQuestionTimeRemaining(question.time_limit);
 
-      // Auto-advance after time limit
-      const timer = setTimeout(() => {
-        showQuestionResults(questionIndex);
-      }, question.time_limit * 1000);
-      setAutoAdvanceTimer(timer);
+        // Auto-advance after time limit
+        const timer = setTimeout(() => {
+          showQuestionResults(questionIndex);
+        }, question.time_limit * 1000);
+        setAutoAdvanceTimer(timer);
+      };
+
+      if (session.mode === 'team') {
+        // Team Mode: 5 second thinking time
+        setIsThinkingTime(true);
+        setQuestionTimeRemaining(5);
+
+        // Update session state immediately
+        setSession({
+          ...session,
+          current_question_index: questionIndex,
+          status: "question_active",
+        });
+
+        // Load answers
+        await loadLiveAnswers(question.id);
+
+        // Wait 5 seconds then start actual timer
+        setTimeout(() => {
+          startActualTimer();
+        }, 5000);
+      } else {
+        // Classic Mode: Start immediately
+        setIsThinkingTime(false);
+        setSession({
+          ...session,
+          current_question_index: questionIndex,
+          status: "question_active",
+        });
+
+        await loadLiveAnswers(question.id);
+        startActualTimer();
+      }
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorShowingQuestion') + ': ' + err.message, type: "error" });
     }
@@ -1025,11 +1054,23 @@ export default function TeacherControl({ sessionId, setView }) {
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg">
-              <Clock size={20} className="text-blue-700" />
-              <span className="text-2xl font-bold text-blue-700">
-                {questionTimeRemaining}s
-              </span>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isThinkingTime ? "bg-yellow-100 animate-pulse" : "bg-blue-50"
+              }`}>
+              {isThinkingTime ? (
+                <>
+                  <BrainCircuit size={20} className="text-yellow-700" />
+                  <span className="text-2xl font-bold text-yellow-700">
+                    Thinking: {questionTimeRemaining}s
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Clock size={20} className="text-blue-700" />
+                  <span className="text-2xl font-bold text-blue-700">
+                    {questionTimeRemaining}s
+                  </span>
+                </>
+              )}
             </div>
             <span className="text-gray-600">
               Question {session.current_question_index + 1} of {questions.length}
@@ -1360,9 +1401,9 @@ export default function TeacherControl({ sessionId, setView }) {
                             {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
                           </span>
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl border-2 ${idx === 0 ? "bg-yellow-200 border-yellow-500 text-yellow-800" :
-                              idx === 1 ? "bg-gray-200 border-gray-500 text-gray-800" :
-                                idx === 2 ? "bg-orange-200 border-orange-500 text-orange-800" :
-                                  "bg-blue-100 border-blue-300 text-blue-600"
+                            idx === 1 ? "bg-gray-200 border-gray-500 text-gray-800" :
+                              idx === 2 ? "bg-orange-200 border-orange-500 text-orange-800" :
+                                "bg-blue-100 border-blue-300 text-blue-600"
                             }`}>
                             {team.name.substring(0, 2).toUpperCase()}
                           </div>
