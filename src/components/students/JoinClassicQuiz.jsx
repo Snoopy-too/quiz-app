@@ -85,20 +85,6 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         // Check if error is due to duplicate entry (already joined)
         if (participantError.code === '23505') {
           console.log('Student already joined this session, proceeding...');
-        } else if (participantError.message?.includes('is_team_entry')) {
-          console.warn('Missing is_team_entry column on session_participants table, retrying without flag');
-          const { error: fallbackError } = await supabase
-            .from("session_participants")
-            .insert({
-              session_id: session.id,
-              user_id: appState.currentUser.id,
-              score: 0
-            });
-
-          if (fallbackError && fallbackError.code !== '23505') {
-            console.error('Fallback insert failed:', fallbackError);
-            throw new Error(t('errors.databaseMigrationIncomplete'));
-          }
         } else {
           console.error('Failed to create participant:', participantError);
           throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);

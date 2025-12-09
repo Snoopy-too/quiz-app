@@ -13,32 +13,9 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   const [teamCreated, setTeamCreated] = useState(false);
   const [createdTeam, setCreatedTeam] = useState(null);
   const [quizPin, setQuizPin] = useState("");
-  const [schemaChecked, setSchemaChecked] = useState(false);
-  const [hasCreatorColumn, setHasCreatorColumn] = useState(true);
 
-  const columnExists = async (table, column) => {
-    if (schemaChecked) return hasCreatorColumn;
 
-    try {
-      const { data, error } = await supabase
-        .from(`${table}`)
-        .select(`${column}`)
-        .limit(1);
 
-      if (error && error.code === '42703') {
-        setHasCreatorColumn(false);
-        setSchemaChecked(true);
-        return false;
-      }
-
-      setHasCreatorColumn(true);
-      setSchemaChecked(true);
-      return true;
-    } catch (err) {
-      console.error(`Failed to probe ${table}.${column}:`, err);
-      return true;
-    }
-  };
 
   useEffect(() => {
     if (isApproved) {
@@ -109,9 +86,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         teacher_id: teacherId
       };
 
-      if (await columnExists("teams", "creator_id")) {
-        teamInsert.creator_id = appState.currentUser.id;
-      }
+      teamInsert.creator_id = appState.currentUser.id;
 
       const { data: team, error: teamError } = await supabase
         .from("teams")
@@ -139,9 +114,6 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         .insert(teamMembers);
 
       if (membersError) {
-        if (membersError.code === '42703' && membersError.message?.includes('student_id')) {
-          throw new Error(t('errors.databaseMigrationIncomplete'));
-        }
         throw membersError;
       }
 
@@ -203,21 +175,6 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       if (participantError) {
         if (participantError.code === '23505') {
           console.log('Team already joined this session, proceeding...');
-        } else if (participantError.message?.includes('is_team_entry')) {
-          console.warn('Missing is_team_entry column on session_participants table, retrying without flag');
-          const { error: fallbackError } = await supabase
-            .from("session_participants")
-            .insert({
-              session_id: session.id,
-              user_id: appState.currentUser.id,
-              team_id: createdTeam.id,
-              score: 0
-            });
-
-          if (fallbackError && fallbackError.code !== '23505') {
-            console.error('Fallback team insert failed:', fallbackError);
-            throw new Error(t('errors.databaseMigrationIncomplete'));
-          }
         } else {
           throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
         }

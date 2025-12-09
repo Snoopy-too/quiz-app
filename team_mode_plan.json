@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "status": "completed",
+        "task": "Remove schema validation checks",
+        "file_path": "src/components/students/CreateTeam.jsx",
+        "instruction": "Remove the columnExists function, schemaChecked state, hasCreatorColumn state, and the useEffect that usage them. The component should assume the database schema is up to date.",
+        "test_criteria": "The file no longer contains the columnExists function definition or the schemaChecked state variable."
+    },
+    {
+        "id": 2,
+        "status": "completed",
+        "task": "Standardize Team Insertion",
+        "file_path": "src/components/students/CreateTeam.jsx",
+        "instruction": "In the createTeam function, remove the conditional check for creator_id column existence. Always include creator_id: appState.currentUser.id in the teamInsert object.",
+        "test_criteria": "The teamInsert object unconditionally processes creator_id without an await columnExists check."
+    },
+    {
+        "id": 3,
+        "status": "completed",
+        "task": "Standardize Team Member Insertion",
+        "file_path": "src/components/students/CreateTeam.jsx",
+        "instruction": "In createTeam, remove the specific error handling block that checks for error code '42703' (missing column) when inserting teamMembers. It should just throw the error if insertion fails.",
+        "test_criteria": "The code block handling membersError no longer checks for code === '42703'."
+    },
+    {
+        "id": 4,
+        "status": "completed",
+        "task": "Standardize Session Join Logic",
+        "file_path": "src/components/students/CreateTeam.jsx",
+        "instruction": "In the joinTeamQuiz function, remove the catch/retry block that handles missing is_team_entry column errors. The function should strictly attempt to insert { ..., is_team_entry: true }.",
+        "test_criteria": "The joinTeamQuiz function contains exactly one supabase.from(\"session_participants\").insert call."
+    },
+    {
+        "id": 5,
+        "status": "completed",
+        "task": "Standardize Classic Join Logic",
+        "file_path": "src/components/students/JoinClassicQuiz.jsx",
+        "instruction": "In the joinQuiz function, remove the catch/retry fallback logic that handles missing is_team_entry column. It should strictly insert with is_team_entry: false.",
+        "test_criteria": "The joinQuiz function does not contain a fallback supabase.from(\"session_participants\").insert call inside the error handling block."
+    }
+]
