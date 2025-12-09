@@ -1237,7 +1237,38 @@ export default function TeacherControl({ sessionId, setView }) {
 
             {/* Leaderboard */}
             <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
-              <h3 className="text-2xl font-bold mb-4 text-center">Leaderboard</h3>
+              {session.mode === 'team' && (
+                <div className="mb-8">
+                  <h3 className="text-2xl font-bold mb-4 text-center">Team Leaderboard</h3>
+                  <div className="space-y-2">
+                    {[...teams].sort((a, b) => b.score - a.score).map((team, idx) => (
+                      <div
+                        key={team.name}
+                        className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-4"
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl font-bold text-gray-400">
+                            #{idx + 1}
+                          </span>
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200">
+                            {team.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-lg font-semibold text-gray-800">
+                            {team.name}
+                          </span>
+                        </div>
+                        <span className="text-xl font-bold text-blue-700">
+                          {team.score} pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h3 className="text-2xl font-bold mb-4 text-center">
+                {session.mode === 'team' ? 'Individual Leaderboard' : 'Leaderboard'}
+              </h3>
               <div className="space-y-2">
                 {participants.slice(0, 5).map((p, idx) => (
                   <div
@@ -1274,7 +1305,16 @@ export default function TeacherControl({ sessionId, setView }) {
 
   // Quiz completed
   if (session.status === "completed") {
-    const topThree = participants.slice(0, 3);
+    const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+
+    // Determine top 3 based on mode
+    const topThree = session.mode === 'team'
+      ? sortedTeams.slice(0, 3).map(t => ({
+        id: t.name,
+        score: t.score,
+        users: { name: t.name, avatar_url: null } // Adapt team to participant structure for podium
+      }))
+      : participants.slice(0, 3);
 
     return renderWithBackground(
       <>
@@ -1301,38 +1341,75 @@ export default function TeacherControl({ sessionId, setView }) {
               <div className="max-w-2xl mx-auto">
                 <h3 className="text-2xl font-bold mb-4 text-center">Final Rankings</h3>
                 <div className="space-y-3">
-                  {participants.map((p, idx) => (
-                    <div
-                      key={p.id}
-                      className={`flex items-center justify-between p-4 rounded-xl ${idx === 0
-                        ? "bg-yellow-100 border-2 border-yellow-500"
-                        : idx === 1
-                          ? "bg-gray-100 border-2 border-gray-400"
-                          : idx === 2
-                            ? "bg-orange-100 border-2 border-orange-400"
-                            : "bg-gray-50"
-                        }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="text-3xl font-bold">
-                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
-                        </span>
-                        {p.users?.avatar_url && (
-                          <img
-                            src={p.users.avatar_url}
-                            alt={p.users?.name || "Avatar"}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                        )}
-                        <span className="text-xl font-semibold">
-                          {p.users?.name || "Anonymous"}
+                  {session.mode === 'team' ? (
+                    // Team Rankings
+                    sortedTeams.map((team, idx) => (
+                      <div
+                        key={team.name}
+                        className={`flex items-center justify-between p-4 rounded-xl ${idx === 0
+                          ? "bg-yellow-100 border-2 border-yellow-500"
+                          : idx === 1
+                            ? "bg-gray-100 border-2 border-gray-400"
+                            : idx === 2
+                              ? "bg-orange-100 border-2 border-orange-400"
+                              : "bg-gray-50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-3xl font-bold">
+                            {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                          </span>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl border-2 ${idx === 0 ? "bg-yellow-200 border-yellow-500 text-yellow-800" :
+                              idx === 1 ? "bg-gray-200 border-gray-500 text-gray-800" :
+                                idx === 2 ? "bg-orange-200 border-orange-500 text-orange-800" :
+                                  "bg-blue-100 border-blue-300 text-blue-600"
+                            }`}>
+                            {team.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-xl font-semibold">
+                            {team.name}
+                          </span>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-700">
+                          {team.score} pts
                         </span>
                       </div>
-                      <span className="text-2xl font-bold text-blue-700">
-                        {p.score} pts
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    // Individual Rankings
+                    participants.map((p, idx) => (
+                      <div
+                        key={p.id}
+                        className={`flex items-center justify-between p-4 rounded-xl ${idx === 0
+                          ? "bg-yellow-100 border-2 border-yellow-500"
+                          : idx === 1
+                            ? "bg-gray-100 border-2 border-gray-400"
+                            : idx === 2
+                              ? "bg-orange-100 border-2 border-orange-400"
+                              : "bg-gray-50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-3xl font-bold">
+                            {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                          </span>
+                          {p.users?.avatar_url && (
+                            <img
+                              src={p.users.avatar_url}
+                              alt={p.users?.name || "Avatar"}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          )}
+                          <span className="text-xl font-semibold">
+                            {p.users?.name || "Anonymous"}
+                          </span>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-700">
+                          {p.score} pts
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
