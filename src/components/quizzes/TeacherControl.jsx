@@ -45,7 +45,7 @@ export default function TeacherControl({ sessionId, setView }) {
       const pollInterval = setInterval(() => {
         if (session?.status === 'waiting') {
           console.log('[TeacherControl] Polling for participant updates (fallback)');
-          loadParticipants();
+          loadParticipants(session);
         }
 
         // Poll for live answers while question is active
@@ -270,23 +270,52 @@ export default function TeacherControl({ sessionId, setView }) {
     // Group by teams if in team mode
     if (currentSession?.mode === "team") {
       const teamMap = {};
-      participantsWithTeams?.forEach(p => {
+      console.log('[TeacherControl] Processing team mode grouping, participants:', participantsWithTeams?.length);
+
+      for (const p of (participantsWithTeams || [])) {
+        console.log('[TeacherControl] Participant:', p.id, 'is_team_entry:', p.is_team_entry, 'team_id:', p.team_id, 'teams:', p.teams);
+
         // Only include team entries
-        if (p.is_team_entry === true && p.teams) {
-          // Check both possible column names (name or team_name)
-          const teamName = p.teams.name || p.teams.team_name || "Unknown Team";
+        if (p.is_team_entry === true && p.team_id) {
+          let teamName = "Unknown Team";
+
+          // Try to get team name from joined data
+          if (p.teams) {
+            teamName = p.teams.name || p.teams.team_name || teamName;
+            console.log('[TeacherControl] Team name from join:', teamName);
+          } else {
+            // Fallback: fetch team name directly if JOIN failed
+            console.log('[TeacherControl] Teams JOIN failed, fetching directly for team_id:', p.team_id);
+            try {
+              const { data: teamData } = await supabase
+                .from('teams')
+                .select('name, team_name')
+                .eq('id', p.team_id)
+                .single();
+              if (teamData) {
+                teamName = teamData.name || teamData.team_name || teamName;
+                console.log('[TeacherControl] Team name from direct fetch:', teamName);
+              }
+            } catch (err) {
+              console.error('[TeacherControl] Error fetching team name:', err);
+            }
+          }
+
           if (!teamMap[teamName]) {
             teamMap[teamName] = [];
           }
           teamMap[teamName].push(p);
         }
-      });
-      setTeams(Object.entries(teamMap).map(([name, members]) => ({
+      }
+
+      const groupedTeams = Object.entries(teamMap).map(([name, members]) => ({
         name,
         members,
         score: members.reduce((sum, m) => sum + (m.score || 0), 0)
-      })));
-      console.log('[TeacherControl] Teams grouped:', Object.keys(teamMap).length, 'teams');
+      }));
+
+      setTeams(groupedTeams);
+      console.log('[TeacherControl] Teams grouped:', groupedTeams.length, 'teams:', groupedTeams.map(t => t.name));
     }
   };
 
