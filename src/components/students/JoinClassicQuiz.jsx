@@ -86,36 +86,56 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           const teamIds = myTeams.map(t => t.team_id);
           console.log('Student belongs to teams:', teamIds);
 
-          // 2. Check if any of these teams are already in the session
-          const { data: teamInSession, error: checkError } = await supabase
+          // 2. Check current session participants to find active teams
+          const { data: sessionParticipants, error: checkError } = await supabase
             .from('session_participants')
-            .select('team_id, teams(name, team_name)')
+            .select('team_id')
             .eq('session_id', session.id)
-            .in('team_id', teamIds)
-            .maybeSingle();
+            .eq('is_team_entry', true);
 
           if (checkError) {
             console.error('Error checking team participants:', checkError);
-          } else if (teamInSession) {
-            // Team already exists in session - show confirmation UI
-            console.log('Found matching team in session:', teamInSession);
-            setFoundTeam({ ...teamInSession, session_id: session.id });
+          }
+
+          // Filter my teams to see if any are already in the session
+          const activeTeamIds = sessionParticipants?.map(p => p.team_id) || [];
+          const myActiveTeams = myTeams.filter(t => activeTeamIds.includes(t.team_id));
+
+          console.log('My active teams in session:', myActiveTeams);
+
+          // Priority Logic:
+          // 1. If I belong to teams currently in the session, I almost certainly want to join one of them.
+          //    So we filter the list to ONLY those teams.
+          // 2. If I don't belong to any active teams, then I can choose from ANY of my teams (to start a new entry).
+
+          let candidateTeams = myTeams;
+          if (myActiveTeams.length > 0) {
+            candidateTeams = myActiveTeams;
+          }
+
+          if (candidateTeams.length === 1) {
+            // Only one valid option - check if it's new or existing
+            const team = candidateTeams[0];
+            const isAlreadyIn = activeTeamIds.includes(team.team_id);
+
+            if (isAlreadyIn) {
+              setFoundTeam({ ...team, session_id: session.id });
+            } else {
+              // Not in session (matches myActiveTeams logic only if count=0, so this path is for the 'start new' case)
+              await joinWithSpecificTeam(session, team);
+            }
+            return;
+          } else if (candidateTeams.length > 1) {
+            // Multiple candidates (either multiple active, or multiple potential new ones)
+            setAvailableTeams(candidateTeams);
+            setPendingSession(session);
             setLoading(false);
             return;
           } else {
-            // Team NOT in session yet
-            if (myTeams.length > 1) {
-              // User has multiple teams, ask them to choose
-              console.log('User has multiple teams, asking for selection');
-              setAvailableTeams(myTeams);
-              setPendingSession(session);
-              setLoading(false);
-              return;
-            }
-
-            // Only one team, join automatically
-            const firstTeam = myTeams[0];
-            await joinWithSpecificTeam(session, firstTeam);
+            // Should not happen given logic above (myTeams > 0 check), but fallback
+            console.warn('No candidate teams found');
+            setError(t('errors.failedToJoinQuiz'));
+            setLoading(false);
             return;
           }
         } else {

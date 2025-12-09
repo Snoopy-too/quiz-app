@@ -299,7 +299,9 @@
     "disabledUntilApproved": "Disabled until your teacher approves your account",
     "viewMyResults": "View My Results",
     "seeQuizHistoryAndScores": "See your quiz history and scores",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "selectTeam": "Select Team",
+    "selectTeamDescription": "Choose which team you want to represent in this quiz:"
   },
   "theme": {
     "themes": "Themes",
