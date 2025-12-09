@@ -673,6 +673,18 @@ export default function TeacherControl({ sessionId, setView }) {
         .update({ status: "completed" })
         .eq("id", sessionId);
 
+      // Cleanup teams if in team mode - removes student memberships so teams don't persist
+      if (session.mode === 'team') {
+        try {
+          console.log('[TeacherControl] Triggering team cleanup for session:', sessionId);
+          await supabase.rpc('cleanup_session_teams', { p_session_id: sessionId });
+          console.log('[TeacherControl] Team cleanup executed');
+        } catch (cleanupError) {
+          console.warn('[TeacherControl] Team cleanup failed (function might be missing):', cleanupError);
+          // Not critical for ending the quiz, so we continue
+        }
+      }
+
       setSession({ ...session, status: "completed" });
     } catch (err) {
       setAlertModal({ isOpen: true, title: "Error", message: "Error ending quiz: " + err.message, type: "error" });
