@@ -8,6 +8,8 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
   const [joinPin, setJoinPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [foundTeam, setFoundTeam] = useState(null);
+  const [availableTeams, setAvailableTeams] = useState([]);
+  const [pendingSession, setPendingSession] = useState(null);
 
   const joinQuiz = async () => {
     if (!isApproved) {
@@ -101,36 +103,19 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
             setLoading(false);
             return;
           } else {
-            // Team NOT in session yet - join as team entry (first team member to join)
-            const firstTeam = myTeams[0];
-            const teamName = firstTeam.teams?.name || firstTeam.teams?.team_name || 'Unknown Team';
-            console.log('Team not in session yet, joining as first team member. Team:', teamName);
-
-            const { data: participant, error: participantError } = await supabase
-              .from("session_participants")
-              .insert({
-                session_id: session.id,
-                user_id: appState.currentUser.id,
-                team_id: firstTeam.team_id,
-                is_team_entry: true,
-                score: 0
-              })
-              .select()
-              .single();
-
-            if (participantError) {
-              if (participantError.code === '23505') {
-                console.log('Already joined this session, proceeding...');
-              } else {
-                console.error('Failed to create team participant:', participantError);
-                throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
-              }
-            } else {
-              console.log('Team participant created successfully:', participant);
+            // Team NOT in session yet
+            if (myTeams.length > 1) {
+              // User has multiple teams, ask them to choose
+              console.log('User has multiple teams, asking for selection');
+              setAvailableTeams(myTeams);
+              setPendingSession(session);
+              setLoading(false);
+              return;
             }
 
-            // Navigate to quiz
-            setView("student-quiz", session.id);
+            // Only one team, join automatically
+            const firstTeam = myTeams[0];
+            await joinWithSpecificTeam(session, firstTeam);
             return;
           }
         } else {
@@ -213,7 +198,51 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
 
   const cancelJoinTeam = () => {
     setFoundTeam(null);
+    setAvailableTeams([]);
+    setPendingSession(null);
     setLoading(false);
+  };
+
+  const joinWithSpecificTeam = async (session, team) => {
+    const teamName = team.teams?.name || team.teams?.team_name || 'Unknown Team';
+    console.log('Joining session with team:', teamName);
+
+    try {
+      const { data: participant, error: participantError } = await supabase
+        .from("session_participants")
+        .insert({
+          session_id: session.id,
+          user_id: appState.currentUser.id,
+          team_id: team.team_id,
+          is_team_entry: true,
+          score: 0
+        })
+        .select()
+        .single();
+
+      if (participantError) {
+        if (participantError.code === '23505') {
+          console.log('Already joined this session, proceeding...');
+        } else {
+          console.error('Failed to create team participant:', participantError);
+          throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
+        }
+      } else {
+        console.log('Team participant created successfully:', participant);
+      }
+
+      // Navigate to quiz
+      setView("student-quiz", session.id);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleSelectTeam = async (team) => {
+    if (!pendingSession) return;
+    setLoading(true);
+    await joinWithSpecificTeam(pendingSession, team);
   };
 
   if (foundTeam) {
@@ -241,6 +270,39 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
               {t('common.cancel')}
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (availableTeams.length > 0) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4">{t('student.selectTeam')}</h2>
+          <p className="text-gray-600 mb-6">
+            {t('student.selectTeamDescription') || "Choose which team you want to represent in this quiz:"}
+          </p>
+
+          <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+            {availableTeams.map((teamEntry) => (
+              <button
+                key={teamEntry.team_id}
+                onClick={() => handleSelectTeam(teamEntry)}
+                className="w-full bg-blue-50 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-100 text-blue-900 p-4 rounded-xl font-bold transition-all flex items-center justify-between group"
+              >
+                <span>{teamEntry.teams?.name || teamEntry.teams?.team_name || "Unknown Team"}</span>
+                <span className="opacity-0 group-hover:opacity-100 text-blue-600">➜</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={cancelJoinTeam}
+            className="w-full bg-gray-200 text-gray-800 p-3 rounded-lg hover:bg-gray-300 font-semibold"
+          >
+            {t('common.cancel')}
+          </button>
         </div>
       </div>
     );
