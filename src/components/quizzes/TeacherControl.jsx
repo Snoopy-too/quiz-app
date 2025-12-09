@@ -190,8 +190,8 @@ export default function TeacherControl({ sessionId, setView }) {
         setQuestionOrder(questionsData.map(q => q.id));
       }
 
-      // Load participants
-      await loadParticipants();
+      // Load participants - pass session directly since state update may not have completed
+      await loadParticipants(session);
 
       setLoading(false);
     } catch (err) {
@@ -200,11 +200,13 @@ export default function TeacherControl({ sessionId, setView }) {
     }
   };
 
-  const loadParticipants = async () => {
-    console.log('[TeacherControl] Loading participants for session:', sessionId);
+  const loadParticipants = async (sessionObj = null) => {
+    // Use passed session object or fall back to state
+    const currentSession = sessionObj || session;
+    console.log('[TeacherControl] Loading participants for session:', sessionId, 'mode:', currentSession?.mode);
     let { data, error } = await supabase
       .from("session_participants")
-      .select("*, users(name, avatar_url), teams(id, team_name)")
+      .select("*, users(name, avatar_url), teams(id, name, team_name)")
       .eq("session_id", sessionId)
       .order("score", { ascending: false });
 
@@ -266,20 +268,25 @@ export default function TeacherControl({ sessionId, setView }) {
     console.log('[TeacherControl] Set participants state with', participantsWithTeams.length, 'participants');
 
     // Group by teams if in team mode
-    if (session?.mode === "team") {
+    if (currentSession?.mode === "team") {
       const teamMap = {};
-      data?.forEach(p => {
-        const teamName = p.team_name || "No Team";
-        if (!teamMap[teamName]) {
-          teamMap[teamName] = [];
+      participantsWithTeams?.forEach(p => {
+        // Only include team entries
+        if (p.is_team_entry === true && p.teams) {
+          // Check both possible column names (name or team_name)
+          const teamName = p.teams.name || p.teams.team_name || "Unknown Team";
+          if (!teamMap[teamName]) {
+            teamMap[teamName] = [];
+          }
+          teamMap[teamName].push(p);
         }
-        teamMap[teamName].push(p);
       });
       setTeams(Object.entries(teamMap).map(([name, members]) => ({
         name,
         members,
         score: members.reduce((sum, m) => sum + (m.score || 0), 0)
       })));
+      console.log('[TeacherControl] Teams grouped:', Object.keys(teamMap).length, 'teams');
     }
   };
 
