@@ -105,7 +105,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
       // Create team
       const teamInsert = {
-        team_name: teamName,
+        name: teamName,
         teacher_id: teacherId
       };
 
@@ -310,9 +310,8 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
                   <div
                     key={student.id}
                     onClick={() => toggleStudent(student.id)}
-                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${
-                      selectedStudents.includes(student.id) ? "bg-blue-50" : ""
-                    }`}
+                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
+                      }`}
                   >
                     <div>
                       <div className="font-semibold">{student.name}</div>
@@ -362,7 +361,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">✅</div>
           <h1 className="text-3xl font-bold mb-2 text-green-600">{t('student.teamCreated')}</h1>
-          <p className="text-xl font-semibold text-gray-800 mb-2">{createdTeam?.team_name}</p>
+          <p className="text-xl font-semibold text-gray-800 mb-2">{createdTeam?.name}</p>
           <p className="text-gray-600">
             {selectedStudents.length + 1} {t('student.members')}
           </p>
