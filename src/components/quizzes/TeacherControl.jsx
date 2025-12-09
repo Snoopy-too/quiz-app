@@ -445,7 +445,13 @@ export default function TeacherControl({ sessionId, setView }) {
       console.log('[TeacherControl] Mode updated successfully to:', mode);
       setSelectedMode(mode);
       setShowModeSelection(false);
-      setSession({ ...session, mode });
+
+      // Create updated session object and set it
+      const updatedSession = { ...session, mode };
+      setSession(updatedSession);
+
+      // Immediately reload participants with the new mode
+      await loadParticipants(updatedSession);
     } catch (err) {
       console.error('[TeacherControl] Exception in selectMode:', err);
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorSettingMode') + ': ' + err.message, type: "error" });
