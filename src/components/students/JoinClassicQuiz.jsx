@@ -75,7 +75,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         // 1. Get all teams the student belongs to
         const { data: myTeams, error: teamError } = await supabase
           .from('team_members')
-          .select('team_id')
+          .select('team_id, teams(name, team_name)')
           .eq('student_id', appState.currentUser.id);
 
         if (teamError) {
@@ -87,7 +87,7 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           // 2. Check if any of these teams are already in the session
           const { data: teamInSession, error: checkError } = await supabase
             .from('session_participants')
-            .select('team_id, teams(team_name)')
+            .select('team_id, teams(name, team_name)')
             .eq('session_id', session.id)
             .in('team_id', teamIds)
             .maybeSingle();
@@ -95,11 +95,50 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           if (checkError) {
             console.error('Error checking team participants:', checkError);
           } else if (teamInSession) {
+            // Team already exists in session - show confirmation UI
             console.log('Found matching team in session:', teamInSession);
             setFoundTeam({ ...teamInSession, session_id: session.id });
             setLoading(false);
             return;
+          } else {
+            // Team NOT in session yet - join as team entry (first team member to join)
+            const firstTeam = myTeams[0];
+            const teamName = firstTeam.teams?.name || firstTeam.teams?.team_name || 'Unknown Team';
+            console.log('Team not in session yet, joining as first team member. Team:', teamName);
+
+            const { data: participant, error: participantError } = await supabase
+              .from("session_participants")
+              .insert({
+                session_id: session.id,
+                user_id: appState.currentUser.id,
+                team_id: firstTeam.team_id,
+                is_team_entry: true,
+                score: 0
+              })
+              .select()
+              .single();
+
+            if (participantError) {
+              if (participantError.code === '23505') {
+                console.log('Already joined this session, proceeding...');
+              } else {
+                console.error('Failed to create team participant:', participantError);
+                throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
+              }
+            } else {
+              console.log('Team participant created successfully:', participant);
+            }
+
+            // Navigate to quiz
+            setView("student-quiz", session.id);
+            return;
           }
+        } else {
+          // Student doesn't belong to any team - show error in team mode
+          console.log('Student does not belong to any team');
+          setError(t('errors.mustJoinTeamFirst') || 'You must create or join a team before joining a Team Mode quiz.');
+          setLoading(false);
+          return;
         }
       }
 
