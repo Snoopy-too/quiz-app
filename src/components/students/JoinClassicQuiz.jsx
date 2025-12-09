@@ -87,18 +87,31 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           console.log('Student belongs to teams:', teamIds);
 
           // 2. Check current session participants to find active teams
-          const { data: sessionParticipants, error: checkError } = await supabase
-            .from('session_participants')
-            .select('team_id')
-            .eq('session_id', session.id)
-            .eq('is_team_entry', true);
+          // Use RPC to bypass RLS policies if needed (since joining student isn't in session yet)
+          let activeTeamIds = [];
 
-          if (checkError) {
-            console.error('Error checking team participants:', checkError);
+          try {
+            const { data: rpcData, error: rpcError } = await supabase
+              .rpc('get_active_teams_for_session', { p_session_id: session.id });
+
+            if (rpcError) throw rpcError;
+            activeTeamIds = rpcData?.map(t => t.team_id) || [];
+            console.log('Active teams loaded via RPC:', activeTeamIds);
+          } catch (err) {
+            console.warn('RPC get_active_teams_for_session failed, falling back to direct query:', err);
+
+            // Fallback: Direct query (might return empty if RLS blocks read access)
+            const { data: sessionParticipants, error: checkError } = await supabase
+              .from('session_participants')
+              .select('team_id')
+              .eq('session_id', session.id)
+              .eq('is_team_entry', true);
+
+            if (checkError) console.error('Error checking team participants:', checkError);
+            activeTeamIds = sessionParticipants?.map(p => p.team_id) || [];
           }
 
           // Filter my teams to see if any are already in the session
-          const activeTeamIds = sessionParticipants?.map(p => p.team_id) || [];
           const myActiveTeams = myTeams.filter(t => activeTeamIds.includes(t.team_id));
 
           console.log('My active teams in session:', myActiveTeams);
