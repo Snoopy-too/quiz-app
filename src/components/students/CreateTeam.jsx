@@ -12,7 +12,9 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   const [loadingClassmates, setLoadingClassmates] = useState(true);
   const [teamCreated, setTeamCreated] = useState(false);
   const [createdTeam, setCreatedTeam] = useState(null);
+
   const [quizPin, setQuizPin] = useState("");
+  const [session, setSession] = useState(null);
 
 
 
@@ -52,6 +54,54 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       setError(t('errors.failedToLoadClassmates') + ": " + err.message);
     } finally {
       setLoadingClassmates(false);
+    }
+  };
+
+  const verifyPin = async () => {
+    if (!quizPin || quizPin.length !== 6) {
+      setError(t('student.enterValid6DigitPIN'));
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: sessions, error: sessionError } = await supabase
+        .from("quiz_sessions")
+        .select("*")
+        .eq("pin", quizPin);
+
+      if (sessionError) throw sessionError;
+
+      if (!sessions || sessions.length === 0) {
+        setError(t('errors.invalidPinQuizNotFound'));
+        setLoading(false);
+        return;
+      }
+
+      const foundSession = sessions[0];
+
+      if (foundSession.status === 'completed') {
+        setError(t('errors.quizAlreadyEnded'));
+        setLoading(false);
+        return;
+      }
+
+      // Optional: Enforce team mode?
+      // User said "team mode quiz", implies checks.
+      if (foundSession.mode !== 'team') {
+        setError("This quiz is not in Team Mode. Please use 'Join Quiz' for individual mode.");
+        setLoading(false);
+        return;
+      }
+
+      setSession(foundSession);
+    } catch (err) {
+      console.error("Error verifying PIN:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,63 +159,13 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         }))
       ];
 
-      const { error: membersError } = await supabase
-        .from("team_members")
-        .insert(teamMembers);
-
-      if (membersError) {
-        throw membersError;
-      }
-
-      setCreatedTeam(team);
-      setTeamCreated(true);
-    } catch (err) {
-      console.error("Error creating team:", err);
-      setError(t('errors.failedToCreateTeam') + ": " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const joinTeamQuiz = async () => {
-    if (!quizPin || quizPin.length !== 6) {
-      setError(t('student.enterValid6DigitPIN'));
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Find session by PIN
-      const { data: sessions, error: sessionError } = await supabase
-        .from("quiz_sessions")
-        .select("*")
-        .eq("pin", quizPin);
-
-      if (sessionError) throw sessionError;
-
-      if (!sessions || sessions.length === 0) {
-        setError(t('errors.invalidPinQuizNotFound'));
-        setLoading(false);
-        return;
-      }
-
-      const session = sessions[0];
-
-      if (session.status === "completed") {
-        setError(t('errors.quizAlreadyEnded'));
-        setLoading(false);
-        return;
-      }
-
-      // Create team entry in session_participants
+      // Join session immediately
       const { data: participant, error: participantError } = await supabase
         .from("session_participants")
         .insert({
           session_id: session.id,
           user_id: appState.currentUser.id,
-          team_id: createdTeam.id,
+          team_id: team.id,
           is_team_entry: true,
           score: 0
         })
@@ -173,46 +173,53 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         .single();
 
       if (participantError) {
-        if (participantError.code === '23505') {
-          console.log('Team already joined this session, proceeding...');
-        } else {
-          throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
-        }
+        console.error("Error joining session:", participantError);
+        // If we fail to join, we should probably alert user, but the team IS created.
+        // We can try to redirect anyway? Or throw?
+        throw participantError;
       }
 
-      // Navigate to quiz
+      setCreatedTeam(team);
+      setTeamCreated(true);
+
+      // Navigate immediately
       setView("student-quiz", session.id);
+
     } catch (err) {
-      setError(t('errors.errorJoiningQuiz') + ": " + err.message);
+      console.error("Error creating team and joining:", err);
+      setError(t('errors.failedToCreateTeam') + ": " + err.message);
+    } finally {
       setLoading(false);
     }
   };
 
-  if (!teamCreated) {
-    if (!isApproved) {
-      return (
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl text-center">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
-            >
-              <ArrowLeft size={20} />
-              {t('student.backToDashboard')}
-            </button>
-
-            <div className="text-4xl mb-3">⏳</div>
-            <h1 className="text-3xl font-bold mb-2">{t('student.awaitingApproval')}</h1>
-            <p className="text-gray-600">
-              {t('student.teamToolsUnlockMessage')}
-            </p>
-          </div>
-        </div>
-      );
-    }
+  if (!isApproved) {
     return (
       <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl text-center">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+          >
+            <ArrowLeft size={20} />
+            {t('student.backToDashboard')}
+          </button>
+
+          <div className="text-4xl mb-3">⏳</div>
+          <h1 className="text-3xl font-bold mb-2">{t('student.awaitingApproval')}</h1>
+          <p className="text-gray-600">
+            {t('student.teamToolsUnlockMessage')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // STEP 1: PIN ENTRY
+  if (!session) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
           <button
             onClick={onBack}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
@@ -221,112 +228,8 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             {t('student.backToDashboard')}
           </button>
 
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-3">👥</div>
-            <h1 className="text-3xl font-bold mb-2">{t('student.createTeam')}</h1>
-            <p className="text-gray-600">{t('student.formTeamWithClassmates')}</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
-          {/* Team Name */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('student.teamName')} *
-            </label>
-            <input
-              type="text"
-              placeholder={t('student.enterYourTeamName')}
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              className="w-full p-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Teammates Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {t('student.selectTeammates')} * ({t('student.chooseAtLeastOne')})
-            </label>
-
-            {loadingClassmates ? (
-              <div className="text-center py-8 text-gray-500">
-                {t('student.loadingClassmates')}
-              </div>
-            ) : classmates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {t('student.noOtherStudentsInClass')}
-              </div>
-            ) : (
-              <div className="border-2 rounded-lg max-h-64 overflow-y-auto">
-                {classmates.map((student) => (
-                  <div
-                    key={student.id}
-                    onClick={() => toggleStudent(student.id)}
-                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
-                      }`}
-                  >
-                    <div>
-                      <div className="font-semibold">{student.name}</div>
-                      <div className="text-sm text-gray-500">{student.email}</div>
-                    </div>
-                    {selectedStudents.includes(student.id) && (
-                      <Check size={20} className="text-blue-600" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Selected Count */}
-          {selectedStudents.length > 0 && (
-            <div className="mb-4 text-sm text-gray-600">
-              <Users size={16} className="inline mr-1" />
-              {selectedStudents.length + 1} {t('student.members')} ({t('student.includingYou')})
-            </div>
-          )}
-
-          <button
-            onClick={createTeam}
-            disabled={loading || loadingClassmates}
-            className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? t('student.creatingTeam') : t('student.createTeam')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Team created - show join quiz option
-  return (
-    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-        >
-          <ArrowLeft size={20} />
-          {t('student.backToDashboard')}
-        </button>
-
-        <div className="text-center mb-6">
-          <div className="text-6xl mb-4">✅</div>
-          <h1 className="text-3xl font-bold mb-2 text-green-600">{t('student.teamCreated')}</h1>
-          <p className="text-xl font-semibold text-gray-800 mb-2">{createdTeam?.name}</p>
-          <p className="text-gray-600">
-            {selectedStudents.length + 1} {t('student.members')}
-          </p>
-        </div>
-
-        <div className="border-t pt-6">
-          <h2 className="text-xl font-bold text-center mb-4">{t('student.joinTeamQuiz')}</h2>
-          <p className="text-center text-gray-600 mb-4">{t('student.enterPinFromTeacher')}</p>
+          <h1 className="text-3xl font-bold mb-2">{t('student.createTeam')}</h1>
+          <p className="text-gray-600 mb-6">Enter the Quiz PIN to create a team for that session.</p>
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -344,13 +247,106 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           />
 
           <button
-            onClick={joinTeamQuiz}
+            onClick={verifyPin}
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? t('student.joining') : t('student.joinAsTeam')}
+            {loading ? "Verifying..." : t('common.next')}
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // STEP 2: TEAM CREATION FORM
+  return (
+    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">
+        <button
+          onClick={() => setSession(null)} // Go back to PIN
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+        >
+          <ArrowLeft size={20} />
+          {t('common.back')}
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="text-4xl mb-3">👥</div>
+          <h1 className="text-3xl font-bold mb-2">{t('student.createTeam')}</h1>
+          <p className="text-gray-600">{t('student.formTeamWithClassmates')}</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Team Name */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {t('student.teamName')} *
+          </label>
+          <input
+            type="text"
+            placeholder={t('student.enterYourTeamName')}
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            className="w-full p-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        {/* Teammates Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {t('student.selectTeammates')} * ({t('student.chooseAtLeastOne')})
+          </label>
+
+          {loadingClassmates ? (
+            <div className="text-center py-8 text-gray-500">
+              {t('student.loadingClassmates')}
+            </div>
+          ) : classmates.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {t('student.noOtherStudentsInClass')}
+            </div>
+          ) : (
+            <div className="border-2 rounded-lg max-h-64 overflow-y-auto">
+              {classmates.map((student) => (
+                <div
+                  key={student.id}
+                  onClick={() => toggleStudent(student.id)}
+                  className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
+                    }`}
+                >
+                  <div>
+                    <div className="font-semibold">{student.name}</div>
+                    <div className="text-sm text-gray-500">{student.email}</div>
+                  </div>
+                  {selectedStudents.includes(student.id) && (
+                    <Check size={20} className="text-blue-600" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Selected Count */}
+        {selectedStudents.length > 0 && (
+          <div className="mb-4 text-sm text-gray-600">
+            <Users size={16} className="inline mr-1" />
+            {selectedStudents.length + 1} {t('student.members')} ({t('student.includingYou')})
+          </div>
+        )}
+
+        <button
+          onClick={createTeam}
+          disabled={loading || loadingClassmates}
+          className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? t('student.joining') : t('student.createTeam') + " & Join"}
+        </button>
       </div>
     </div>
   );
