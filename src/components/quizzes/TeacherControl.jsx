@@ -23,7 +23,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [liveAnswers, setLiveAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showModeSelection, setShowModeSelection] = useState(false);
+  const [showModeSelection, setShowModeSelection] = useState(true);
   const [selectedMode, setSelectedMode] = useState("classic");
   const [isThinkingTime, setIsThinkingTime] = useState(false);
   const [countdownValue, setCountdownValue] = useState(5);
