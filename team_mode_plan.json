@@ -38,5 +38,29 @@
         "file_path": "src/components/students/JoinClassicQuiz.jsx",
         "instruction": "In the joinQuiz function, remove the catch/retry fallback logic that handles missing is_team_entry column. It should strictly insert with is_team_entry: false.",
         "test_criteria": "The joinQuiz function does not contain a fallback supabase.from(\"session_participants\").insert call inside the error handling block."
+    },
+    {
+        "id": 6,
+        "status": "completed",
+        "task": "Add team detection logic",
+        "file_path": "src/components/students/JoinClassicQuiz.jsx",
+        "instruction": "Modify the joinQuiz function. After fetching the session, check if session.mode === 'team'. If so, perform a Supabase query to find if the current student belongs to a team that has already joined this session. Use team_members to find the student's teams and check session_participants to see if any of those teams are present in the current session.",
+        "test_criteria": "The code successfully identifies when a user is part of a team that is already in the session and logs the team details."
+    },
+    {
+        "id": 7,
+        "status": "completed",
+        "task": "Implement Team Joining UI State",
+        "file_path": "src/components/students/JoinClassicQuiz.jsx",
+        "instruction": "Add a new state variable foundTeam (default null). If the detection logic finds a matching team, set this state. Modify the return JSX to conditionally render a confirmation screen if foundTeam is truthy, displaying the team name and a 'Join Team' button.",
+        "test_criteria": "When foundTeam is set, the UI displays the team name and prompts the user to confirm joining."
+    },
+    {
+        "id": 8,
+        "status": "completed",
+        "task": "Implement Team Join Execution",
+        "file_path": "src/components/students/JoinClassicQuiz.jsx",
+        "instruction": "Create a confirmJoinTeam function. It should insert a new row into session_participants with session_id, user_id, team_id (from foundTeam), and is_team_entry: true. Update the 'Join Team' button to call this function.",
+        "test_criteria": "Clicking the confirmation button successfully creates a session_participants record linked to the correct team."
     }
 ]
