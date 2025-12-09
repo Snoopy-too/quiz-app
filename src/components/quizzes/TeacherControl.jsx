@@ -421,15 +421,33 @@ export default function TeacherControl({ sessionId, setView }) {
 
   const selectMode = async (mode) => {
     try {
-      await supabase
+      console.log('[TeacherControl] Selecting mode:', mode, 'for session:', sessionId);
+
+      const { data, error } = await supabase
         .from("quiz_sessions")
         .update({ mode: mode })
-        .eq("id", sessionId);
+        .eq("id", sessionId)
+        .select();
 
+      console.log('[TeacherControl] Mode update result:', { data, error });
+
+      if (error) {
+        console.error('[TeacherControl] Error updating mode:', error);
+        setAlertModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: t('teacher.errorSettingMode') + ': ' + error.message,
+          type: "error"
+        });
+        return;
+      }
+
+      console.log('[TeacherControl] Mode updated successfully to:', mode);
       setSelectedMode(mode);
       setShowModeSelection(false);
       setSession({ ...session, mode });
     } catch (err) {
+      console.error('[TeacherControl] Exception in selectMode:', err);
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorSettingMode') + ': ' + err.message, type: "error" });
     }
   };
