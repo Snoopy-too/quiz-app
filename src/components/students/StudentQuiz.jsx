@@ -330,6 +330,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           } else if (updatedSession.status === "showing_results") {
             console.log('[StudentQuiz] Showing results');
             setShowCorrectAnswer(true);
+          } else if (updatedSession.status === "cancelled") {
+            console.log('[StudentQuiz] Quiz cancelled by teacher');
           }
         }
       )
@@ -727,8 +729,27 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     );
   }
 
+  // Fallback for any other status (prevents white screen)
   return (
-    <>
+    <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+        <div className="animate-pulse text-6xl mb-4">⏳</div>
+        <h2 className="text-xl font-bold mb-4">{t('student.waitingForTeacherToStart')}</h2>
+        {session?.status === "active" && (
+          <p className="text-gray-600 mb-4">{t('student.getReadyQuizStarting')}</p>
+        )}
+        <p className="text-sm text-gray-500">Status: {session?.status}</p>
+
+        <div className="mt-6">
+          <button
+            onClick={() => setView("student-dashboard")}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {t('student.backToDashboard')}
+          </button>
+        </div>
+      </div>
+
       <AlertModal
         isOpen={alertModal.isOpen}
         title={alertModal.title}
@@ -744,6 +765,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
         confirmStyle="danger"
       />
-    </>
+    </div>
   );
 }
