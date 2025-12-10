@@ -250,7 +250,7 @@ export default function ManageStudents({ setView, appState }) {
         verified: true,
       };
 
-      const { error: profileError } = await supabase.from("users").insert([profilePayload]);
+      const { error: profileError } = await supabase.from("users").upsert([profilePayload]);
 
       if (profileError) {
         throw profileError;
