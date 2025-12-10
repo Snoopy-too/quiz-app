@@ -28,7 +28,9 @@
     "uploading": "Uploading...",
     "saving": "Saving...",
     "noDataAvailable": "No data available",
-    "view": "View"
+    "view": "View",
+    "selected": "Selected",
+    "apply": "Apply"
   },
   "nav": {
     "dashboard": "Dashboard",

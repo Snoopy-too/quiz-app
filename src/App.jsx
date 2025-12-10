@@ -340,7 +340,8 @@ export default function QuizApp() {
               profile.teacher_invite_code ||
               profile.teacher_id ||
               (profile.role === "teacher" && profile.teacher_code);
-            const needsProfileCompletion = isGoogleUser && (!profile.role || !hasInviteOrLink);
+            // Superadmins don't need teacher links, so skip profile completion check for them
+            const needsProfileCompletion = isGoogleUser && profile.role !== "superadmin" && (!profile.role || !hasInviteOrLink);
 
             if (needsProfileCompletion) {
               console.log('[onAuthStateChange] Profile incomplete, redirecting to completion flow');
@@ -373,23 +374,27 @@ export default function QuizApp() {
             const savedView = sessionStorage.getItem('quizapp_view');
 
             // All views that should not trigger redirect to dashboard
+            // NOTE: 'complete-profile' is NOT included here - if user lands here with complete profile, redirect them
             const activeViews = [
               'teacher-control', 'student-quiz', 'edit-quiz', 'preview-quiz',
               'manage-students', 'manage-quizzes', 'reports', 'settings',
               'teacher-dashboard', 'student-dashboard', 'superadmin-dashboard',
-              'create-quiz', 'complete-profile', 'student-report', 'public-quizzes'
+              'create-quiz', 'student-report', 'public-quizzes'
             ];
 
             console.log('[onAuthStateChange] Current view:', view);
             console.log('[onAuthStateChange] Saved view:', savedView);
             console.log('[onAuthStateChange] Event type:', event);
 
+            // Check if user is stuck on complete-profile but has a complete profile
+            const isStuckOnCompleteProfile = view === 'complete-profile' || savedView === 'complete-profile';
+
             // CRITICAL: Only redirect if explicitly a new sign-in AND no active session/valid view
-            // Never redirect for token refreshes, initial sessions, or if user has active view
+            // OR if user is stuck on complete-profile with a complete profile
             const hasActiveView = (view && activeViews.includes(view)) || (savedView && activeViews.includes(savedView));
 
-            if (event === "SIGNED_IN" && !hasActiveView) {
-              console.log('[onAuthStateChange] Fresh sign-in detected, routing to dashboard');
+            if ((event === "SIGNED_IN" && !hasActiveView) || isStuckOnCompleteProfile) {
+              console.log('[onAuthStateChange] Routing to dashboard (fresh sign-in or stuck on complete-profile)');
               if (profile.role === "teacher") setView("teacher-dashboard");
               else if (profile.role === "superadmin") setView("superadmin-dashboard");
               else setView("student-dashboard");

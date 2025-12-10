@@ -70,6 +70,11 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
+  // Bulk Edit State
+  const [selectedQuestions, setSelectedQuestions] = useState(new Set());
+  const [bulkTimeLimit, setBulkTimeLimit] = useState(30);
+  const [bulkPoints, setBulkPoints] = useState(100);
+
   useEffect(() => {
     if (quizId) {
       fetchQuizAndQuestions();
@@ -847,6 +852,130 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Bulk Actions Toolbar */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              checked={questions.length > 0 && selectedQuestions.size === questions.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedQuestions(new Set(questions.map((_, i) => i)));
+                                } else {
+                                  setSelectedQuestions(new Set());
+                                }
+                              }}
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              {selectedQuestions.size} {t('common.selected') || "Selected"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.timeLimit')}:</label>
+                              <select
+                                value={bulkTimeLimit}
+                                onChange={(e) => setBulkTimeLimit(Number(e.target.value))}
+                                className="text-sm border rounded px-2 py-1"
+                              >
+                                <option value={10}>10s</option>
+                                <option value={20}>20s</option>
+                                <option value={30}>30s</option>
+                                <option value={60}>60s</option>
+                                <option value={90}>90s</option>
+                                <option value={120}>120s</option>
+                              </select>
+                              <button
+                                onClick={async () => {
+                                  if (selectedQuestions.size === 0) return;
+                                  setSaving(true);
+                                  try {
+                                    const updates = [];
+                                    const newQuestions = [...questions];
+
+                                    selectedQuestions.forEach(index => {
+                                      const q = newQuestions[index];
+                                      if (!q) return;
+
+                                      // Local update
+                                      newQuestions[index] = { ...q, time_limit: bulkTimeLimit };
+
+                                      // DB Update if ID exists (it should in Edit mode)
+                                      if (q.id) {
+                                        updates.push(supabase.from("questions").update({ time_limit: bulkTimeLimit }).eq("id", q.id));
+                                      }
+                                    });
+
+                                    setQuestions(newQuestions);
+                                    await Promise.all(updates);
+                                    setSuccess("Time limits updated!");
+                                    setTimeout(() => setSuccess(null), 3000);
+                                  } catch (err) {
+                                    setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
+                                  } finally {
+                                    setSaving(false);
+                                  }
+                                }}
+                                disabled={selectedQuestions.size === 0 || saving}
+                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {t('common.apply') || "Apply"}
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
+                              <input
+                                type="number"
+                                value={bulkPoints}
+                                onChange={(e) => setBulkPoints(Number(e.target.value))}
+                                className="text-sm border rounded px-2 py-1 w-20"
+                                min="0" step="10"
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (selectedQuestions.size === 0) return;
+                                  setSaving(true);
+                                  try {
+                                    const updates = [];
+                                    const newQuestions = [...questions];
+
+                                    selectedQuestions.forEach(index => {
+                                      const q = newQuestions[index];
+                                      if (!q) return;
+
+                                      // Local update
+                                      newQuestions[index] = { ...q, points: bulkPoints };
+
+                                      // DB Update if ID exists
+                                      if (q.id) {
+                                        updates.push(supabase.from("questions").update({ points: bulkPoints }).eq("id", q.id));
+                                      }
+                                    });
+
+                                    setQuestions(newQuestions);
+                                    await Promise.all(updates);
+                                    setSuccess("Points updated!");
+                                    setTimeout(() => setSuccess(null), 3000);
+                                  } catch (err) {
+                                    setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
+                                  } finally {
+                                    setSaving(false);
+                                  }
+                                }}
+                                disabled={selectedQuestions.size === 0 || saving}
+                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {t('common.apply') || "Apply"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {questions.map((question, index) => {
                         const isEditing = questionFormMode === "edit" && editingQuestion?.id === question.id;
                         return (
@@ -873,6 +1002,22 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                 >
                                   <GripVertical size={20} />
                                 </div>
+                                {!isEditing && (
+                                  <input
+                                    type="checkbox"
+                                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    checked={selectedQuestions.has(index)}
+                                    onChange={() => {
+                                      const newSelected = new Set(selectedQuestions);
+                                      if (newSelected.has(index)) {
+                                        newSelected.delete(index);
+                                      } else {
+                                        newSelected.add(index);
+                                      }
+                                      setSelectedQuestions(newSelected);
+                                    }}
+                                  />
+                                )}
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full">
                                     Q{index + 1}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search } from "lucide-react";
+import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -13,6 +13,8 @@ export default function SuperAdminDashboard({ setView, appState }) {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [sortColumn, setSortColumn] = useState("created_at");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -286,7 +288,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
   // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -300,6 +302,58 @@ export default function SuperAdminDashboard({ setView, appState }) {
     pending: users.filter(u => !u.approved || !u.verified).length
   };
 
+  // Handle column sort
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Get sort icon for column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown size={14} className="text-gray-400" />;
+    }
+    return sortDirection === "asc"
+      ? <ArrowUp size={14} className="text-blue-600" />
+      : <ArrowDown size={14} className="text-blue-600" />;
+  };
+
+  // Sort filtered users
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let aVal = a[sortColumn];
+    let bVal = b[sortColumn];
+
+    // Handle null/undefined values
+    if (aVal == null) aVal = "";
+    if (bVal == null) bVal = "";
+
+    // Special handling for dates
+    if (sortColumn === "created_at") {
+      aVal = new Date(aVal || 0).getTime();
+      bVal = new Date(bVal || 0).getTime();
+    }
+
+    // Special handling for status (combined verified + approved)
+    if (sortColumn === "status") {
+      aVal = (a.verified ? 2 : 0) + (a.approved ? 1 : 0);
+      bVal = (b.verified ? 2 : 0) + (b.approved ? 1 : 0);
+    }
+
+    // String comparison
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Vertical Navigation */}
@@ -312,449 +366,490 @@ export default function SuperAdminDashboard({ setView, appState }) {
         </nav>
 
         <div className="container mx-auto p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total Users</p>
-                <p className="text-3xl font-bold text-blue-700">{stats.total}</p>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Total Users</p>
+                  <p className="text-3xl font-bold text-blue-700">{stats.total}</p>
+                </div>
+                <Users className="text-blue-700" size={40} />
               </div>
-              <Users className="text-blue-700" size={40} />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Teachers</p>
+                  <p className="text-3xl font-bold text-blue-600">{stats.teachers}</p>
+                </div>
+                <UserCheck className="text-blue-600" size={40} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Students</p>
+                  <p className="text-3xl font-bold text-green-600">{stats.students}</p>
+                </div>
+                <Users className="text-green-600" size={40} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Admins</p>
+                  <p className="text-3xl font-bold text-orange-600">{stats.admins}</p>
+                </div>
+                <UserCheck className="text-orange-600" size={40} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm">Pending</p>
+                  <p className="text-3xl font-bold text-red-600">{stats.pending}</p>
+                </div>
+                <UserX className="text-red-600" size={40} />
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Teachers</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.teachers}</p>
-              </div>
-              <UserCheck className="text-blue-600" size={40} />
-            </div>
-          </div>
+          {/* Controls */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="flex gap-4 flex-1">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Students</p>
-                <p className="text-3xl font-bold text-green-600">{stats.students}</p>
-              </div>
-              <Users className="text-green-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Admins</p>
-                <p className="text-3xl font-bold text-orange-600">{stats.admins}</p>
-              </div>
-              <UserCheck className="text-orange-600" size={40} />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Pending</p>
-                <p className="text-3xl font-bold text-red-600">{stats.pending}</p>
-              </div>
-              <UserX className="text-red-600" size={40} />
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex gap-4 flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500"
-                />
+                <select
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students</option>
+                  <option value="teacher">Teachers</option>
+                  <option value="superadmin">Admins</option>
+                </select>
               </div>
 
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500"
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
               >
-                <option value="all">All Roles</option>
-                <option value="student">Students</option>
-                <option value="teacher">Teachers</option>
-                <option value="superadmin">Admins</option>
-              </select>
+                <UserPlus size={20} />
+                Create User
+              </button>
             </div>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-            >
-              <UserPlus size={20} />
-              Create User
-            </button>
           </div>
-        </div>
 
-        {/* Users Table */}
-        {loading && <p className="text-center text-gray-600">Loading users...</p>}
-        {error && <p className="text-center text-red-500">{error}</p>}
+          {/* Users Table */}
+          {loading && <p className="text-center text-gray-600">Loading users...</p>}
+          {error && <p className="text-center text-red-500">{error}</p>}
 
-        {!loading && !error && (
-          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Name</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Email</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Role</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Student ID</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Created</th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="p-4">{user.name || "N/A"}</td>
-                      <td className="p-4">{user.email}</td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          user.role === "teacher" ? "bg-blue-100 text-blue-800" :
-                          user.role === "student" ? "bg-green-100 text-green-800" :
-                          "bg-orange-100 text-orange-800"
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="p-4">{user.student_id || "N/A"}</td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          {user.verified ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Verified</span>
-                          ) : (
-                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Unverified</span>
-                          )}
-                          {user.approved ? (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Approved</span>
-                          ) : (
-                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Pending</span>
-                          )}
+          {!loading && !error && (
+            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("name")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Name {getSortIcon("name")}
                         </div>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openEditModal(user)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Edit User"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => openPasswordModal(user)}
-                            className="p-2 text-blue-700 hover:bg-blue-50 rounded"
-                            title="Reset Password"
-                          >
-                            <Key size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.email)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded"
-                            title="Delete User"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("email")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Email {getSortIcon("email")}
                         </div>
-                      </td>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("role")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Role {getSortIcon("role")}
+                        </div>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("student_id")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Student ID {getSortIcon("student_id")}
+                        </div>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("status")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Status {getSortIcon("status")}
+                        </div>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("created_at")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Created {getSortIcon("created_at")}
+                        </div>
+                      </th>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {sortedUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="p-4">{user.name || "N/A"}</td>
+                        <td className="p-4">{user.email}</td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === "teacher" ? "bg-blue-100 text-blue-800" :
+                              user.role === "student" ? "bg-green-100 text-green-800" :
+                                "bg-orange-100 text-orange-800"
+                            }`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="p-4">{user.student_id || "N/A"}</td>
+                        <td className="p-4">
+                          <div className="flex gap-2">
+                            {user.verified ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Verified</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Unverified</span>
+                            )}
+                            {user.approved ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Approved</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Pending</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openEditModal(user)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Edit User"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => openPasswordModal(user)}
+                              className="p-2 text-blue-700 hover:bg-blue-50 rounded"
+                              title="Reset Password"
+                            >
+                              <Key size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded"
+                              title="Delete User"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
 
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No users found matching your search criteria.
-                </div>
-              )}
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No users found matching your search criteria.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Create User Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-6">Create New User</h2>
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={createForm.confirmPassword}
-                    onChange={(e) => setCreateForm({...createForm, confirmPassword: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Role</label>
-                  <select
-                    value={createForm.role}
-                    onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  >
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="superadmin">Super Admin</option>
-                  </select>
-                </div>
-
-                {createForm.role === "student" && (
+          {/* Create User Modal */}
+          {showCreateModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-6">Create New User</h2>
+                <form onSubmit={handleCreateUser} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Student ID (Optional)</label>
+                    <label className="block text-sm font-medium mb-1">Name</label>
                     <input
                       type="text"
-                      value={createForm.student_id}
-                      onChange={(e) => setCreateForm({...createForm, student_id: e.target.value})}
+                      required
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
-                )}
 
-                <div className="flex gap-2 mt-6">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-700 text-white py-2 rounded hover:bg-blue-800"
-                  >
-                    Create User
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Edit User Modal */}
-        {showEditModal && selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-6">Edit User: {selectedUser.email}</h2>
-              <form onSubmit={handleEditUser} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={editForm.email}
-                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Role</label>
-                  <select
-                    value={editForm.role}
-                    onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  >
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="superadmin">Super Admin</option>
-                  </select>
-                </div>
-
-                {editForm.role === "student" && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">Student ID</label>
+                    <label className="block text-sm font-medium mb-1">Email</label>
                     <input
-                      type="text"
-                      value={editForm.student_id}
-                      onChange={(e) => setEditForm({...editForm, student_id: e.target.value})}
+                      type="email"
+                      required
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
-                )}
 
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Password</label>
                     <input
-                      type="checkbox"
-                      checked={editForm.verified}
-                      onChange={(e) => setEditForm({...editForm, verified: e.target.checked})}
-                      className="w-4 h-4"
+                      type="password"
+                      required
+                      minLength={6}
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
                     />
-                    <span className="text-sm">Verified</span>
-                  </label>
+                  </div>
 
-                  <label className="flex items-center gap-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Confirm Password</label>
                     <input
-                      type="checkbox"
-                      checked={editForm.approved}
-                      onChange={(e) => setEditForm({...editForm, approved: e.target.checked})}
-                      className="w-4 h-4"
+                      type="password"
+                      required
+                      minLength={6}
+                      value={createForm.confirmPassword}
+                      onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
                     />
-                    <span className="text-sm">Approved</span>
-                  </label>
-                </div>
+                  </div>
 
-                <div className="flex gap-2 mt-6">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Role</label>
+                    <select
+                      value={createForm.role}
+                      onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                  </div>
+
+                  {createForm.role === "student" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Student ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={createForm.student_id}
+                        onChange={(e) => setCreateForm({ ...createForm, student_id: e.target.value })}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-blue-700 text-white py-2 rounded hover:bg-blue-800"
+                    >
+                      Create User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Password Reset Modal */}
-        {showPasswordModal && selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Reset Password</h2>
-              <p className="text-gray-600 mb-6">
-                User: <strong>{selectedUser.email}</strong>
-              </p>
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-4">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Note:</strong> Direct password changes require Supabase Admin API.
-                    The recommended method is to send a password reset email via Supabase Dashboard.
-                  </p>
-                </div>
+          {/* Edit User Modal */}
+          {showEditModal && selectedUser && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-6">Edit User: {selectedUser.email}</h2>
+                <form onSubmit={handleEditUser} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">New Password</label>
-                  <input
-                    type="password"
-                    minLength={6}
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                    disabled
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    minLength={6}
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                    disabled
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Role</label>
+                    <select
+                      value={editForm.role}
+                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="superadmin">Super Admin</option>
+                    </select>
+                  </div>
 
-                <div className="flex gap-2 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordModal(false)}
-                    className="w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
-                  >
-                    Close
-                  </button>
-                </div>
-              </form>
+                  {editForm.role === "student" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Student ID</label>
+                      <input
+                        type="text"
+                        value={editForm.student_id}
+                        onChange={(e) => setEditForm({ ...editForm, student_id: e.target.value })}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editForm.verified}
+                        onChange={(e) => setEditForm({ ...editForm, verified: e.target.checked })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Verified</span>
+                    </label>
+
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editForm.approved}
+                        onChange={(e) => setEditForm({ ...editForm, approved: e.target.checked })}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Approved</span>
+                    </label>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Custom Modals */}
-        <AlertModal
-          isOpen={alertModal.isOpen}
-          title={alertModal.title}
-          message={alertModal.message}
-          type={alertModal.type}
-          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-        />
+          {/* Password Reset Modal */}
+          {showPasswordModal && selectedUser && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-4">Reset Password</h2>
+                <p className="text-gray-600 mb-6">
+                  User: <strong>{selectedUser.email}</strong>
+                </p>
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-4">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> Direct password changes require Supabase Admin API.
+                      The recommended method is to send a password reset email via Supabase Dashboard.
+                    </p>
+                  </div>
 
-        <ConfirmModal
-          isOpen={confirmModal.isOpen}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          onConfirm={confirmModal.onConfirm}
-          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-          confirmStyle="danger"
-        />
+                  <div>
+                    <label className="block text-sm font-medium mb-1">New Password</label>
+                    <input
+                      type="password"
+                      minLength={6}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                      disabled
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      minLength={6}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      className="w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Modals */}
+          <AlertModal
+            isOpen={alertModal.isOpen}
+            title={alertModal.title}
+            message={alertModal.message}
+            type={alertModal.type}
+            onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+          />
+
+          <ConfirmModal
+            isOpen={confirmModal.isOpen}
+            title={confirmModal.title}
+            message={confirmModal.message}
+            onConfirm={confirmModal.onConfirm}
+            onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+            confirmStyle="danger"
+          />
         </div>
       </div>
     </div>

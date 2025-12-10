@@ -67,6 +67,11 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [isPublic, setIsPublic] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
 
+  // Bulk Edit State
+  const [selectedQuestions, setSelectedQuestions] = useState(new Set());
+  const [bulkTimeLimit, setBulkTimeLimit] = useState(30);
+  const [bulkPoints, setBulkPoints] = useState(100);
+
   // Fetch folders and default theme from DB
   useEffect(() => {
     fetchFolders();
@@ -783,6 +788,82 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Bulk Actions Toolbar */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              checked={questions.length > 0 && selectedQuestions.size === questions.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedQuestions(new Set(questions.map((_, i) => i)));
+                                } else {
+                                  setSelectedQuestions(new Set());
+                                }
+                              }}
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              {selectedQuestions.size} {t('common.selected') || "Selected"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.timeLimit')}:</label>
+                              <select
+                                value={bulkTimeLimit}
+                                onChange={(e) => setBulkTimeLimit(Number(e.target.value))}
+                                className="text-sm border rounded px-2 py-1"
+                              >
+                                <option value={10}>10s</option>
+                                <option value={20}>20s</option>
+                                <option value={30}>30s</option>
+                                <option value={60}>60s</option>
+                                <option value={90}>90s</option>
+                                <option value={120}>120s</option>
+                              </select>
+                              <button
+                                onClick={() => {
+                                  if (selectedQuestions.size === 0) return;
+                                  setQuestions(prev => prev.map((q, i) => selectedQuestions.has(i) ? { ...q, time_limit: bulkTimeLimit } : q));
+                                  setSuccess("Time limits updated!");
+                                  setTimeout(() => setSuccess(null), 3000);
+                                }}
+                                disabled={selectedQuestions.size === 0}
+                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {t('common.apply') || "Apply"}
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
+                              <input
+                                type="number"
+                                value={bulkPoints}
+                                onChange={(e) => setBulkPoints(Number(e.target.value))}
+                                className="text-sm border rounded px-2 py-1 w-20"
+                                min="0" step="10"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (selectedQuestions.size === 0) return;
+                                  setQuestions(prev => prev.map((q, i) => selectedQuestions.has(i) ? { ...q, points: bulkPoints } : q));
+                                  setSuccess("Points updated!");
+                                  setTimeout(() => setSuccess(null), 3000);
+                                }}
+                                disabled={selectedQuestions.size === 0}
+                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {t('common.apply') || "Apply"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {questions.map((question, index) => {
                         const isEditing = questionFormMode === "edit" && editingQuestionIndex === index;
                         return (
@@ -809,6 +890,22 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                 >
                                   <GripVertical size={20} />
                                 </div>
+                                {!isEditing && (
+                                  <input
+                                    type="checkbox"
+                                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    checked={selectedQuestions.has(index)}
+                                    onChange={() => {
+                                      const newSelected = new Set(selectedQuestions);
+                                      if (newSelected.has(index)) {
+                                        newSelected.delete(index);
+                                      } else {
+                                        newSelected.add(index);
+                                      }
+                                      setSelectedQuestions(newSelected);
+                                    }}
+                                  />
+                                )}
                                 <div className="flex items-center gap-2">
                                   <span className="text-lg font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full">
                                     Q{index + 1}
