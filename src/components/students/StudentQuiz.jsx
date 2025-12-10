@@ -29,10 +29,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
-    if (sessionId) {
+    if (sessionId && appState.currentUser?.id) {
       joinSession();
     }
-  }, [sessionId]);
+  }, [sessionId, appState.currentUser]);
 
   // Separate effect for realtime subscriptions and polling
   useEffect(() => {
