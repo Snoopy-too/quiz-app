@@ -66,7 +66,7 @@ export default function PublicQuizzes({ setView, appState }) {
           background_image_url,
           created_at,
           created_by,
-          users!quizzes_created_by_fkey(name, email),
+          users!quizzes_created_by_fkey(name, email, avatar_url),
           questions(id)
         `)
         .eq("is_public", true)
@@ -80,6 +80,7 @@ export default function PublicQuizzes({ setView, appState }) {
         questionCount: quiz.questions?.length || 0,
         themeDetails: themeMap[quiz.theme_id] || null,
         creatorName: quiz.users?.name || quiz.users?.email || "Unknown",
+        creatorAvatar: quiz.users?.avatar_url || null,
         isOwnQuiz: quiz.created_by === user.user.id
       }));
 
@@ -307,7 +308,15 @@ export default function PublicQuizzes({ setView, appState }) {
 
             {/* Creator Info */}
             <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-              <User size={14} />
+              {quiz.creatorAvatar ? (
+                <img
+                  src={quiz.creatorAvatar}
+                  alt={quiz.creatorName}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <User size={14} />
+              )}
               <span>{quiz.creatorName}</span>
             </div>
 

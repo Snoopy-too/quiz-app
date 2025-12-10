@@ -424,7 +424,7 @@
     "saving": "Saving...",
     "saveChanges": "Save Changes",
     "profileUpdated": "Profile updated successfully!",
-    "passwordNote": "You can update your password directly without entering your current password. Supabase will handle the authentication.",
+    "passwordNote": "You can update your password directly without entering your current password.",
     "newPassword": "New Password",
     "newPasswordPlaceholder": "At least 6 characters",
     "confirmNewPassword": "Confirm New Password",
