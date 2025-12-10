@@ -876,18 +876,15 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                               <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.timeLimit')}:</label>
-                              <select
+                              <input
+                                type="number"
                                 value={bulkTimeLimit}
                                 onChange={(e) => setBulkTimeLimit(Number(e.target.value))}
-                                className="text-sm border rounded px-2 py-1"
-                              >
-                                <option value={10}>10s</option>
-                                <option value={20}>20s</option>
-                                <option value={30}>30s</option>
-                                <option value={60}>60s</option>
-                                <option value={90}>90s</option>
-                                <option value={120}>120s</option>
-                              </select>
+                                className="text-sm border rounded px-2 py-1 w-20"
+                                min="5"
+                                max="300"
+                                step="5"
+                              />
                               <button
                                 onClick={async () => {
                                   if (selectedQuestions.size === 0) return;
