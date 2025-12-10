@@ -39,7 +39,7 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fadeIn"
       onClick={onCancel}
     >
       {/* Overlay */}
