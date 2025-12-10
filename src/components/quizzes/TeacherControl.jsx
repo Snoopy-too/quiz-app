@@ -666,11 +666,11 @@ export default function TeacherControl({ sessionId, setView }) {
     showQuestion(nextIndex);
   };
 
-  const endQuiz = async () => {
+  const endQuiz = async (status = "completed") => {
     try {
       await supabase
         .from("quiz_sessions")
-        .update({ status: "completed" })
+        .update({ status: status })
         .eq("id", sessionId);
 
       // Cleanup teams if in team mode - removes student memberships so teams don't persist
@@ -685,7 +685,7 @@ export default function TeacherControl({ sessionId, setView }) {
         }
       }
 
-      setSession({ ...session, status: "completed" });
+      setSession({ ...session, status: status });
     } catch (err) {
       setAlertModal({ isOpen: true, title: "Error", message: "Error ending quiz: " + err.message, type: "error" });
     }
@@ -695,10 +695,10 @@ export default function TeacherControl({ sessionId, setView }) {
     setConfirmModal({
       isOpen: true,
       title: "End Session",
-      message: "Are you sure you want to end this session?",
+      message: "Are you sure you want to end this session? This will cancel the quiz for all students.",
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
-        await endQuiz();
+        await endQuiz("cancelled");
         setView("manage-quizzes");
       }
     });

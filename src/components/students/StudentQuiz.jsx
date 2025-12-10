@@ -213,6 +213,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         console.log("Error checking participant:", checkParticipantError);
       }
 
+      let activeParticipant = existingParticipant;
+
       if (existingParticipant) {
         setParticipant(existingParticipant);
       } else {
@@ -231,17 +233,41 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
         if (participantError) throw participantError;
         setParticipant(newParticipant);
+        activeParticipant = newParticipant;
       }
 
       // Initialize question index ref
       currentQuestionIndexRef.current = session.current_question_index;
 
-      // If session is already active, load current question
-      if (session.status === "question_active" && orderedQuestions.length > 0) {
+      // If session is already active or showing results, load current question and check status
+      if ((session.status === "question_active" || session.status === "showing_results") && orderedQuestions.length > 0) {
         const currentQuestionData = orderedQuestions[session.current_question_index];
         if (currentQuestionData) {
           setCurrentQuestion(currentQuestionData);
           setTimeRemaining(currentQuestionData.time_limit);
+
+          if (activeParticipant) {
+            // Check if user already answered this question
+            const { data: existingAnswer } = await supabase
+              .from("quiz_answers")
+              .select("*")
+              .eq("session_id", sessionId)
+              .eq("participant_id", activeParticipant.id)
+              .eq("question_id", currentQuestionData.id)
+              .maybeSingle();
+
+            if (existingAnswer) {
+              console.log("Restoring previous answer:", existingAnswer);
+              setHasAnswered(true);
+              setSelectedOption(existingAnswer.selected_option_index);
+              setWasCorrect(existingAnswer.is_correct);
+            }
+          }
+
+          // If showing results, ensure the correct answer is shown
+          if (session.status === "showing_results") {
+            setShowCorrectAnswer(true);
+          }
         }
       }
 
@@ -646,6 +672,27 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </div>
 
           <p className="text-gray-600 mt-6">{t('student.waitingForNextQuestion')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz cancelled
+  if (session.status === "cancelled") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+          <div className="text-6xl mb-6">🚫</div>
+          <h2 className="text-3xl font-bold mb-4">{t('session.quizCancelled')}</h2>
+          <p className="text-gray-600 mb-8">
+            {t('session.quizCancelledByTeacher')}
+          </p>
+          <button
+            onClick={() => setView("student-dashboard")}
+            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
+          >
+            {t('student.backToDashboard')}
+          </button>
         </div>
       </div>
     );

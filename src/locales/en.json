@@ -222,7 +222,9 @@
     "wrongAnswer": "Wrong!",
     "timeUp": "Time's Up!",
     "yourScore": "Your Score",
-    "finalResults": "Final Results"
+    "finalResults": "Final Results",
+    "quizCancelled": "Quiz Cancelled",
+    "quizCancelledByTeacher": "The teacher has cancelled this quiz session."
   },
   "teacher": {
     "teacherDashboard": "Teacher Dashboard",
