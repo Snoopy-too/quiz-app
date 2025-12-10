@@ -247,7 +247,7 @@ export default function ManageStudents({ setView, appState }) {
         student_id: studentId || null,
         teacher_id: appState.currentUser.id,
         approved: true,
-        verified: false,
+        verified: true,
       };
 
       const { error: profileError } = await supabase.from("users").insert([profilePayload]);
@@ -528,8 +528,8 @@ export default function ManageStudents({ setView, appState }) {
                 <button
                   onClick={() => setFilterStatus("all")}
                   className={`px-4 py-2 rounded-lg ${filterStatus === "all"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
                   {t("manageStudents.filterAll")}
@@ -537,8 +537,8 @@ export default function ManageStudents({ setView, appState }) {
                 <button
                   onClick={() => setFilterStatus("approved")}
                   className={`px-4 py-2 rounded-lg ${filterStatus === "approved"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
                   {t("manageStudents.filterApproved")}
@@ -546,8 +546,8 @@ export default function ManageStudents({ setView, appState }) {
                 <button
                   onClick={() => setFilterStatus("pending")}
                   className={`px-4 py-2 rounded-lg ${filterStatus === "pending"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
                   {t("manageStudents.filterPending")}
@@ -555,8 +555,8 @@ export default function ManageStudents({ setView, appState }) {
                 <button
                   onClick={() => setFilterStatus("unverified")}
                   className={`px-4 py-2 rounded-lg ${filterStatus === "unverified"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
                   {t("manageStudents.filterUnverified")}
