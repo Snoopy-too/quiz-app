@@ -11,7 +11,7 @@ export default function ManageStudents({ setView, appState }) {
   const [students, setStudents] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all"); // all, approved, pending, rejected
+  const [filterStatus, setFilterStatus] = useState("my_students"); // my_students, approved, pending, rejected, unlinked
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -42,23 +42,63 @@ export default function ManageStudents({ setView, appState }) {
     if (!appState.currentUser?.id) return;
 
     try {
-      // Fetch students associated with the current teacher
+      // Fetch students associated with the current teacher OR unlinked students
+      // We use .or() syntax properly
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
         .select("*")
         .eq("role", "student")
-        .eq("teacher_id", appState.currentUser.id)
+        .or(`teacher_id.eq.${appState.currentUser.id},teacher_id.is.null`)
         .order("created_at", { ascending: false });
 
       if (studentsError) throw studentsError;
 
       setStudents(studentsData || []);
-      setPendingStudents(studentsData?.filter(s => !s.approved) || []);
+      // Pending count is based on MY students only to avoid noise
+      setPendingStudents(studentsData?.filter(s => s.teacher_id === appState.currentUser.id && !s.approved) || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLink = async (studentId) => {
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ teacher_id: appState.currentUser.id })
+        .eq("id", studentId);
+
+      if (error) throw error;
+      setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.linkStudentSuccess"), type: "success" });
+      await fetchStudents();
+    } catch (err) {
+      setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
+    }
+  };
+
+  const handleUnlink = async (studentId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t("manageStudents.confirmUnlinkTitle"),
+      message: t("manageStudents.confirmUnlinkMessage"),
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error } = await supabase
+            .from("users")
+            .update({ teacher_id: null })
+            .eq("id", studentId);
+
+          if (error) throw error;
+          setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.unlinkStudentSuccess"), type: "success" });
+          await fetchStudents();
+        } catch (err) {
+          setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const handleApprove = async (studentId) => {
@@ -363,13 +403,32 @@ export default function ManageStudents({ setView, appState }) {
 
   const filteredStudents = students
     .filter((student) => {
+      // Filter logic
+      // 1. If filter is 'unlinked', explicitly show only unlinked students
+      if (filterStatus === "unlinked") {
+        const isUnlinked = student.teacher_id === null;
+        if (!isUnlinked) return false;
+
+        // Apply search if needed
+        return (
+          student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.student_id?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // 2. For all other filters, show ONLY my students
+      if (student.teacher_id !== appState.currentUser.id) {
+        return false;
+      }
+
       const matchesSearch =
         student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesFilter =
-        filterStatus === "all" ||
+        filterStatus === "my_students" ||
         (filterStatus === "approved" && student.approved && student.verified) ||
         (filterStatus === "pending" && !student.approved) ||
         (filterStatus === "unverified" && !student.verified);
@@ -526,13 +585,13 @@ export default function ManageStudents({ setView, appState }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setFilterStatus("all")}
-                  className={`px-4 py-2 rounded-lg ${filterStatus === "all"
+                  onClick={() => setFilterStatus("my_students")}
+                  className={`px-4 py-2 rounded-lg ${filterStatus === "my_students"
                     ? "bg-green-600 text-white"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                 >
-                  {t("manageStudents.filterAll")}
+                  {t("manageStudents.filterMyStudents")}
                 </button>
                 <button
                   onClick={() => setFilterStatus("approved")}
@@ -560,6 +619,15 @@ export default function ManageStudents({ setView, appState }) {
                     }`}
                 >
                   {t("manageStudents.filterUnverified")}
+                </button>
+                <button
+                  onClick={() => setFilterStatus("unlinked")}
+                  className={`px-4 py-2 rounded-lg ${filterStatus === "unlinked"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                >
+                  {t("manageStudents.filterUnlinked")}
                 </button>
               </div>
             </div>
@@ -646,28 +714,48 @@ export default function ManageStudents({ setView, appState }) {
                           >
                             {t("manageStudents.actionView")}
                           </button>
-                          {!student.approved && (
+
+                          {student.teacher_id === appState.currentUser.id && (
+                            <>
+                              {!student.approved && (
+                                <button
+                                  onClick={() => handleApprove(student.id)}
+                                  className="text-green-600 hover:text-green-700 font-medium"
+                                >
+                                  {t("manageStudents.actionApprove")}
+                                </button>
+                              )}
+                              {student.approved && (
+                                <button
+                                  onClick={() => handleReject(student.id)}
+                                  className="text-orange-600 hover:text-orange-700 font-medium"
+                                >
+                                  {t("manageStudents.actionRevoke")}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleUnlink(student.id)}
+                                className="text-gray-600 hover:text-gray-700 font-medium"
+                              >
+                                {t("manageStudents.actionUnlink")}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(student.id)}
+                                className="text-red-600 hover:text-red-700 font-medium"
+                              >
+                                {t("manageStudents.actionDelete")}
+                              </button>
+                            </>
+                          )}
+
+                          {student.teacher_id === null && (
                             <button
-                              onClick={() => handleApprove(student.id)}
+                              onClick={() => handleLink(student.id)}
                               className="text-green-600 hover:text-green-700 font-medium"
                             >
-                              {t("manageStudents.actionApprove")}
+                              {t("manageStudents.actionLink")}
                             </button>
                           )}
-                          {student.approved && (
-                            <button
-                              onClick={() => handleReject(student.id)}
-                              className="text-orange-600 hover:text-orange-700 font-medium"
-                            >
-                              {t("manageStudents.actionRevoke")}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDelete(student.id)}
-                            className="text-red-600 hover:text-red-700 font-medium"
-                          >
-                            {t("manageStudents.actionDelete")}
-                          </button>
                         </div>
                       </td>
                     </tr>

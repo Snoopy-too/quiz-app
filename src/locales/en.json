@@ -516,9 +516,11 @@
     "unverifiedEmail": "Unverified Email",
     "searchPlaceholder": "Search by name or email...",
     "filterAll": "All",
+    "filterMyStudents": "My Students",
     "filterApproved": "Approved",
     "filterPending": "Pending",
     "filterUnverified": "Unverified",
+    "filterUnlinked": "Unlinked",
     "tableHeaderName": "Name",
     "tableHeaderEmail": "Email",
     "tableHeaderStudentId": "Student ID",
@@ -533,6 +535,8 @@
     "actionApprove": "Approve",
     "actionRevoke": "Revoke",
     "actionDelete": "Delete",
+    "actionLink": "Link",
+    "actionUnlink": "Unlink",
     "studentDetails": "Student Details",
     "personalInformation": "Personal Information",
     "name": "Name",
@@ -593,6 +597,10 @@
     "createStudentPasswordMismatch": "Passwords do not match.",
     "createStudentEmailExists": "An account with this email already exists.",
     "createStudentNoUser": "Unable to create the account. Please try again.",
-    "createStudentGenericError": "Failed to create the student account. Please try again."
+    "createStudentGenericError": "Failed to create the student account. Please try again.",
+    "confirmUnlinkTitle": "Unlink Student",
+    "confirmUnlinkMessage": "Are you sure you want to unlink this student? They will no longer be associated with your class.",
+    "linkStudentSuccess": "Student linked to your class successfully!",
+    "unlinkStudentSuccess": "Student unlinked from your class successfully."
   }
 }
