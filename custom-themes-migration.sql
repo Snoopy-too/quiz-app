@@ -20,12 +20,20 @@ DROP POLICY IF EXISTS "Teachers can create their own themes" ON themes;
 DROP POLICY IF EXISTS "Teachers can update their own themes" ON themes;
 DROP POLICY IF EXISTS "Teachers can delete their own themes" ON themes;
 
--- Policy: Users can view global themes (created_by IS NULL) and their own custom themes
+-- Policy: Users can view:
+-- 1. Global themes (created_by IS NULL)
+-- 2. Their own custom themes (created_by = auth.uid())
+-- 3. Themes used by public quizzes (so public quizzes display correctly for all users)
 CREATE POLICY "Anyone can view themes"
 ON themes FOR SELECT
 USING (
   created_by IS NULL
   OR created_by = auth.uid()
+  OR EXISTS (
+    SELECT 1 FROM quizzes
+    WHERE quizzes.theme_id = themes.id
+    AND quizzes.is_public = true
+  )
 );
 
 -- Policy: Teachers can create their own custom themes
