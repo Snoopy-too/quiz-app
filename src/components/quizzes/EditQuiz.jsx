@@ -14,6 +14,8 @@ import {
   CheckCircle,
   Clock,
   Award,
+  Settings,
+  HelpCircle,
 } from "lucide-react";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
@@ -669,7 +671,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-100 to-blue-50">
       <VerticalNav currentView="manage-quizzes" setView={setView} appState={_appState} />
 
       <div className="flex-1 ml-64">
@@ -718,25 +720,34 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         </nav>
 
         <div className="container mx-auto p-6 max-w-5xl">
-          <div className="bg-white shadow-md rounded-lg">
-            <div className="flex border-b border-gray-200">
+          <div className="bg-white shadow-lg rounded-xl border border-gray-200">
+            {/* Improved Tab Navigation */}
+            <div className="flex rounded-t-xl overflow-hidden">
               <button
-                className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "settings"
-                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-700"
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === "settings"
+                  ? "text-blue-700 bg-white border-blue-600"
+                  : "text-slate-500 bg-slate-100 border-transparent hover:text-blue-600 hover:bg-slate-50"
                   }`}
                 onClick={() => setActiveTab("settings")}
               >
+                <Settings size={18} className={activeTab === "settings" ? "text-blue-600" : "text-slate-400"} />
                 {t('nav.settings')}
               </button>
               <button
-                className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "questions"
-                  ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-700"
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === "questions"
+                  ? "text-blue-700 bg-white border-blue-600"
+                  : "text-slate-500 bg-slate-100 border-transparent hover:text-blue-600 hover:bg-slate-50"
                   }`}
                 onClick={() => setActiveTab("questions")}
               >
-                {t('quiz.questions')} ({questions.length})
+                <HelpCircle size={18} className={activeTab === "questions" ? "text-blue-600" : "text-slate-400"} />
+                {t('quiz.questions')}
+                <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${activeTab === "questions"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-slate-200 text-slate-600"
+                }`}>
+                  {questions.length}
+                </span>
               </button>
             </div>
 
