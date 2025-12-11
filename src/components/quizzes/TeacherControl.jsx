@@ -1278,7 +1278,7 @@ export default function TeacherControl({ sessionId, setView }) {
                   </button>
                 ) : (
                   <button
-                    onClick={endQuiz}
+                    onClick={() => endQuiz()}
                     className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3"
                   >
                     <Trophy size={24} />
