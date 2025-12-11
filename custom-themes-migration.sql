@@ -20,10 +20,13 @@ DROP POLICY IF EXISTS "Teachers can create their own themes" ON themes;
 DROP POLICY IF EXISTS "Teachers can update their own themes" ON themes;
 DROP POLICY IF EXISTS "Teachers can delete their own themes" ON themes;
 
--- Policy: Anyone can view all themes (global + user's own)
+-- Policy: Users can view global themes (created_by IS NULL) and their own custom themes
 CREATE POLICY "Anyone can view themes"
 ON themes FOR SELECT
-USING (true);
+USING (
+  created_by IS NULL
+  OR created_by = auth.uid()
+);
 
 -- Policy: Teachers can create their own custom themes
 CREATE POLICY "Teachers can create their own themes"
