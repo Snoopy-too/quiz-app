@@ -753,7 +753,7 @@ export default function TeacherControl({ sessionId, setView }) {
     const useOverlay = backgroundConfig.overlay;
 
     return (
-      <ModalsWrapper>
+      <>
         <div className="min-h-screen relative" style={backgroundConfig.style}>
           {useOverlay && (
             <div
@@ -765,57 +765,46 @@ export default function TeacherControl({ sessionId, setView }) {
             {content}
           </div>
         </div>
-      </ModalsWrapper>
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+          onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        />
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          confirmStyle="danger"
+        />
+      </>
     );
   };
 
-  // Render modals wrapper for all views
-  const ModalsWrapper = ({ children }) => (
-    <>
-      {children}
-      <AlertModal
-        isOpen={alertModal.isOpen}
-        title={alertModal.title}
-        message={alertModal.message}
-        type={alertModal.type}
-        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-      />
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-        confirmStyle="danger"
-      />
-    </>
-  );
-
   if (loading) {
     return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <p className="text-xl text-gray-600">Loading session...</p>
-        </div>
-      </ModalsWrapper>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading session...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <ModalsWrapper>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-xl text-red-600 mb-4">Error: {error}</p>
-            <button
-              onClick={() => setView("manage-quizzes")}
-              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
-            >
-              Back to Quizzes
-            </button>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-red-600 mb-4">Error: {error}</p>
+          <button
+            onClick={() => setView("manage-quizzes")}
+            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
+          >
+            Back to Quizzes
+          </button>
         </div>
-      </ModalsWrapper>
+      </div>
     );
   }
 
