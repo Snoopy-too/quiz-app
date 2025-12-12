@@ -84,46 +84,46 @@ export default function TeacherDashboard({ appState, setAppState, setView }) {
       {/* Main Content */}
       <div className="flex-1 md:ml-64 pt-16 md:pt-0">
         {/* Top Bar */}
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold" style={{ color: '#2c5aa0' }}>{t('teacher.teacherDashboard')}</h1>
+        <nav className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
+          <h1 className="text-xl md:text-2xl font-bold" style={{ color: '#2c5aa0' }}>{t('teacher.teacherDashboard')}</h1>
         </nav>
 
       {/* Dashboard Content */}
-      <div className="container mx-auto p-6">
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1f3a52' }}>{t('teacher.teacherDashboard')}</h2>
+      <div className="container mx-auto px-4 py-4 md:p-6">
+        <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6" style={{ color: '#1f3a52' }}>{t('teacher.teacherDashboard')}</h2>
 
         {/* Teacher Invitation Code */}
         {generatingCode ? (
-          <div className="text-white p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
+          <div className="text-white p-4 md:p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
             <div className="flex items-center justify-center">
-              <p className="text-lg">{t('teacher.generatingTeacherCode')}</p>
+              <p className="text-base md:text-lg">{t('teacher.generatingTeacherCode')}</p>
             </div>
           </div>
         ) : teacher?.teacher_code ? (
-          <div className="text-white p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div className="mb-4 md:mb-0">
-                <h3 className="text-lg font-semibold mb-2">{t('teacher.yourTeacherInvitationCode')}</h3>
-                <p className="text-sm mb-3" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+          <div className="text-white p-4 md:p-6 rounded-xl shadow-lg mb-6" style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}>
+            <div className="flex flex-col">
+              <div>
+                <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{t('teacher.yourTeacherInvitationCode')}</h3>
+                <p className="text-xs md:text-sm mb-3" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   {t('teacher.shareCodeWithStudents')}
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="bg-white px-6 py-3 rounded-lg font-mono text-2xl font-bold tracking-wider" style={{ color: '#2c5aa0' }}>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                  <div className="bg-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-mono text-xl md:text-2xl font-bold tracking-wider" style={{ color: '#2c5aa0' }}>
                     {formatTeacherCode(teacher.teacher_code)}
                   </div>
                   <button
                     onClick={copyTeacherCode}
-                    className="bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-lg transition flex items-center gap-2 font-medium"
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg transition flex items-center gap-2 font-medium text-sm md:text-base"
                   >
                     {copied ? (
                       <>
-                        <Check size={20} />
-                        {t('teacher.copied')}
+                        <Check size={18} />
+                        <span className="hidden sm:inline">{t('teacher.copied')}</span>
                       </>
                     ) : (
                       <>
-                        <Copy size={20} />
-                        {t('teacher.copyCode')}
+                        <Copy size={18} />
+                        <span className="hidden sm:inline">{t('teacher.copyCode')}</span>
                       </>
                     )}
                   </button>
