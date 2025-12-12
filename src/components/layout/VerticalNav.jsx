@@ -14,10 +14,45 @@ export default function VerticalNav({ currentView, setView, appState }) {
   const handleLogout = async () => {
     setShowLogoutModal(false);
     try {
-      await supabase.auth.signOut();
-      setView("login");
+      console.log('[Logout] Starting logout process...');
+
+      // Clear all Supabase auth-related items from localStorage before signOut
+      // This prevents Edge and other browsers from using cached tokens
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
+        }
+      }
+      console.log('[Logout] Clearing localStorage keys:', keysToRemove);
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Clear all session storage items for our app
+      sessionStorage.removeItem('quizapp_view');
+      sessionStorage.removeItem('quizapp_selectedQuizId');
+      sessionStorage.removeItem('quizapp_selectedSessionId');
+
+      // Use global scope to sign out from all tabs/windows
+      await supabase.auth.signOut({ scope: 'global' });
+
+      // Force clear localStorage again after signOut
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // Also clear any new keys that might have been created
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      console.log('[Logout] SignOut complete, reloading page...');
+      // Force page reload to ensure clean state (fixes Edge browser issues)
+      window.location.href = window.location.origin;
     } catch (error) {
       console.error("Logout error:", error);
+      // Even on error, try to reload to a clean state
+      window.location.href = window.location.origin;
     }
   };
 

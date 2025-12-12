@@ -57,6 +57,7 @@
     "teacherLogin": "教師ログイン",
     "studentLogin": "学生ログイン",
     "loginToQuizMaster": "QuizMasterにログイン",
+    "welcomeBack": "おかえりなさい！認証情報を入力して続行してください。",
     "registerForQuizMaster": "QuizMasterに登録",
     "register": "登録",
     "emailPlaceholder": "you@example.com",

@@ -21,6 +21,13 @@ export default function Login({
     const checkSession = async () => {
       console.log('Login: Checking for existing session...');
 
+      // Don't auto-login if logout was just initiated
+      const logoutInitiated = sessionStorage.getItem('quizapp_logout_initiated');
+      if (logoutInitiated) {
+        console.log('Login: Logout was initiated, skipping session check');
+        return;
+      }
+
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
@@ -97,6 +104,9 @@ export default function Login({
     setGlobalSuccess?.(null);
     setLoading(true);
 
+    // Clear logout flag when user initiates a new login
+    sessionStorage.removeItem('quizapp_logout_initiated');
+
     try {
       // 1) Auth against Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -152,6 +162,9 @@ export default function Login({
     setGlobalError?.(null);
     setGlobalSuccess?.(null);
     setLoading(true);
+
+    // Clear logout flag when user initiates a new login
+    sessionStorage.removeItem('quizapp_logout_initiated');
 
     try {
       // Dynamically use current site URL (works for both localhost and Netlify)
@@ -231,9 +244,8 @@ export default function Login({
           <button
             type="submit"
             disabled={loading}
-            className="w-full text-white font-semibold py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50"
-            style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)', backgroundSize: '200% 100%' }}
-            onHover={(e) => e.target.style.backgroundPosition = '100% 0'}
+            className="w-full text-white font-semibold py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #2c5aa0, #4db8d8)' }}
           >
             {loading ? t('auth.signingIn') : t('auth.login')}
           </button>

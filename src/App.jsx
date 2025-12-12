@@ -182,6 +182,20 @@ export default function QuizApp() {
 
     const load = async () => {
       console.log('Loading initial session...');
+
+      // Check if logout was just initiated - don't auto-login
+      const logoutInitiated = sessionStorage.getItem('quizapp_logout_initiated');
+      if (logoutInitiated) {
+        console.log('[load] Logout was initiated, clearing flag and skipping session check');
+        sessionStorage.removeItem('quizapp_logout_initiated');
+        sessionStorage.removeItem('quizapp_view');
+        sessionStorage.removeItem('quizapp_selectedQuizId');
+        sessionStorage.removeItem('quizapp_selectedSessionId');
+        setAppState((s) => ({ ...s, currentUser: null }));
+        setView("login");
+        return;
+      }
+
       const { data: sessionRes, error: sessErr } = await supabase.auth.getSession();
 
       if (sessErr) {
@@ -283,12 +297,23 @@ export default function QuizApp() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.email);
 
+      // Check if user just initiated logout - prevent auto re-login
+      const logoutInitiated = sessionStorage.getItem('quizapp_logout_initiated');
+      if (logoutInitiated && event === 'SIGNED_IN') {
+        console.log('[onAuthStateChange] Ignoring SIGNED_IN event - logout was just initiated');
+        // Sign out again to ensure clean logout
+        supabase.auth.signOut({ scope: 'global' });
+        return;
+      }
+
       if (!session) {
         setAppState((s) => ({ ...s, currentUser: null }));
         // Clear saved session data when signed out
         sessionStorage.removeItem('quizapp_view');
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
+        // Clear the logout flag once we're fully signed out
+        sessionStorage.removeItem('quizapp_logout_initiated');
         setView("login");
       } else {
         // When session changes (login/OAuth callback), fetch profile and route
