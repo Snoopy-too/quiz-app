@@ -159,7 +159,10 @@
     "errorReorderingQuestions": "問題の並び替え中にエラーが発生しました",
     "quizTitleRequired": "クイズのタイトルは必須です。",
     "confirmDeleteQuestion": "この問題を削除してもよろしいですか？",
-    "copySuffix": "（コピー）"
+    "copySuffix": "（コピー）",
+    "revealingAnswersIn": "回答を表示中...",
+    "getReady": "準備して！",
+    "revealing": "表示中"
   },
   "folder": {
     "folder": "フォルダー",
@@ -245,7 +248,8 @@
     "manageStudents": "学生管理",
     "manageQuizzesDescription": "クラス用のクイズを作成、編集、整理します。",
     "manageStudentsDescription": "学生アカウント、承認、進捗状況を表示および管理します。",
-    "reportsDescription": "クイズのパフォーマンスと学生の進捗レポートを表示します。"
+    "reportsDescription": "クイズのパフォーマンスと学生の進捗レポートを表示します。",
+    "thinking": "考え中"
   },
   "student": {
     "studentDashboard": "学生ダッシュボード",

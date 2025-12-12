@@ -30,6 +30,8 @@ export default function TeacherControl({ sessionId, setView }) {
   const [questionTimeRemaining, setQuestionTimeRemaining] = useState(0);
   const [autoAdvanceTimer, setAutoAdvanceTimer] = useState(null);
   const [allStudentsAnswered, setAllStudentsAnswered] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -85,9 +87,9 @@ export default function TeacherControl({ sessionId, setView }) {
     }
   }, [session?.status, currentQuestion, countdownValue]);
 
-  // Question timer countdown effect
+  // Question timer countdown effect - only starts after answers are revealed
   useEffect(() => {
-    if (session?.status === "question_active" && questionTimeRemaining > 0 && !allStudentsAnswered) {
+    if (session?.status === "question_active" && questionTimeRemaining > 0 && !allStudentsAnswered && showAnswers) {
       const timer = setInterval(() => {
         setQuestionTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -100,7 +102,19 @@ export default function TeacherControl({ sessionId, setView }) {
 
       return () => clearInterval(timer);
     }
-  }, [session?.status, questionTimeRemaining, allStudentsAnswered]);
+  }, [session?.status, questionTimeRemaining, allStudentsAnswered, showAnswers]);
+
+  // Answer reveal countdown effect - show answers after 4 seconds
+  useEffect(() => {
+    if (session?.status === "question_active" && currentQuestion && !showAnswers && answerRevealCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAnswerRevealCountdown(answerRevealCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (session?.status === "question_active" && answerRevealCountdown === 0 && !showAnswers) {
+      setShowAnswers(true);
+    }
+  }, [session?.status, currentQuestion, answerRevealCountdown, showAnswers]);
 
   // Check if all students have answered
   useEffect(() => {
@@ -573,19 +587,23 @@ export default function TeacherControl({ sessionId, setView }) {
       setLiveAnswers([]); // Reset live answers for new question
       setAllStudentsAnswered(false); // Reset for new question
 
+      // Reset answer reveal state for new question
+      setShowAnswers(false);
+      setAnswerRevealCountdown(4);
+
       const startActualTimer = () => {
         setIsThinkingTime(false);
         setQuestionTimeRemaining(question.time_limit);
 
-        // Auto-advance after time limit
+        // Auto-advance after time limit + 4 seconds for answer reveal
         const timer = setTimeout(() => {
           showQuestionResults(questionIndex);
-        }, question.time_limit * 1000);
+        }, (question.time_limit + 4) * 1000);
         setAutoAdvanceTimer(timer);
       };
 
       if (session.mode === 'team') {
-        // Team Mode: 5 second thinking time
+        // Team Mode: 5 second thinking time + 4 second answer reveal
         setIsThinkingTime(true);
         setQuestionTimeRemaining(5);
 
@@ -599,12 +617,12 @@ export default function TeacherControl({ sessionId, setView }) {
         // Load answers
         await loadLiveAnswers(question.id);
 
-        // Wait 5 seconds then start actual timer
+        // Wait 5 seconds then start actual timer (4-second answer reveal happens via effect)
         setTimeout(() => {
           startActualTimer();
         }, 5000);
       } else {
-        // Classic Mode: Start immediately
+        // Classic Mode: Start with 4-second answer reveal delay (handled by effect)
         setIsThinkingTime(false);
         setSession({
           ...session,
@@ -1055,13 +1073,22 @@ export default function TeacherControl({ sessionId, setView }) {
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isThinkingTime ? "bg-yellow-100 animate-pulse" : "bg-blue-50"
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              isThinkingTime ? "bg-yellow-100 animate-pulse" :
+              !showAnswers ? "bg-purple-100 animate-pulse" : "bg-blue-50"
               }`}>
               {isThinkingTime ? (
                 <>
                   <BrainCircuit size={20} className="text-yellow-700" />
                   <span className="text-2xl font-bold text-yellow-700">
-                    Thinking: {questionTimeRemaining}s
+                    {t('teacher.thinking')}: {questionTimeRemaining}s
+                  </span>
+                </>
+              ) : !showAnswers ? (
+                <>
+                  <Clock size={20} className="text-purple-700" />
+                  <span className="text-2xl font-bold text-purple-700">
+                    {t('quiz.revealing')}: {answerRevealCountdown}s
                   </span>
                 </>
               ) : (
@@ -1116,28 +1143,75 @@ export default function TeacherControl({ sessionId, setView }) {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {currentQuestion.options?.map((opt, idx) => {
-                  const answerStyles = [
-                    { bg: "bg-red-500", icon: Heart },
-                    { bg: "bg-blue-600", icon: Spade },
-                    { bg: "bg-orange-500", icon: Diamond },
-                    { bg: "bg-green-500", icon: Club },
-                  ];
-                  const style = answerStyles[idx];
-                  const IconComponent = style.icon;
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex flex-col md:flex-row items-center justify-center gap-3 relative`}
-                    >
-                      <IconComponent size={28} className="shrink-0" fill="white" />
-                      <span className="text-center">{opt.text}</span>
+              {!showAnswers ? (
+                /* 4-second countdown before revealing answers */
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-xl text-gray-600 mb-4">{t('quiz.revealingAnswersIn')}</p>
+                  <div className="relative">
+                    <svg className="w-24 h-24" viewBox="0 0 100 100">
+                      {/* Background circle */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="8"
+                      />
+                      {/* Animated progress circle */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray="283"
+                        strokeDashoffset="283"
+                        transform="rotate(-90 50 50)"
+                        style={{
+                          animation: 'circleProgress 4s linear forwards'
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-4xl font-bold text-blue-600">{answerRevealCountdown}</span>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                  <p className="text-gray-500 mt-4">{t('quiz.getReady')}</p>
+                  <style>{`
+                    @keyframes circleProgress {
+                      from { stroke-dashoffset: 283; }
+                      to { stroke-dashoffset: 0; }
+                    }
+                  `}</style>
+                </div>
+              ) : (
+                /* Answer options grid - shown after 4-second delay */
+                <div className="grid grid-cols-2 gap-4">
+                  {currentQuestion.options?.map((opt, idx) => {
+                    const answerStyles = [
+                      { bg: "bg-red-500", icon: Heart },
+                      { bg: "bg-blue-600", icon: Spade },
+                      { bg: "bg-orange-500", icon: Diamond },
+                      { bg: "bg-green-500", icon: Club },
+                    ];
+                    const style = answerStyles[idx];
+                    const IconComponent = style.icon;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`${style.bg} text-white p-8 rounded-lg text-center text-2xl font-bold flex flex-col md:flex-row items-center justify-center gap-3 relative`}
+                      >
+                        <IconComponent size={28} className="shrink-0" fill="white" />
+                        <span className="text-center">{opt.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">

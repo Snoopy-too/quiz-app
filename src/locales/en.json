@@ -161,7 +161,10 @@
     "errorReorderingQuestions": "Error reordering questions",
     "quizTitleRequired": "Quiz title is required.",
     "confirmDeleteQuestion": "Are you sure you want to delete this question?",
-    "copySuffix": "(Copy)"
+    "copySuffix": "(Copy)",
+    "revealingAnswersIn": "Revealing answers in...",
+    "getReady": "Get ready!",
+    "revealing": "Revealing"
   },
   "folder": {
     "folder": "Folder",
@@ -249,7 +252,8 @@
     "manageStudents": "Manage Students",
     "manageQuizzesDescription": "Create, edit, and organize quizzes for your classes.",
     "manageStudentsDescription": "View and manage student accounts, approvals, and progress.",
-    "reportsDescription": "View quiz performance and student progress reports."
+    "reportsDescription": "View quiz performance and student progress reports.",
+    "thinking": "Thinking"
   },
   "student": {
     "studentDashboard": "Student Dashboard",
