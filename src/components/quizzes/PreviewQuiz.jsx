@@ -21,6 +21,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   const [quizComplete, setQuizComplete] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(true);
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -128,12 +130,27 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       return () => clearTimeout(timer);
     } else if (showCountdown && countdown === 0) {
       setShowCountdown(false);
+      // Reset answer reveal countdown when question countdown ends
+      setShowAnswers(false);
+      setAnswerRevealCountdown(4);
     }
   }, [showCountdown, countdown]);
 
-  // Timer countdown
+  // Answer reveal countdown effect - show answers after 4 seconds
   useEffect(() => {
-    if (timeRemaining > 0 && !hasAnswered && !showResults && !quizComplete) {
+    if (!showCountdown && !showResults && !quizComplete && !showAnswers && answerRevealCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAnswerRevealCountdown(answerRevealCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (!showCountdown && answerRevealCountdown === 0 && !showAnswers) {
+      setShowAnswers(true);
+    }
+  }, [showCountdown, showResults, quizComplete, answerRevealCountdown, showAnswers]);
+
+  // Timer countdown - only starts after answers are revealed
+  useEffect(() => {
+    if (timeRemaining > 0 && !hasAnswered && !showResults && !quizComplete && showAnswers) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -146,7 +163,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
       return () => clearInterval(timer);
     }
-  }, [timeRemaining, hasAnswered, showResults, quizComplete]);
+  }, [timeRemaining, hasAnswered, showResults, quizComplete, showAnswers]);
 
   const submitAnswer = (optionIndex) => {
     if (hasAnswered) return;
@@ -176,6 +193,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       setShowResults(false);
       setWasCorrect(false);
       setTimeRemaining(questions[currentQuestionIndex + 1].time_limit);
+      // Reset answer reveal for next question
+      setShowAnswers(false);
+      setAnswerRevealCountdown(4);
     } else {
       setQuizComplete(true);
     }
@@ -262,6 +282,8 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                   setTimeRemaining(questions[0].time_limit);
                   setShowCountdown(true);
                   setCountdown(5);
+                  setShowAnswers(false);
+                  setAnswerRevealCountdown(4);
                 }}
                 className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
               >
@@ -359,9 +381,14 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
         </div>
 
         {/* Question */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-4">
+        <div className="p-6 mb-4">
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold mb-4">{currentQuestion.question_text}</h2>
+            <h2
+              className={`font-bold mb-4 transition-all duration-300 text-white drop-shadow-lg ${showAnswers ? 'text-3xl' : 'text-4xl'}`}
+              style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.4)' }}
+            >
+              {currentQuestion.question_text}
+            </h2>
 
             {/* Media Display */}
             {currentQuestion.image_url && (
@@ -387,28 +414,64 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
             )}
           </div>
 
-          {/* Answer Options */}
+          {/* Answer Options - shown after 4 second delay */}
           {!showResults ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentQuestion.options?.map((opt, idx) => {
-                const style = answerStyles[idx];
-                const IconComponent = style.icon;
+            showAnswers ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentQuestion.options?.map((opt, idx) => {
+                  const style = answerStyles[idx];
+                  const IconComponent = style.icon;
 
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => submitAnswer(idx)}
-                    disabled={hasAnswered || timeRemaining === 0}
-                    className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
-                      } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                      } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col md:flex-row items-center justify-center gap-3 relative`}
-                  >
-                    <IconComponent size={28} className="shrink-0" fill="white" />
-                    <span className="text-center">{opt.text}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => submitAnswer(idx)}
+                      disabled={hasAnswered || timeRemaining === 0}
+                      className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
+                        } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
+                        } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col md:flex-row items-center justify-center gap-3 relative`}
+                    >
+                      <IconComponent size={28} className="shrink-0" fill="white" />
+                      <span className="text-center">{opt.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex justify-center py-8">
+                <svg className="w-16 h-16" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke={theme?.primary_color || "#7C3AED"}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray="283"
+                    strokeDashoffset="283"
+                    transform="rotate(-90 50 50)"
+                    style={{
+                      animation: 'circleProgress 4s linear forwards'
+                    }}
+                  />
+                </svg>
+                <style>{`
+                  @keyframes circleProgress {
+                    from { stroke-dashoffset: 283; }
+                    to { stroke-dashoffset: 0; }
+                  }
+                `}</style>
+              </div>
+            )
           ) : (
             <>
               {/* Show results */}

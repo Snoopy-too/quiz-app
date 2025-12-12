@@ -25,6 +25,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [wasCorrect, setWasCorrect] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -87,6 +89,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 setSelectedOption(null);
                 setShowCorrectAnswer(false);
                 setWasCorrect(false);
+                // Reset answer reveal for new question
+                setShowAnswers(false);
+                setAnswerRevealCountdown(4);
               }
             } else if (sessionData.status === "showing_results") {
               console.log('[StudentQuiz] Showing results (via polling)');
@@ -323,6 +328,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
               setSelectedOption(null);
               setShowCorrectAnswer(false);
               setWasCorrect(false);
+              // Reset answer reveal for new question
+              setShowAnswers(false);
+              setAnswerRevealCountdown(4);
             } else {
               console.error('[StudentQuiz] Question not found at index:', updatedSession.current_question_index);
               console.error('[StudentQuiz] Available questions:', currentQuestions.length);
@@ -362,9 +370,21 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     }
   }, [showCountdown, countdown]);
 
-  // Timer countdown
+  // Answer reveal countdown effect - show answers after 4 seconds
   useEffect(() => {
-    if (session?.status === "question_active" && timeRemaining > 0 && !hasAnswered) {
+    if (session?.status === "question_active" && !showAnswers && answerRevealCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAnswerRevealCountdown(answerRevealCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (session?.status === "question_active" && answerRevealCountdown === 0 && !showAnswers) {
+      setShowAnswers(true);
+    }
+  }, [session?.status, answerRevealCountdown, showAnswers]);
+
+  // Timer countdown - only starts after answers are revealed
+  useEffect(() => {
+    if (session?.status === "question_active" && timeRemaining > 0 && !hasAnswered && showAnswers) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -377,7 +397,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       return () => clearInterval(timer);
     }
-  }, [session?.status, timeRemaining, hasAnswered]);
+  }, [session?.status, timeRemaining, hasAnswered, showAnswers]);
 
   const submitAnswer = async (optionIndex) => {
     if (hasAnswered || !currentQuestion || !participant) return;
@@ -553,12 +573,17 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </div>
 
           {/* Question */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-4">
+          <div className="p-6 mb-4">
             <div className="text-center mb-6">
-              <p className="text-gray-600 mb-2">
+              <p className="text-white/80 mb-2 drop-shadow-lg">
                 {t('quiz.question')} {session.current_question_index + 1} {t('student.of')} {questions.length}
               </p>
-              <h2 className="text-3xl font-bold mb-4">{currentQuestion.question_text}</h2>
+              <h2
+                className={`font-bold mb-4 transition-all duration-300 text-white drop-shadow-lg ${showAnswers ? 'text-3xl' : 'text-4xl'}`}
+                style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.4)' }}
+              >
+                {currentQuestion.question_text}
+              </h2>
 
               {/* Media Display */}
               {currentQuestion.image_url && (
@@ -584,27 +609,63 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
               )}
             </div>
 
-            {/* Answer Options */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-              {currentQuestion.options?.map((opt, idx) => {
-                const style = answerStyles[idx];
-                const IconComponent = style.icon;
+            {/* Answer Options - shown after 4 second delay */}
+            {showAnswers ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                {currentQuestion.options?.map((opt, idx) => {
+                  const style = answerStyles[idx];
+                  const IconComponent = style.icon;
 
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => submitAnswer(idx)}
-                    disabled={hasAnswered || timeRemaining === 0}
-                    className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
-                      } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                      } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 relative`}
-                  >
-                    <IconComponent size={28} className="shrink-0" fill="white" />
-                    <span className="text-center">{opt.text}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => submitAnswer(idx)}
+                      disabled={hasAnswered || timeRemaining === 0}
+                      className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
+                        } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
+                        } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 relative`}
+                    >
+                      <IconComponent size={28} className="shrink-0" fill="white" />
+                      <span className="text-center">{opt.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex justify-center py-8">
+                <svg className="w-16 h-16" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke={theme?.primary_color || "#7C3AED"}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray="283"
+                    strokeDashoffset="283"
+                    transform="rotate(-90 50 50)"
+                    style={{
+                      animation: 'circleProgress 4s linear forwards'
+                    }}
+                  />
+                </svg>
+                <style>{`
+                  @keyframes circleProgress {
+                    from { stroke-dashoffset: 283; }
+                    to { stroke-dashoffset: 0; }
+                  }
+                `}</style>
+              </div>
+            )}
 
             {/* Feedback after answering */}
             {hasAnswered && (
