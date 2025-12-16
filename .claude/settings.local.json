@@ -23,7 +23,9 @@
       "Bash(else echo \".env file not found - check .env.example\")",
       "Bash(fi)",
       "Bash(git cherry-pick:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(find:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

@@ -5,6 +5,7 @@ import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
+import { clearActiveSession } from "../../utils/sessionPersistence";
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const { t } = useTranslation();
@@ -99,6 +100,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
               setShowCorrectAnswer(true);
             } else if (sessionData.status === "completed") {
               console.log('[StudentQuiz] Quiz completed (via polling)');
+              clearActiveSession();
               setSession(sessionData);
             }
           }
@@ -340,6 +342,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             setShowCorrectAnswer(true);
           } else if (updatedSession.status === "cancelled") {
             console.log('[StudentQuiz] Quiz cancelled by teacher');
+            clearActiveSession();
           }
         }
       )
@@ -494,7 +497,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         <div className="text-center">
           <p className="text-xl text-red-600 mb-4">{t('common.error')}: {error}</p>
           <button
-            onClick={() => setView("student-dashboard")}
+            onClick={() => {
+              clearActiveSession();
+              setView("student-dashboard");
+            }}
             className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
           >
             {t('student.backToDashboard')}
@@ -751,7 +757,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             {t('session.quizCancelledByTeacher')}
           </p>
           <button
-            onClick={() => setView("student-dashboard")}
+            onClick={() => {
+              clearActiveSession();
+              setView("student-dashboard");
+            }}
             className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
           >
             {t('student.backToDashboard')}
@@ -780,7 +789,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <p className="text-gray-600 mb-6">{t('student.greatJob')}</p>
 
           <button
-            onClick={() => setView("student-dashboard")}
+            onClick={() => {
+              clearActiveSession();
+              setView("student-dashboard");
+            }}
             className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
           >
             {t('student.backToDashboard')}

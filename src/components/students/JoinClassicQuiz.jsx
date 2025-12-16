@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { ArrowLeft } from "lucide-react";
+import { saveActiveSession } from "../../utils/sessionPersistence";
 
 export default function JoinClassicQuiz({ appState, setView, error, setError, onBack, isApproved }) {
   const { t } = useTranslation();
@@ -201,6 +202,9 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         console.log('Participant created successfully:', participant);
       }
 
+      // Save session to localStorage for reconnection support
+      saveActiveSession(session.id, { pin: session.pin });
+
       // Navigate to quiz
       setView("student-quiz", session.id);
     } catch (err) {
@@ -233,6 +237,9 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
           throw participantError;
         }
       }
+
+      // Save session to localStorage for reconnection support
+      saveActiveSession(foundTeam.session_id);
 
       // Navigate to quiz
       setView("student-quiz", foundTeam.session_id);
@@ -278,6 +285,9 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
       } else {
         console.log('Team participant created successfully:', participant);
       }
+
+      // Save session to localStorage for reconnection support
+      saveActiveSession(session.id, { pin: session.pin });
 
       // Navigate to quiz
       setView("student-quiz", session.id);
