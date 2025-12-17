@@ -22,6 +22,7 @@ import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import ThemeSelector from "./ThemeSelector";
+import MediaUploadZone from "./MediaUploadZone";
 
 const getDefaultOptions = (type) =>
   type === "true_false"
@@ -305,8 +306,14 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     }));
   };
 
-  const handleMediaUpload = async (e, mediaType) => {
-    const file = e.target.files[0];
+  const handleMediaUpload = async (fileOrEvent, mediaType) => {
+    let file;
+    if (fileOrEvent.target && fileOrEvent.target.files) {
+      file = fileOrEvent.target.files[0];
+    } else {
+      file = fileOrEvent;
+    }
+
     if (!file) return;
 
     setUploading(true);
@@ -480,84 +487,39 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
           <label className="block text-sm font-medium mb-2">{t('quiz.mediaOptional')}</label>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              {questionForm.image_url ? (
-                <div className="relative">
-                  <img src={questionForm.image_url} alt="Preview" className="w-full h-24 object-cover rounded border" />
-                  <button
-                    onClick={() => removeMedia("image")}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
-                  <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">{t('quiz.image')}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleMediaUpload(e, "image")}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              )}
+              <MediaUploadZone
+                type="image"
+                accept="image/*"
+                currentUrl={questionForm.image_url}
+                onFileSelect={(file) => handleMediaUpload(file, "image")}
+                onRemove={() => removeMedia("image")}
+                uploading={uploading}
+              />
             </div>
 
             <div>
-              {questionForm.video_url ? (
-                <div className="relative">
-                  <video src={questionForm.video_url} className="w-full h-24 object-cover rounded border" controls />
-                  <button
-                    onClick={() => removeMedia("video")}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
-                  <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">{t('quiz.video')}</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleMediaUpload(e, "video")}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              )}
+              <MediaUploadZone
+                type="video"
+                accept="video/*"
+                currentUrl={questionForm.video_url}
+                onFileSelect={(file) => handleMediaUpload(file, "video")}
+                onRemove={() => removeMedia("video")}
+                uploading={uploading}
+              />
             </div>
 
             <div>
-              {questionForm.gif_url ? (
-                <div className="relative">
-                  <img src={questionForm.gif_url} alt="GIF Preview" className="w-full h-24 object-cover rounded border" />
-                  <button
-                    onClick={() => removeMedia("gif")}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-cyan-400">
-                  <Upload size={20} className="text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">{t('quiz.gif')}</span>
-                  <input
-                    type="file"
-                    accept="image/gif"
-                    onChange={(e) => handleMediaUpload(e, "gif")}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              )}
+              <MediaUploadZone
+                type="gif"
+                accept="image/gif"
+                currentUrl={questionForm.gif_url}
+                onFileSelect={(file) => handleMediaUpload(file, "gif")}
+                onRemove={() => removeMedia("gif")}
+                uploading={uploading}
+              />
             </div>
           </div>
-          {uploading && <p className="text-sm text-blue-700 mt-2">{t('common.uploading')}</p>}
+          {uploading && <p className="text-sm text-blue-700 mt-2 font-medium animate-pulse">{t('common.uploading')}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
