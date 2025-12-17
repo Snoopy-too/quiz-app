@@ -720,32 +720,32 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         </nav>
 
         <div className="container mx-auto p-6 max-w-5xl">
-          <div className="bg-white shadow-lg rounded-xl border border-gray-200">
+          <div className="shadow-lg rounded-xl border border-gray-200/20" style={{ background: 'linear-gradient(to bottom, #4a7c7e, #3d6668)' }}>
             {/* Improved Tab Navigation */}
-            <div className="flex rounded-t-xl overflow-hidden">
+            <div className="flex rounded-t-xl overflow-hidden bg-black/20 backdrop-blur-sm">
               <button
                 className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === "settings"
-                  ? "text-blue-700 bg-white border-blue-600"
-                  : "text-slate-500 bg-slate-100 border-transparent hover:text-blue-600 hover:bg-slate-50"
+                  ? "text-white border-white bg-white/10"
+                  : "text-gray-300 border-transparent hover:text-white hover:bg-white/5"
                   }`}
                 onClick={() => setActiveTab("settings")}
               >
-                <Settings size={18} className={activeTab === "settings" ? "text-blue-600" : "text-slate-400"} />
+                <Settings size={18} className={activeTab === "settings" ? "text-white" : "text-gray-400"} />
                 {t('nav.settings')}
               </button>
               <button
                 className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-200 border-b-2 ${activeTab === "questions"
-                  ? "text-blue-700 bg-white border-blue-600"
-                  : "text-slate-500 bg-slate-100 border-transparent hover:text-blue-600 hover:bg-slate-50"
+                  ? "text-white border-white bg-white/10"
+                  : "text-gray-300 border-transparent hover:text-white hover:bg-white/5"
                   }`}
                 onClick={() => setActiveTab("questions")}
               >
-                <HelpCircle size={18} className={activeTab === "questions" ? "text-blue-600" : "text-slate-400"} />
+                <HelpCircle size={18} className={activeTab === "questions" ? "text-white" : "text-gray-400"} />
                 {t('quiz.questions')}
                 <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${activeTab === "questions"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-slate-200 text-slate-600"
-                }`}>
+                  ? "bg-white text-teal-800"
+                  : "bg-gray-700 text-gray-300"
+                  }`}>
                   {questions.length}
                 </span>
               </button>
@@ -754,18 +754,43 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             <div className="p-6">
               {activeTab === "settings" ? (
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{t('quiz.title')}</label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
-                      placeholder={t('quiz.enterQuizTitle')}
-                    />
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('quiz.quizSettings')}</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{t('quiz.title')}</label>
+                        <input
+                          type="text"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
+                          placeholder={t('quiz.enterQuizTitle')}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{t('folder.folder')}</label>
+                        <select
+                          value={folderId}
+                          onChange={(e) => setFolderId(e.target.value)}
+                          className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
+                        >
+                          <option value="">{t('folder.noFolder')}</option>
+                          {folderOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        {folders.length === 0 && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            {t('folder.noFoldersMessage')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="border-t pt-4">
+                  <div className="bg-white rounded-lg shadow-sm p-6">
                     <ThemeSelector
                       selectedThemeId={themeId}
                       onThemeSelect={(id) => {
@@ -782,60 +807,40 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{t('folder.folder')}</label>
-                    <select
-                      value={folderId}
-                      onChange={(e) => setFolderId(e.target.value)}
-                      className="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300"
-                    >
-                      <option value="">{t('folder.noFolder')}</option>
-                      {folderOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    {folders.length === 0 && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        {t('folder.noFoldersMessage')}
-                      </p>
-                    )}
-                  </div>
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h3 className="font-semibold text-gray-700 mb-3">{t('nav.settings')}</h3>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isTemplate}
+                          onChange={(e) => setIsTemplate(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isTemplate')}</span>
+                      </label>
 
-                  <div className="border-t pt-4 space-y-3">
-                    <h3 className="font-semibold text-gray-700">{t('quiz.quizSettings')}</h3>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isTemplate}
-                        onChange={(e) => setIsTemplate(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">{t('quiz.isTemplate')}</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isPublic}
-                        onChange={(e) => setIsPublic(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm">{t('quiz.isPublic')}</span>
-                    </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isPublic}
+                          onChange={(e) => setIsPublic(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isPublic')}</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between text-white">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-800">
+                      <h2 className="text-lg font-semibold">
                         {t('quiz.questions')} ({questions.length})
                       </h2>
-                      <p className="text-sm text-gray-500">
-                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.totalPoints')}
+                      <p className="text-sm text-white/80">
+                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
                       </p>
                     </div>
                     <button
