@@ -6,23 +6,36 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
+    const dragCounter = useRef(0);
 
-    const handleDragOver = (e) => {
+    const handleDragEnter = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(true);
+        dragCounter.current += 1;
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+            setIsDragging(true);
+        }
     };
 
     const handleDragLeave = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragging(false);
+        dragCounter.current -= 1;
+        if (dragCounter.current === 0) {
+            setIsDragging(false);
+        }
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
     };
 
     const handleDrop = (e) => {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
+        dragCounter.current = 0;
 
         if (uploading) return;
 
@@ -32,8 +45,10 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
             if (accept) {
                 const fileType = file.type;
                 const acceptType = accept.replace('*', '');
+                // For image/*, acceptType is 'image/'
                 if (!fileType.startsWith(acceptType)) {
-                    // Could add error handling here, but for now just ignore
+                    // If accept is specific like 'image/gif' and file is 'image/gif', startsWith works.
+                    // If accept is 'video/*' and file is 'video/mp4', startsWith works.
                     return;
                 }
             }
@@ -85,6 +100,7 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
 
     return (
         <div
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}

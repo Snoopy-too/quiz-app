@@ -30,7 +30,8 @@
     "noDataAvailable": "No data available",
     "view": "View",
     "selected": "Selected",
-    "apply": "Apply"
+    "apply": "Apply",
+    "dropHere": "Drop here"
   },
   "nav": {
     "dashboard": "Dashboard",

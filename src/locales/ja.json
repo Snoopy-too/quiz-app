@@ -28,7 +28,8 @@
     "uploading": "アップロード中...",
     "saving": "保存中...",
     "noDataAvailable": "データがありません",
-    "view": "表示"
+    "view": "表示",
+    "dropHere": "ここにドロップ"
   },
   "nav": {
     "dashboard": "ダッシュボード",
