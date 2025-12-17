@@ -596,13 +596,13 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 <img
                   src={currentQuestion.image_url}
                   alt="Question"
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  className="max-w-[min(100%,28rem)] mx-auto rounded-lg shadow-lg mb-4"
                 />
               )}
               {currentQuestion.video_url && (
                 <AutoPlayVideo
                   src={currentQuestion.video_url}
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  className="max-w-[min(100%,28rem)] mx-auto rounded-lg shadow-lg mb-4"
                   reloadKey={currentQuestion.id}
                 />
               )}
@@ -610,7 +610,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 <img
                   src={currentQuestion.gif_url}
                   alt="GIF"
-                  className="max-w-md mx-auto rounded-lg shadow-lg mb-4"
+                  className="max-w-[min(100%,28rem)] mx-auto rounded-lg shadow-lg mb-4"
                 />
               )}
             </div>
