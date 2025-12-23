@@ -56,6 +56,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [folderId, setFolderId] = useState("");
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [isCourseMaterial, setIsCourseMaterial] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [folders, setFolders] = useState([]);
   const [activeTab, setActiveTab] = useState("settings");
@@ -92,7 +93,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     try {
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public")
+        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public, is_course_material")
         .eq("id", quizId)
         .single();
 
@@ -104,6 +105,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       setFolderId(quizData.folder_id || "");
       setIsTemplate(Boolean(quizData.is_template));
       setIsPublic(Boolean(quizData.is_public));
+      setIsCourseMaterial(quizData.is_course_material !== false);
 
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
@@ -433,6 +435,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         randomize_answers: false,
         is_template: isTemplate,
         is_public: isPublic,
+        is_course_material: isCourseMaterial,
       };
 
       const { error: updateError } = await supabase.from("quizzes").update(payload).eq("id", quizId);
@@ -790,6 +793,16 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isPublic')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isCourseMaterial}
+                          onChange={(e) => setIsCourseMaterial(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isCourseMaterial')}</span>
                       </label>
                     </div>
                   </div>

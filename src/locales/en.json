@@ -131,6 +131,7 @@
     "randomizeAnswers": "Randomize Answers",
     "isPublic": "Public Quiz",
     "isTemplate": "Template",
+    "isCourseMaterial": "Course Material",
     "questionCount": "{{count}} question",
     "questionCount_plural": "{{count}} questions",
     "addNewQuestion": "Add New Question",
@@ -501,7 +502,14 @@
     "deleteQuizTitle": "Delete Quiz",
     "deleteQuizMessage": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
     "errorTitle": "Error",
-    "errorDeletingQuiz": "Error deleting quiz: "
+    "errorDeletingQuiz": "Error deleting quiz: ",
+    "allQuizzes": "All Quizzes",
+    "courseQuizzes": "Course Material",
+    "nonCourseQuizzes": "Non-Course",
+    "type": "Type",
+    "courseAccuracy": "Course Accuracy",
+    "nonCourseAccuracy": "Non-Course Accuracy",
+    "overallAccuracy": "Overall Accuracy"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",

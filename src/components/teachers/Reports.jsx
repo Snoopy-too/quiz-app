@@ -22,6 +22,7 @@ export default function Reports({ setView, appState }) {
   const [studentPerformanceLoading, setStudentPerformanceLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [studentSortConfig, setStudentSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [reportTab, setReportTab] = useState('all'); // 'all' | 'course' | 'non-course'
 
   useEffect(() => {
     fetchTeacherQuizzes();
@@ -44,19 +45,23 @@ export default function Reports({ setView, appState }) {
 
       const studentIds = students.map(s => s.id);
 
-      // 2. Get all session participations for these students
+      // 2. Get all session participations for these students with quiz info
       const { data: participations, error: participationsError } = await supabase
         .from('session_participants')
         .select(`
           user_id,
           quiz_answers ( is_correct ),
-          session_id
+          session_id,
+          quiz_sessions (
+            quiz_id,
+            quizzes ( is_course_material )
+          )
         `)
         .in('user_id', studentIds);
 
       if (participationsError) throw participationsError;
 
-      // 3. Process the data
+      // 3. Process the data with course/non-course separation
       const performanceData = students.map(student => {
         const studentParticipations = participations.filter(p => p.user_id === student.id);
 
@@ -64,19 +69,39 @@ export default function Reports({ setView, appState }) {
 
         let totalCorrect = 0;
         let totalAnswered = 0;
+        let courseCorrect = 0;
+        let courseAnswered = 0;
+        let nonCourseCorrect = 0;
+        let nonCourseAnswered = 0;
 
         studentParticipations.forEach(p => {
-          totalCorrect += p.quiz_answers.filter(a => a.is_correct).length;
-          totalAnswered += p.quiz_answers.length;
+          const isCourseMaterial = p.quiz_sessions?.quizzes?.is_course_material !== false;
+          const correct = p.quiz_answers.filter(a => a.is_correct).length;
+          const answered = p.quiz_answers.length;
+
+          totalCorrect += correct;
+          totalAnswered += answered;
+
+          if (isCourseMaterial) {
+            courseCorrect += correct;
+            courseAnswered += answered;
+          } else {
+            nonCourseCorrect += correct;
+            nonCourseAnswered += answered;
+          }
         });
 
         const averageAccuracy = totalAnswered > 0 ? (totalCorrect / totalAnswered) * 100 : 0;
+        const courseAccuracy = courseAnswered > 0 ? (courseCorrect / courseAnswered) * 100 : 0;
+        const nonCourseAccuracy = nonCourseAnswered > 0 ? (nonCourseCorrect / nonCourseAnswered) * 100 : 0;
 
         return {
           student_id: student.id,
           name: student.name,
           quizzesParticipated,
           averageAccuracy: averageAccuracy.toFixed(1),
+          courseAccuracy: courseAccuracy.toFixed(1),
+          nonCourseAccuracy: nonCourseAccuracy.toFixed(1),
         };
       });
 
@@ -107,6 +132,7 @@ export default function Reports({ setView, appState }) {
           id,
           title,
           created_at,
+          is_course_material,
           quiz_sessions(id, status, created_at)
         `)
         .eq("created_by", user.user.id);
@@ -126,7 +152,8 @@ export default function Reports({ setView, appState }) {
           sessionCount: sessions.length,
           completedCount: completedSessions.length,
           latestSession,
-          mode: "Individual" // Default mode, can be updated if mode column exists
+          mode: "Individual", // Default mode, can be updated if mode column exists
+          isCourseMaterial: quiz.is_course_material !== false
         };
       })
         .filter(quiz => quiz.sessionCount > 0)
@@ -291,7 +318,7 @@ export default function Reports({ setView, appState }) {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedReports(quizzes.map(q => q.id));
+      setSelectedReports(filteredQuizzes.map(q => q.id));
     } else {
       setSelectedReports([]);
     }
@@ -373,6 +400,14 @@ export default function Reports({ setView, appState }) {
     if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
+  });
+
+  // Filter quizzes based on selected tab
+  const filteredQuizzes = sortedQuizzes.filter(quiz => {
+    if (reportTab === 'all') return true;
+    if (reportTab === 'course') return quiz.isCourseMaterial;
+    if (reportTab === 'non-course') return !quiz.isCourseMaterial;
+    return true;
   });
 
   const handleStudentSort = (key) => {
@@ -489,11 +524,17 @@ export default function Reports({ setView, appState }) {
                         onClick={() => handleStudentSort('averageAccuracy')}
                       >
                         <div className="flex items-center gap-1">
-                          {t("reports.averageAccuracy")}
+                          {t("reports.overallAccuracy")}
                           <span className="text-gray-400">
                             {studentSortConfig.key === 'averageAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
                           </span>
                         </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                        {t("reports.courseAccuracy")}
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                        {t("reports.nonCourseAccuracy")}
                       </th>
                     </tr>
                   </thead>
@@ -516,6 +557,20 @@ export default function Reports({ setView, appState }) {
                             {student.averageAccuracy}%
                           </span>
                         </td>
+                        <td className="px-6 py-4">
+                          <span className={`font-semibold ${student.courseAccuracy > 80 ? 'text-green-600' :
+                              student.courseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                            {student.courseAccuracy}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`font-semibold ${student.nonCourseAccuracy > 80 ? 'text-green-600' :
+                              student.nonCourseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                            {student.nonCourseAccuracy}%
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -527,9 +582,43 @@ export default function Reports({ setView, appState }) {
           {/* Quiz Selection */}
           {!selectedQuiz ? (
             <div>
-              <h2 className="text-2xl font-bold mb-6">{t("reports.quizReports")}</h2>
+              <h2 className="text-2xl font-bold mb-4">{t("reports.quizReports")}</h2>
 
-              {quizzes.length === 0 ? (
+              {/* Tab Navigation */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setReportTab('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    reportTab === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.allQuizzes")}
+                </button>
+                <button
+                  onClick={() => setReportTab('course')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    reportTab === 'course'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.courseQuizzes")}
+                </button>
+                <button
+                  onClick={() => setReportTab('non-course')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    reportTab === 'non-course'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.nonCourseQuizzes")}
+                </button>
+              </div>
+
+              {filteredQuizzes.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-md text-center py-12">
                   <p className="text-gray-600 mb-4">{t("reports.noQuizzesFound")}</p>
                   <button
@@ -547,7 +636,7 @@ export default function Reports({ setView, appState }) {
                         <th className="px-4 py-3 text-left w-12">
                           <input
                             type="checkbox"
-                            checked={selectedReports.length === quizzes.length && quizzes.length > 0}
+                            checked={selectedReports.length === filteredQuizzes.length && filteredQuizzes.length > 0}
                             onChange={handleSelectAll}
                             className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                           />
@@ -600,7 +689,7 @@ export default function Reports({ setView, appState }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedQuizzes.map((quiz) => (
+                      {filteredQuizzes.map((quiz) => (
                         <tr
                           key={quiz.id}
                           className="border-b hover:bg-blue-50 transition-colors"

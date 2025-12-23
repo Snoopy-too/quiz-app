@@ -68,6 +68,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [success, setSuccess] = useState(null);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [isCourseMaterial, setIsCourseMaterial] = useState(true);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
 
   // Bulk Edit State
@@ -376,6 +377,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             randomize_answers: false,
             is_template: isTemplate,
             is_public: isPublic,
+            is_course_material: isCourseMaterial,
           },
         ])
         .select("id")
@@ -413,6 +415,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       setQuestions([]);
       setIsTemplate(false);
       setIsPublic(false);
+      setIsCourseMaterial(true);
       setActiveTab("settings");
       resetQuestionForm();
       await fetchDefaultTheme();
@@ -726,6 +729,16 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isPublic')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isCourseMaterial}
+                          onChange={(e) => setIsCourseMaterial(e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isCourseMaterial')}</span>
                       </label>
                     </div>
                   </div>

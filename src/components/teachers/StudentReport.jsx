@@ -9,6 +9,7 @@ export default function StudentReport({ setView, studentId, appState }) {
   const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'course' | 'non-course'
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -29,7 +30,8 @@ export default function StudentReport({ setView, studentId, appState }) {
             quiz_sessions (
               created_at,
               quizzes (
-                title
+                title,
+                is_course_material
               )
             ),
             quiz_answers (
@@ -44,23 +46,48 @@ export default function StudentReport({ setView, studentId, appState }) {
           const totalAnswers = p.quiz_answers.length;
           const correctAnswers = p.quiz_answers.filter(a => a.is_correct).length;
           const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+          const isCourseMaterial = p.quiz_sessions.quizzes.is_course_material !== false;
           return {
             title: p.quiz_sessions.quizzes.title,
             date: new Date(p.quiz_sessions.created_at).toLocaleDateString(),
             score: p.score,
             accuracy: accuracy.toFixed(1),
+            isCourseMaterial,
           };
         });
 
+        // Separate course and non-course quizzes
+        const courseQuizzes = quizzesTaken.filter(q => q.isCourseMaterial);
+        const nonCourseQuizzes = quizzesTaken.filter(q => !q.isCourseMaterial);
+
+        // Calculate overall stats
         const totalQuizzes = quizzesTaken.length;
         const averageScore = totalQuizzes > 0 ? (quizzesTaken.reduce((acc, q) => acc + q.score, 0) / totalQuizzes).toFixed(0) : 0;
         const averageAccuracy = totalQuizzes > 0 ? (quizzesTaken.reduce((acc, q) => acc + parseFloat(q.accuracy), 0) / totalQuizzes).toFixed(1) : 0;
 
+        // Calculate course stats
+        const courseTotalQuizzes = courseQuizzes.length;
+        const courseAverageScore = courseTotalQuizzes > 0 ? (courseQuizzes.reduce((acc, q) => acc + q.score, 0) / courseTotalQuizzes).toFixed(0) : 0;
+        const courseAverageAccuracy = courseTotalQuizzes > 0 ? (courseQuizzes.reduce((acc, q) => acc + parseFloat(q.accuracy), 0) / courseTotalQuizzes).toFixed(1) : 0;
+
+        // Calculate non-course stats
+        const nonCourseTotalQuizzes = nonCourseQuizzes.length;
+        const nonCourseAverageScore = nonCourseTotalQuizzes > 0 ? (nonCourseQuizzes.reduce((acc, q) => acc + q.score, 0) / nonCourseTotalQuizzes).toFixed(0) : 0;
+        const nonCourseAverageAccuracy = nonCourseTotalQuizzes > 0 ? (nonCourseQuizzes.reduce((acc, q) => acc + parseFloat(q.accuracy), 0) / nonCourseTotalQuizzes).toFixed(1) : 0;
+
         setPerformanceData({
           quizzesTaken,
+          courseQuizzes,
+          nonCourseQuizzes,
           totalQuizzes,
           averageScore,
           averageAccuracy,
+          courseTotalQuizzes,
+          courseAverageScore,
+          courseAverageAccuracy,
+          nonCourseTotalQuizzes,
+          nonCourseAverageScore,
+          nonCourseAverageAccuracy,
         });
 
       } catch (err) {
@@ -94,18 +121,65 @@ export default function StudentReport({ setView, studentId, appState }) {
 
           {performanceData && (
             <>
+              {/* Tab Navigation */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.allQuizzes")}
+                </button>
+                <button
+                  onClick={() => setActiveTab('course')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'course'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.courseQuizzes")}
+                </button>
+                <button
+                  onClick={() => setActiveTab('non-course')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'non-course'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {t("reports.nonCourseQuizzes")}
+                </button>
+              </div>
+
+              {/* Stats Cards - show based on active tab */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <p className="text-sm text-gray-600">{t('studentReport.totalQuizzes')}</p>
-                  <p className="text-3xl font-bold text-blue-600">{performanceData.totalQuizzes}</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {activeTab === 'all' ? performanceData.totalQuizzes :
+                     activeTab === 'course' ? performanceData.courseTotalQuizzes :
+                     performanceData.nonCourseTotalQuizzes}
+                  </p>
                 </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <p className="text-sm text-gray-600">{t('studentReport.averageScore')}</p>
-                  <p className="text-3xl font-bold text-blue-700">{performanceData.averageScore}</p>
+                  <p className="text-3xl font-bold text-blue-700">
+                    {activeTab === 'all' ? performanceData.averageScore :
+                     activeTab === 'course' ? performanceData.courseAverageScore :
+                     performanceData.nonCourseAverageScore}
+                  </p>
                 </div>
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <p className="text-sm text-gray-600">{t('studentReport.averageAccuracy')}</p>
-                  <p className="text-3xl font-bold text-orange-600">{performanceData.averageAccuracy}%</p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {activeTab === 'all' ? performanceData.averageAccuracy :
+                     activeTab === 'course' ? performanceData.courseAverageAccuracy :
+                     performanceData.nonCourseAverageAccuracy}%
+                  </p>
                 </div>
               </div>
 
@@ -118,15 +192,27 @@ export default function StudentReport({ setView, studentId, appState }) {
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.dateTaken')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.score')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.accuracy')}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('reports.type')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {performanceData.quizzesTaken.map((quiz, index) => (
+                    {(activeTab === 'all' ? performanceData.quizzesTaken :
+                      activeTab === 'course' ? performanceData.courseQuizzes :
+                      performanceData.nonCourseQuizzes).map((quiz, index) => (
                       <tr key={index} className="border-b hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium">{quiz.title}</td>
                         <td className="px-6 py-4 text-gray-600">{quiz.date}</td>
                         <td className="px-6 py-4 text-green-600 font-semibold">{quiz.score}</td>
                         <td className="px-6 py-4 font-semibold">{quiz.accuracy}%</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            quiz.isCourseMaterial
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
