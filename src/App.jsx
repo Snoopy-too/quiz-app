@@ -6,6 +6,8 @@ import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import VerifyEmail from "./components/auth/VerifyEmail";
 import CompleteProfile from "./components/auth/CompleteProfile";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword";
 
 // Dashboards
 import StudentDashboard from "./components/dashboards/StudentDashboard";
@@ -182,6 +184,19 @@ export default function QuizApp() {
 
     const load = async () => {
       console.log('Loading initial session...');
+
+      // Check for password recovery URL (from email reset link)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const urlParams = new URLSearchParams(window.location.search);
+      const isRecovery = hashParams.get('type') === 'recovery' || urlParams.get('type') === 'recovery';
+
+      if (isRecovery) {
+        console.log('[load] Password recovery detected, redirecting to reset-password');
+        setView("reset-password");
+        // Clean up URL without reloading the page
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
 
       // Check if logout was just initiated - don't auto-login
       const logoutInitiated = sessionStorage.getItem('quizapp_logout_initiated');
@@ -507,6 +522,17 @@ export default function QuizApp() {
       <VerifyEmail
         setView={setView}
         setError={setError}
+        setSuccess={setSuccess}
+      />
+    );
+
+  if (view === "forgot-password")
+    return <ForgotPassword setView={setView} />;
+
+  if (view === "reset-password")
+    return (
+      <ResetPassword
+        setView={setView}
         setSuccess={setSuccess}
       />
     );

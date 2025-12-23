@@ -239,6 +239,16 @@ export default function Login({
               placeholder="••••••••"
               required
             />
+            <div className="mt-2 text-right">
+              <button
+                type="button"
+                onClick={() => setView("forgot-password")}
+                className="text-sm transition-colors hover:opacity-80"
+                style={{ color: '#2c5aa0' }}
+              >
+                {t('auth.forgotPassword') || 'Forgot Password?'}
+              </button>
+            </div>
           </div>
 
           <button
