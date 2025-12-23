@@ -68,8 +68,6 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [draggedQuestion, setDraggedQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [saveError, setSaveError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [saving, setSaving] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
@@ -415,11 +413,14 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const handleSaveQuiz = async (shouldExit = false) => {
     const exit = typeof shouldExit === 'boolean' ? shouldExit : false;
     setSaving(true);
-    setSaveError(null);
-    setSuccess(null);
 
     if (!title.trim()) {
-      setSaveError(t('quiz.quizTitleRequired'));
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.quizTitleRequired') || "Quiz title is required.",
+        type: "warning"
+      });
       setActiveTab("settings");
       setSaving(false);
       return;
@@ -446,9 +447,19 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         return;
       }
 
-      setSuccess("Changes saved!");
+      setAlertModal({
+        isOpen: true,
+        title: t('common.success'),
+        message: t('messages.changesSaved') || "Changes saved!",
+        type: "success"
+      });
     } catch (err) {
-      setSaveError(err.message);
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: err.message,
+        type: "error"
+      });
     } finally {
       setSaving(false);
     }
@@ -676,12 +687,6 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
               </button>
             </div>
           </div>
-          {(saveError || success) && (
-            <div className="mt-3">
-              {saveError && <p className="text-sm text-red-600">{saveError}</p>}
-              {success && <p className="text-sm text-green-600">{success}</p>}
-            </div>
-          )}
         </nav>
 
         <div className="container mx-auto p-6 max-w-5xl">

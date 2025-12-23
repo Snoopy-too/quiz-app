@@ -64,8 +64,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [questionError, setQuestionError] = useState(null);
   const [draggedQuestionIndex, setDraggedQuestionIndex] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
@@ -346,11 +344,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const handleSaveQuiz = async (shouldExit = false) => {
     const exit = typeof shouldExit === 'boolean' ? shouldExit : false;
     setSaving(true);
-    setError(null);
-    setSuccess(null);
 
     if (!title.trim()) {
-      setError("Quiz title is required.");
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.quizTitleRequired') || "Quiz title is required.",
+        type: "warning"
+      });
       setActiveTab("settings");
       setSaving(false);
       return;
@@ -359,7 +360,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) {
-        setError("You must be logged in to create a quiz.");
+        setAlertModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: "You must be logged in to create a quiz.",
+          type: "error"
+        });
         setSaving(false);
         return;
       }
@@ -409,7 +415,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         return;
       }
 
-      setSuccess("Quiz created successfully!");
+      setAlertModal({
+        isOpen: true,
+        title: t('common.success'),
+        message: t('messages.quizCreatedSuccess'),
+        type: "success"
+      });
       setTitle("");
       setFolderId("");
       setQuestions([]);
@@ -422,7 +433,12 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       setCustomThemeUrl(null);
       if (onQuizCreated) onQuizCreated();
     } catch (err) {
-      setError(err.message);
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: err.message,
+        type: "error"
+      });
     } finally {
       setSaving(false);
     }
@@ -611,12 +627,6 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               </button>
             </div>
           </div>
-          {(error || success) && (
-            <div className="mt-3">
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              {success && <p className="text-sm text-green-600">{success}</p>}
-            </div>
-          )}
         </nav>
 
         <div className="container mx-auto p-6 max-w-5xl">
