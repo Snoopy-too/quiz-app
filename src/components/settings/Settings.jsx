@@ -4,38 +4,80 @@ import { User, Lock, Camera, Save, Check } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import { useTranslation } from "react-i18next";
 
-// 30 default avatars using DiceBear API with different styles
+// 60 default avatars using DiceBear API with different styles
 const DEFAULT_AVATARS = [
+  // avataaars (1-5)
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar1",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar2",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar3",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar4",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar5",
+  // lorelei (6-10)
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Avatar6",
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Avatar7",
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Avatar8",
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Avatar9",
   "https://api.dicebear.com/7.x/lorelei/svg?seed=Avatar10",
+  // personas (11-15)
   "https://api.dicebear.com/7.x/personas/svg?seed=Avatar11",
   "https://api.dicebear.com/7.x/personas/svg?seed=Avatar12",
   "https://api.dicebear.com/7.x/personas/svg?seed=Avatar13",
   "https://api.dicebear.com/7.x/personas/svg?seed=Avatar14",
   "https://api.dicebear.com/7.x/personas/svg?seed=Avatar15",
+  // pixel-art (16-20)
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar16",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar17",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar18",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar19",
   "https://api.dicebear.com/7.x/pixel-art/svg?seed=Avatar20",
+  // big-ears (21-25)
   "https://api.dicebear.com/7.x/big-ears/svg?seed=Avatar21",
   "https://api.dicebear.com/7.x/big-ears/svg?seed=Avatar22",
   "https://api.dicebear.com/7.x/big-ears/svg?seed=Avatar23",
   "https://api.dicebear.com/7.x/big-ears/svg?seed=Avatar24",
   "https://api.dicebear.com/7.x/big-ears/svg?seed=Avatar25",
+  // bottts (26-30)
   "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar26",
   "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar27",
   "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar28",
   "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar29",
-  "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar30"
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Avatar30",
+  // adventurer (31-35)
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Avatar31",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Avatar32",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Avatar33",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Avatar34",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Avatar35",
+  // fun-emoji (36-40)
+  "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Avatar36",
+  "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Avatar37",
+  "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Avatar38",
+  "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Avatar39",
+  "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Avatar40",
+  // micah (41-45)
+  "https://api.dicebear.com/7.x/micah/svg?seed=Avatar41",
+  "https://api.dicebear.com/7.x/micah/svg?seed=Avatar42",
+  "https://api.dicebear.com/7.x/micah/svg?seed=Avatar43",
+  "https://api.dicebear.com/7.x/micah/svg?seed=Avatar44",
+  "https://api.dicebear.com/7.x/micah/svg?seed=Avatar45",
+  // notionists (46-50)
+  "https://api.dicebear.com/7.x/notionists/svg?seed=Avatar46",
+  "https://api.dicebear.com/7.x/notionists/svg?seed=Avatar47",
+  "https://api.dicebear.com/7.x/notionists/svg?seed=Avatar48",
+  "https://api.dicebear.com/7.x/notionists/svg?seed=Avatar49",
+  "https://api.dicebear.com/7.x/notionists/svg?seed=Avatar50",
+  // open-peeps (51-55)
+  "https://api.dicebear.com/7.x/open-peeps/svg?seed=Avatar51",
+  "https://api.dicebear.com/7.x/open-peeps/svg?seed=Avatar52",
+  "https://api.dicebear.com/7.x/open-peeps/svg?seed=Avatar53",
+  "https://api.dicebear.com/7.x/open-peeps/svg?seed=Avatar54",
+  "https://api.dicebear.com/7.x/open-peeps/svg?seed=Avatar55",
+  // thumbs (56-60)
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar56",
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar57",
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar58",
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar59",
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar60"
 ];
 
 export default function Settings({ setView, appState, setAppState }) {
