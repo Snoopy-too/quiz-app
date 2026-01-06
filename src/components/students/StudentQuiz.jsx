@@ -619,6 +619,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             {showAnswers ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 {currentQuestion.options?.map((opt, idx) => {
+                  // Skip empty options (no text and no image)
+                  if (!opt.text && !opt.image_url) return null;
+
                   const style = answerStyles[idx];
                   const IconComponent = style.icon;
 

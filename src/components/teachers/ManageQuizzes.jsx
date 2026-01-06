@@ -837,18 +837,13 @@ export default function ManageQuizzes({ setView, appState }) {
               <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{quiz.title}</h3>
 
               {/* Tags/Badges */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {badgeLabel && (
-                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-50 text-blue-800 border border-blue-100">
-                    {badgeLabel}
-                  </span>
-                )}
-                {quiz.categories?.name && (
+              {quiz.categories?.name && (
+                <div className="flex flex-wrap gap-2 mb-3">
                   <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {quiz.categories.name}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Meta info */}
               <div className="flex items-center gap-3 text-xs text-gray-500">

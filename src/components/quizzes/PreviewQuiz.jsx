@@ -419,6 +419,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
             showAnswers ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentQuestion.options?.map((opt, idx) => {
+                  // Skip empty options (no text and no image)
+                  if (!opt.text && !opt.image_url) return null;
+
                   const style = answerStyles[idx];
                   const IconComponent = style.icon;
 
@@ -485,6 +488,9 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
               {/* Show results */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {currentQuestion.options?.map((opt, idx) => {
+                  // Skip empty options (no text and no image)
+                  if (!opt.text && !opt.image_url) return null;
+
                   const style = answerStyles[idx];
                   const IconComponent = style.icon;
                   const isCorrect = opt.is_correct;
