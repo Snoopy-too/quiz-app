@@ -432,7 +432,15 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                         } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col md:flex-row items-center justify-center gap-3 relative`}
                     >
                       <IconComponent size={28} className="shrink-0" fill="white" />
-                      <span className="text-center">{opt.text}</span>
+                      {opt.image_url ? (
+                        <img
+                          src={opt.image_url}
+                          alt={opt.text || `Option ${idx + 1}`}
+                          className="max-h-24 md:max-h-32 object-contain rounded"
+                        />
+                      ) : (
+                        <span className="text-center">{opt.text}</span>
+                      )}
                     </button>
                   );
                 })}
@@ -488,7 +496,17 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                         } text-white p-6 rounded-lg relative`}
                     >
                       <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
-                      <div className="text-xl font-bold mt-8">{opt.text}</div>
+                      {opt.image_url ? (
+                        <div className="mt-8 flex justify-center">
+                          <img
+                            src={opt.image_url}
+                            alt={opt.text || `Option ${idx + 1}`}
+                            className="max-h-24 object-contain rounded"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-xl font-bold mt-8">{opt.text}</div>
+                      )}
                       {isCorrect && (
                         <div className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-2 font-bold">
                           ✓

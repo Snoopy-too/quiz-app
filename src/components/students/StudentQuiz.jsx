@@ -632,7 +632,15 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                         } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 relative`}
                     >
                       <IconComponent size={28} className="shrink-0" fill="white" />
-                      <span className="text-center">{opt.text}</span>
+                      {opt.image_url ? (
+                        <img
+                          src={opt.image_url}
+                          alt={opt.text || `Option ${idx + 1}`}
+                          className="max-h-24 sm:max-h-32 md:max-h-40 object-contain rounded"
+                        />
+                      ) : (
+                        <span className="text-center">{opt.text}</span>
+                      )}
                     </button>
                   );
                 })}
@@ -727,9 +735,20 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           {showCorrectAnswer && (
             <div className="mb-6">
               <p className="text-gray-600 mb-2">{t('student.theCorrectAnswerWas')}</p>
-              <p className="text-xl font-bold text-green-600">
-                {currentQuestion.options?.find((o) => o.is_correct)?.text}
-              </p>
+              {(() => {
+                const correctOpt = currentQuestion.options?.find((o) => o.is_correct);
+                return correctOpt?.image_url ? (
+                  <img
+                    src={correctOpt.image_url}
+                    alt={correctOpt.text || "Correct answer"}
+                    className="max-h-32 object-contain rounded mx-auto"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-green-600">
+                    {correctOpt?.text}
+                  </p>
+                );
+              })()}
             </div>
           )}
 

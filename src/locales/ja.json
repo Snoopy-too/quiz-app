@@ -164,7 +164,8 @@
     "copySuffix": "（コピー）",
     "revealingAnswersIn": "回答を表示中...",
     "getReady": "準備して！",
-    "revealing": "表示中"
+    "revealing": "表示中",
+    "importCSV": "CSVをインポート"
   },
   "folder": {
     "folder": "フォルダー",

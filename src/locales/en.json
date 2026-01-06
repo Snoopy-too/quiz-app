@@ -166,7 +166,8 @@
     "copySuffix": "(Copy)",
     "revealingAnswersIn": "Revealing answers in...",
     "getReady": "Get ready!",
-    "revealing": "Revealing"
+    "revealing": "Revealing",
+    "importCSV": "Import CSV"
   },
   "folder": {
     "folder": "Folder",

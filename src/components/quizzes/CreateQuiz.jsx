@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import MediaUploadZone from "./MediaUploadZone";
@@ -16,7 +16,10 @@ import {
   Copy,
   Settings,
   HelpCircle,
+  FileSpreadsheet,
+  ImageIcon,
 } from "lucide-react";
+import { parseKahootCSV } from "../../utils/csvQuizParser";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
 import ThemeSelector from "./ThemeSelector";
@@ -27,14 +30,14 @@ const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).sl
 const getDefaultOptions = (type) =>
   type === "true_false"
     ? [
-      { text: "True", is_correct: false },
-      { text: "False", is_correct: false },
+      { text: "True", is_correct: false, image_url: "" },
+      { text: "False", is_correct: false, image_url: "" },
     ]
     : [
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
     ];
 
 const createEmptyQuestion = (type = "multiple_choice") => ({
@@ -68,6 +71,13 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [isPublic, setIsPublic] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+
+  // CSV Import ref
+  const csvInputRef = useRef(null);
+
+  // Option image upload refs and state
+  const optionImageRefs = useRef([]);
+  const [uploadingOptionIndex, setUploadingOptionIndex] = useState(null);
 
   // Bulk Edit State
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
@@ -261,6 +271,33 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     }));
   };
 
+  const handleOptionImageUpload = async (e, optionIndex) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOptionIndex(optionIndex);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        updateOption(optionIndex, "image_url", url);
+      }
+    } catch (err) {
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.errorUploadingFile') + ": " + err.message,
+        type: "error"
+      });
+    } finally {
+      setUploadingOptionIndex(null);
+      e.target.value = '';
+    }
+  };
+
+  const removeOptionImage = (optionIndex) => {
+    updateOption(optionIndex, "image_url", "");
+  };
+
   const handleSaveQuestion = () => {
     if (!questionForm.question_text.trim()) {
       setAlertModal({
@@ -302,6 +339,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       options: questionForm.options.map((opt) => ({
         text: opt.text.trim(),
         is_correct: opt.is_correct,
+        image_url: opt.image_url || "",
       })),
     };
 
@@ -339,6 +377,62 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       return reordered;
     });
     setDraggedQuestionIndex(null);
+  };
+
+  const handleCSVUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const csvContent = event.target?.result;
+        if (typeof csvContent !== 'string') {
+          throw new Error('Failed to read file');
+        }
+
+        const { title: csvTitle, questions: csvQuestions } = parseKahootCSV(csvContent);
+
+        // Set title if empty
+        if (!title.trim() && csvTitle) {
+          setTitle(csvTitle);
+        }
+
+        // Append questions to existing ones
+        setQuestions((prev) => [...prev, ...csvQuestions]);
+
+        setAlertModal({
+          isOpen: true,
+          title: t('common.success'),
+          message: `${csvQuestions.length} ${t('quiz.questions').toLowerCase()} imported successfully.`,
+          type: "success"
+        });
+
+        // Switch to questions tab to show imported questions
+        setActiveTab("questions");
+      } catch (err) {
+        setAlertModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: `Failed to parse CSV: ${err.message}`,
+          type: "error"
+        });
+      }
+    };
+
+    reader.onerror = () => {
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: 'Failed to read file',
+        type: "error"
+      });
+    };
+
+    reader.readAsText(file);
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
   };
 
   const handleSaveQuiz = async (shouldExit = false) => {
@@ -557,12 +651,51 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           <div className="space-y-2">
             {questionForm.options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 items-center">
+                {opt.image_url ? (
+                  <div className="relative w-16 h-16 flex-shrink-0">
+                    <img
+                      src={opt.image_url}
+                      alt={`Option ${idx + 1}`}
+                      className="w-full h-full object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOptionImage(idx)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={(el) => (optionImageRefs.current[idx] = el)}
+                      onChange={(e) => handleOptionImageUpload(e, idx)}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => optionImageRefs.current[idx]?.click()}
+                      disabled={uploadingOptionIndex === idx}
+                      className="w-10 h-10 flex-shrink-0 border rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-400 disabled:opacity-50"
+                      title="Upload image for this option"
+                    >
+                      {uploadingOptionIndex === idx ? (
+                        <span className="animate-spin text-xs">...</span>
+                      ) : (
+                        <ImageIcon size={18} />
+                      )}
+                    </button>
+                  </>
+                )}
                 <input
                   type="text"
                   value={opt.text}
                   onChange={(e) => updateOption(idx, "text", e.target.value)}
                   className="flex-1 border rounded px-3 py-2"
-                  placeholder={`${t('quiz.option')} ${idx + 1}`}
+                  placeholder={opt.image_url ? "(optional text)" : `${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
                 <label className="flex items-center gap-2 whitespace-nowrap">
@@ -764,13 +897,29 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
                       </p>
                     </div>
-                    <button
-                      onClick={handleAddQuestion}
-                      className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
-                    >
-                      <Plus size={16} />
-                      {t('quiz.addQuestion')}
-                    </button>
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        ref={csvInputRef}
+                        accept=".csv"
+                        onChange={handleCSVUpload}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => csvInputRef.current?.click()}
+                        className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <FileSpreadsheet size={16} />
+                        {t('quiz.importCSV') || 'Import CSV'}
+                      </button>
+                      <button
+                        onClick={handleAddQuestion}
+                        className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Plus size={16} />
+                        {t('quiz.addQuestion')}
+                      </button>
+                    </div>
                   </div>
 
                   {questions.length === 0 ? (
@@ -780,12 +929,21 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('quiz.noQuestions')}</h3>
                       <p className="text-gray-600 mb-6">Start building your quiz by adding questions.</p>
-                      <button
-                        onClick={handleAddQuestion}
-                        className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
-                      >
-                        {t('quiz.addQuestion')}
-                      </button>
+                      <div className="flex justify-center gap-3">
+                        <button
+                          onClick={handleAddQuestion}
+                          className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
+                        >
+                          {t('quiz.addQuestion')}
+                        </button>
+                        <button
+                          onClick={() => csvInputRef.current?.click()}
+                          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition font-medium flex items-center gap-2"
+                        >
+                          <FileSpreadsheet size={18} />
+                          {t('quiz.importCSV') || 'Import CSV'}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -993,12 +1151,20 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                           {option.is_correct && (
                                             <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                                           )}
-                                          <span
-                                            className={`text-sm ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
-                                              }`}
-                                          >
-                                            {option.text || <em className="text-gray-400">No answer text</em>}
-                                          </span>
+                                          {option.image_url ? (
+                                            <img
+                                              src={option.image_url}
+                                              alt={option.text || `Option ${optionIndex + 1}`}
+                                              className="w-full h-20 object-contain rounded"
+                                            />
+                                          ) : (
+                                            <span
+                                              className={`text-sm ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
+                                                }`}
+                                            >
+                                              {option.text || <em className="text-gray-400">No answer text</em>}
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                     ))}

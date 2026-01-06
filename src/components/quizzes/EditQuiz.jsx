@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import {
@@ -16,6 +16,7 @@ import {
   Award,
   Settings,
   HelpCircle,
+  ImageIcon,
 } from "lucide-react";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
@@ -27,14 +28,14 @@ import MediaUploadZone from "./MediaUploadZone";
 const getDefaultOptions = (type) =>
   type === "true_false"
     ? [
-      { text: "True", is_correct: false },
-      { text: "False", is_correct: false },
+      { text: "True", is_correct: false, image_url: "" },
+      { text: "False", is_correct: false, image_url: "" },
     ]
     : [
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
+      { text: "", is_correct: false, image_url: "" },
     ];
 
 const createEmptyQuestion = (type = "multiple_choice") => ({
@@ -71,6 +72,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [saving, setSaving] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+
+  // Option image upload refs and state
+  const optionImageRefs = useRef([]);
+  const [uploadingOptionIndex, setUploadingOptionIndex] = useState(null);
 
   // Bulk Edit State
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
@@ -232,6 +237,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         options: questionForm.options.map((opt) => ({
           text: opt.text.trim(),
           is_correct: opt.is_correct,
+          image_url: opt.image_url || "",
         })),
         image_url: questionForm.image_url || null,
         video_url: questionForm.video_url || null,
@@ -345,6 +351,33 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       ...prev,
       [`${mediaType}_url`]: "",
     }));
+  };
+
+  const handleOptionImageUpload = async (e, optionIndex) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOptionIndex(optionIndex);
+    try {
+      const url = await uploadImage(file);
+      if (url) {
+        updateOption(optionIndex, "image_url", url);
+      }
+    } catch (err) {
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('quiz.errorUploadingFile') + ": " + err.message,
+        type: "error"
+      });
+    } finally {
+      setUploadingOptionIndex(null);
+      e.target.value = '';
+    }
+  };
+
+  const removeOptionImage = (optionIndex) => {
+    updateOption(optionIndex, "image_url", "");
   };
 
   const handleDuplicateQuestion = async (question) => {
@@ -578,12 +611,51 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
           <div className="space-y-2">
             {questionForm.options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 items-center">
+                {opt.image_url ? (
+                  <div className="relative w-16 h-16 flex-shrink-0">
+                    <img
+                      src={opt.image_url}
+                      alt={`Option ${idx + 1}`}
+                      className="w-full h-full object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOptionImage(idx)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={(el) => (optionImageRefs.current[idx] = el)}
+                      onChange={(e) => handleOptionImageUpload(e, idx)}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => optionImageRefs.current[idx]?.click()}
+                      disabled={uploadingOptionIndex === idx}
+                      className="w-10 h-10 flex-shrink-0 border rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-400 disabled:opacity-50"
+                      title="Upload image for this option"
+                    >
+                      {uploadingOptionIndex === idx ? (
+                        <span className="animate-spin text-xs">...</span>
+                      ) : (
+                        <ImageIcon size={18} />
+                      )}
+                    </button>
+                  </>
+                )}
                 <input
                   type="text"
                   value={opt.text}
                   onChange={(e) => updateOption(idx, "text", e.target.value)}
                   className="flex-1 border rounded px-3 py-2"
-                  placeholder={`${t('quiz.option')} ${idx + 1}`}
+                  placeholder={opt.image_url ? "(optional text)" : `${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
                 <label className="flex items-center gap-2 whitespace-nowrap">
@@ -1095,12 +1167,20 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                           {opt.is_correct && (
                                             <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                                           )}
-                                          <span
-                                            className={`text-sm ${opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
-                                              }`}
-                                          >
-                                            {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}
-                                          </span>
+                                          {opt.image_url ? (
+                                            <img
+                                              src={opt.image_url}
+                                              alt={opt.text || `Option ${idx + 1}`}
+                                              className="w-full h-20 object-contain rounded"
+                                            />
+                                          ) : (
+                                            <span
+                                              className={`text-sm ${opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
+                                                }`}
+                                            >
+                                              {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                     ))}
