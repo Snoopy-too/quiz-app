@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone } from "lucide-react";
+import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone, UserPlus, Link } from "lucide-react";
 import { generateTeamCode } from "../../utils/teamCode";
+import JoinTeam from "./JoinTeam";
 
 export default function CreateTeam({ appState, setView, error, setError, onBack, isApproved }) {
   const { t } = useTranslation();
@@ -22,6 +23,10 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   const [showTeamCode, setShowTeamCode] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Team mode options state
+  const [showTeamOptions, setShowTeamOptions] = useState(false);
+  const [showJoinTeam, setShowJoinTeam] = useState(false);
 
 
 
@@ -104,6 +109,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       }
 
       setSession(foundSession);
+      setShowTeamOptions(true); // Show Create/Join options after PIN verification
     } catch (err) {
       console.error("Error verifying PIN:", err);
       setError(err.message);
@@ -245,6 +251,77 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
     setTimeout(() => setCodeCopied(false), 2000);
   };
 
+  // Handle "Join Team by Code" flow
+  if (showJoinTeam && session) {
+    return (
+      <JoinTeam
+        appState={appState}
+        setView={setView}
+        session={session}
+        onBack={() => {
+          setShowJoinTeam(false);
+          setShowTeamOptions(true);
+        }}
+      />
+    );
+  }
+
+  // TEAM MODE OPTIONS SCREEN (Create vs Join)
+  if (showTeamOptions && session) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+          <button
+            onClick={() => {
+              setShowTeamOptions(false);
+              setSession(null);
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+          >
+            <ArrowLeft size={20} />
+            {t('common.back')}
+          </button>
+
+          <div className="text-5xl mb-4">👥</div>
+          <h1 className="text-2xl font-bold mb-2">{t('student.teamModeQuiz')}</h1>
+          <p className="text-gray-600 mb-6">{t('student.teamModeDescription')}</p>
+
+          <div className="space-y-4">
+            {/* Create Team Option */}
+            <button
+              onClick={() => {
+                setShowTeamOptions(false);
+                // Continue to team creation form
+              }}
+              className="w-full bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+            >
+              <UserPlus size={24} />
+              <div className="text-left">
+                <div className="font-bold text-lg">{t('student.createNewTeam')}</div>
+                <div className="text-sm opacity-90">{t('student.createNewTeamDesc')}</div>
+              </div>
+            </button>
+
+            {/* Join Team Option */}
+            <button
+              onClick={() => {
+                setShowTeamOptions(false);
+                setShowJoinTeam(true);
+              }}
+              className="w-full bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-3"
+            >
+              <Link size={24} />
+              <div className="text-left">
+                <div className="font-bold text-lg">{t('student.joinExistingTeam')}</div>
+                <div className="text-sm opacity-90">{t('student.joinExistingTeamDesc')}</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // TEAM CODE DISPLAY SCREEN (for Separate Devices mode)
   if (showTeamCode) {
     return (
@@ -297,8 +374,8 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             {t('student.backToDashboard')}
           </button>
 
-          <h1 className="text-3xl font-bold mb-2">{t('student.createTeam')}</h1>
-          <p className="text-gray-600 mb-6">Enter the Quiz PIN to create a team for that session.</p>
+          <h1 className="text-3xl font-bold mb-2">{t('student.teamQuiz')}</h1>
+          <p className="text-gray-600 mb-6">{t('student.enterPinForTeamQuiz')}</p>
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">

@@ -34,7 +34,8 @@
     "dropHere": "Drop here",
     "copied": "Copied!",
     "copyCode": "Copy Code",
-    "searching": "Searching..."
+    "searching": "Searching...",
+    "actions": "Actions"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -345,7 +346,8 @@
     "joinAsTeamMember": "Join as Team Member",
     "yourTeamIsAlreadyInSession": "Your team \"{{teamName}}\" is already in this session",
     "teamQuiz": "Team Quiz",
-    "teamQuizDescription": "Create or join a team for team quizzes"
+    "teamQuizDescription": "Create or join a team for team quizzes",
+    "enterPinForTeamQuiz": "Enter the Quiz PIN to create or join a team"
   },
   "theme": {
     "themes": "Themes",
@@ -554,7 +556,14 @@
     "quizTitle": "Quiz Title",
     "dateTaken": "Date Taken",
     "score": "Score",
-    "accuracy": "Accuracy"
+    "accuracy": "Accuracy",
+    "deleteResultTitle": "Delete Quiz Result",
+    "deleteResultMessage": "Are you sure you want to delete the result for \"{{title}}\" taken on {{date}}? This action cannot be undone.",
+    "resultDeleted": "Quiz result deleted successfully",
+    "deleteError": "Failed to delete result",
+    "toggleType": "Toggle Type",
+    "typeUpdated": "Quiz type changed to {{type}}",
+    "typeUpdateError": "Failed to update quiz type"
   },
   "manageStudents": {
     "title": "Manage Students",

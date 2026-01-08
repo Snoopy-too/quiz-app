@@ -46,6 +46,7 @@ export default function StudentResults({ appState, onBack }) {
           quiz_sessions (
             id,
             pin,
+            status,
             created_at,
             quiz_id,
             quizzes (
@@ -60,9 +61,14 @@ export default function StudentResults({ appState, onBack }) {
 
       if (participantError) throw participantError;
 
+      // Filter out cancelled sessions - only show completed quizzes
+      const completedParticipantData = participantData.filter(
+        p => p.quiz_sessions?.status === 'completed'
+      );
+
       // For each session, fetch the answers
       const historyWithDetails = await Promise.all(
-        participantData.map(async (participant) => {
+        completedParticipantData.map(async (participant) => {
           const { data: answers, error: answersError } = await supabase
             .from("quiz_answers")
             .select("*")

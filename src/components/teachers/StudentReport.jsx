@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useTranslation } from 'react-i18next';
 import VerticalNav from '../layout/VerticalNav';
+import { Trash2, RefreshCw } from 'lucide-react';
+import ConfirmModal from '../common/ConfirmModal';
+import AlertModal from '../common/AlertModal';
 
 export default function StudentReport({ setView, studentId, appState }) {
   const { t } = useTranslation();
@@ -10,9 +13,10 @@ export default function StudentReport({ setView, studentId, appState }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'course' | 'non-course'
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
-  useEffect(() => {
-    const fetchStudentData = async () => {
+  const fetchStudentData = async () => {
       try {
         const { data: studentData, error: studentError } = await supabase
           .from('users')
@@ -26,10 +30,15 @@ export default function StudentReport({ setView, studentId, appState }) {
         const { data: participations, error: participationsError } = await supabase
           .from('session_participants')
           .select(`
+            id,
             score,
+            session_id,
             quiz_sessions (
               created_at,
+              status,
+              quiz_id,
               quizzes (
+                id,
                 title,
                 is_course_material
               )
@@ -42,12 +51,20 @@ export default function StudentReport({ setView, studentId, appState }) {
 
         if (participationsError) throw participationsError;
 
-        const quizzesTaken = participations.map(p => {
+        // Filter out cancelled sessions - only include completed quizzes
+        const completedParticipations = participations.filter(
+          p => p.quiz_sessions?.status === 'completed'
+        );
+
+        const quizzesTaken = completedParticipations.map(p => {
           const totalAnswers = p.quiz_answers.length;
           const correctAnswers = p.quiz_answers.filter(a => a.is_correct).length;
           const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
           const isCourseMaterial = p.quiz_sessions.quizzes.is_course_material !== false;
           return {
+            participantId: p.id,
+            sessionId: p.session_id,
+            quizId: p.quiz_sessions.quizzes.id,
             title: p.quiz_sessions.quizzes.title,
             date: new Date(p.quiz_sessions.created_at).toLocaleDateString(),
             score: p.score,
@@ -95,12 +112,113 @@ export default function StudentReport({ setView, studentId, appState }) {
       } finally {
         setLoading(false);
       }
-    };
+  };
 
+  useEffect(() => {
     if (studentId) {
       fetchStudentData();
+    } else {
+      // No studentId provided (e.g., page refresh) - redirect to reports
+      setView('reports');
     }
   }, [studentId]);
+
+  // Delete a student's quiz result
+  const handleDeleteResult = (quiz) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t('studentReport.deleteResultTitle'),
+      message: t('studentReport.deleteResultMessage', { title: quiz.title, date: quiz.date }),
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          console.log('[StudentReport] Deleting quiz result for participant:', quiz.participantId);
+
+          // Delete quiz answers for this participant
+          const { error: answersError, count: answersDeleted } = await supabase
+            .from('quiz_answers')
+            .delete()
+            .eq('participant_id', quiz.participantId)
+            .select();
+
+          console.log('[StudentReport] Answers delete result:', { answersError, answersDeleted });
+
+          if (answersError) {
+            console.error('[StudentReport] Error deleting answers:', answersError);
+          }
+
+          // Delete the session participant record
+          const { data: deletedParticipant, error: participantError } = await supabase
+            .from('session_participants')
+            .delete()
+            .eq('id', quiz.participantId)
+            .select();
+
+          console.log('[StudentReport] Participant delete result:', { deletedParticipant, participantError });
+
+          if (participantError) {
+            throw participantError;
+          }
+
+          // Check if deletion actually happened
+          if (!deletedParticipant || deletedParticipant.length === 0) {
+            throw new Error('Record not deleted - you may not have permission to delete this result');
+          }
+
+          setAlertModal({
+            isOpen: true,
+            title: t('common.success'),
+            message: t('studentReport.resultDeleted'),
+            type: 'success'
+          });
+
+          // Refresh the data
+          fetchStudentData();
+        } catch (err) {
+          console.error('[StudentReport] Delete error:', err);
+          setAlertModal({
+            isOpen: true,
+            title: t('common.error'),
+            message: t('studentReport.deleteError') + ': ' + err.message,
+            type: 'error'
+          });
+        }
+      }
+    });
+  };
+
+  // Toggle quiz type between Course Material and Non-Course
+  const handleToggleType = async (quiz) => {
+    try {
+      const newIsCourseMaterial = !quiz.isCourseMaterial;
+
+      const { error } = await supabase
+        .from('quizzes')
+        .update({ is_course_material: newIsCourseMaterial })
+        .eq('id', quiz.quizId);
+
+      if (error) throw error;
+
+      setAlertModal({
+        isOpen: true,
+        title: t('common.success'),
+        message: t('studentReport.typeUpdated', {
+          type: newIsCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')
+        }),
+        type: 'success'
+      });
+
+      // Refresh the data
+      fetchStudentData();
+    } catch (err) {
+      setAlertModal({
+        isOpen: true,
+        title: t('common.error'),
+        message: t('studentReport.typeUpdateError') + ': ' + err.message,
+        type: 'error'
+      });
+    }
+  };
 
   if (loading) {
     return <div className="p-6">{t('loading')}</div>;
@@ -193,13 +311,14 @@ export default function StudentReport({ setView, studentId, appState }) {
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.score')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.accuracy')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('reports.type')}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(activeTab === 'all' ? performanceData.quizzesTaken :
                       activeTab === 'course' ? performanceData.courseQuizzes :
                       performanceData.nonCourseQuizzes).map((quiz, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50">
+                      <tr key={quiz.participantId || index} className="border-b hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium">{quiz.title}</td>
                         <td className="px-6 py-4 text-gray-600">{quiz.date}</td>
                         <td className="px-6 py-4 text-green-600 font-semibold">{quiz.score}</td>
@@ -213,6 +332,24 @@ export default function StudentReport({ setView, studentId, appState }) {
                             {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
                           </span>
                         </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleType(quiz)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title={t('studentReport.toggleType')}
+                            >
+                              <RefreshCw size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResult(quiz)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title={t('common.delete')}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -222,6 +359,23 @@ export default function StudentReport({ setView, studentId, appState }) {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="danger"
+      />
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
     </div>
   );
 }

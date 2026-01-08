@@ -54,6 +54,7 @@ export default function Reports({ setView, appState }) {
           session_id,
           quiz_sessions (
             quiz_id,
+            status,
             quizzes ( is_course_material )
           )
         `)
@@ -61,9 +62,14 @@ export default function Reports({ setView, appState }) {
 
       if (participationsError) throw participationsError;
 
+      // Filter out cancelled sessions - only include completed quizzes
+      const completedParticipations = participations.filter(
+        p => p.quiz_sessions?.status === 'completed'
+      );
+
       // 3. Process the data with course/non-course separation
       const performanceData = students.map(student => {
-        const studentParticipations = participations.filter(p => p.user_id === student.id);
+        const studentParticipations = completedParticipations.filter(p => p.user_id === student.id);
 
         const quizzesParticipated = new Set(studentParticipations.map(p => p.session_id)).size;
 
@@ -179,8 +185,11 @@ export default function Reports({ setView, appState }) {
 
       if (sessError) throw sessError;
 
-      // Get all participants
-      const sessionIds = sessions?.map(s => s.id) || [];
+      // Filter to only completed sessions for statistics
+      const completedSessions = sessions?.filter(s => s.status === 'completed') || [];
+
+      // Get all participants (only from completed sessions)
+      const sessionIds = completedSessions.map(s => s.id);
       const { data: participants, error: partError } = await supabase
         .from("session_participants")
         .select(`
@@ -218,8 +227,8 @@ export default function Reports({ setView, appState }) {
 
       if (qErr) throw qErr;
 
-      // Calculate statistics
-      const totalSessions = sessions?.length || 0;
+      // Calculate statistics (only from completed sessions)
+      const totalSessions = completedSessions.length;
       const totalParticipants = participants?.length || 0;
       const totalAnswers = answers?.length || 0;
       const correctAnswers = answers?.filter(a => a.is_correct).length || 0;
@@ -292,7 +301,7 @@ export default function Reports({ setView, appState }) {
         overallAccuracy,
         questionAnalytics,
         studentPerformance,
-        sessions: sessions?.filter(s => s.status === "completed").length || 0
+        sessions: completedSessions.length
       });
 
       setLoading(false);
