@@ -343,7 +343,9 @@
     "teamIsSharedDevice": "This team is playing on a shared device. Ask your captain to join their device.",
     "alreadyInSession": "You have already joined this quiz session.",
     "joinAsTeamMember": "Join as Team Member",
-    "yourTeamIsAlreadyInSession": "Your team \"{{teamName}}\" is already in this session"
+    "yourTeamIsAlreadyInSession": "Your team \"{{teamName}}\" is already in this session",
+    "teamQuiz": "Team Quiz",
+    "teamQuizDescription": "Create or join a team for team quizzes"
   },
   "theme": {
     "themes": "Themes",
@@ -425,6 +427,7 @@
   },
   "actions": {
     "start": "Start",
+    "enter": "Enter",
     "preview": "Preview",
     "duplicate": "Duplicate",
     "archive": "Archive",

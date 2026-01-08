@@ -193,7 +193,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                   </div>
                 </div>
 
-                {/* Card 2: Create Team */}
+                {/* Card 2: Team Quiz */}
                 <div
                   onClick={isApproved ? () => setCurrentView("create-team") : undefined}
                   className={`bg-white rounded-2xl shadow-2xl p-8 transition-transform duration-200 flex flex-col items-center text-center ${
@@ -206,11 +206,11 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                     <Users size={48} className="text-blue-600" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    {t('student.createTeam')}
+                    {t('student.teamQuiz')}
                   </h2>
                   <p className="text-gray-600 mb-4">
                     {isApproved
-                      ? t('student.formTeamWithClassmates')
+                      ? t('student.teamQuizDescription')
                       : t('student.disabledUntilApproved')}
                   </p>
                   <div className="mt-auto">
@@ -221,7 +221,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                           : "bg-gray-300 text-gray-600"
                       }`}
                     >
-                      {t('common.create')}
+                      {t('actions.enter')}
                     </span>
                   </div>
                 </div>
