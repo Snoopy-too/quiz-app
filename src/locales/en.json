@@ -31,7 +31,10 @@
     "view": "View",
     "selected": "Selected",
     "apply": "Apply",
-    "dropHere": "Drop here"
+    "dropHere": "Drop here",
+    "copied": "Copied!",
+    "copyCode": "Copy Code",
+    "searching": "Searching..."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -313,7 +316,34 @@
     "seeQuizHistoryAndScores": "See your quiz history and scores",
     "comingSoon": "Coming Soon",
     "selectTeam": "Select Team",
-    "selectTeamDescription": "Choose which team you want to represent in this quiz:"
+    "selectTeamDescription": "Choose which team you want to represent in this quiz:",
+    "shareCodeWithTeammates": "Share this code with your teammates so they can join!",
+    "yourTeamCode": "Your Team Code",
+    "teammatesEnterCode": "Your teammates can enter this code after selecting 'Join Team' on the quiz entry screen.",
+    "continueToQuiz": "Continue to Quiz",
+    "howWillTeamPlay": "How will your team play?",
+    "separateDevices": "Separate Devices",
+    "separateDevicesDesc": "Each member plays on their own device",
+    "sharedDevice": "Shared Device",
+    "sharedDeviceDesc": "Play together on one device",
+    "teamModeQuiz": "Team Mode Quiz",
+    "teamModeDescription": "This quiz is in team mode. Create a new team or join an existing one.",
+    "createNewTeam": "Create a New Team",
+    "createNewTeamDesc": "Be the captain and invite teammates",
+    "joinExistingTeam": "Join Existing Team",
+    "joinExistingTeamDesc": "Enter a team code from your captain",
+    "enterTeamCodeFromCaptain": "Ask your team captain for the 4-character code",
+    "teamCodePlaceholder": "ABCD",
+    "findTeam": "Find Team",
+    "teamFound": "Team Found!",
+    "teamCode": "Team Code",
+    "joinTeam": "Join Team",
+    "enterValid4CharCode": "Please enter a valid 4-character team code",
+    "teamNotFound": "Team not found. Check the code and try again.",
+    "teamIsSharedDevice": "This team is playing on a shared device. Ask your captain to join their device.",
+    "alreadyInSession": "You have already joined this quiz session.",
+    "joinAsTeamMember": "Join as Team Member",
+    "yourTeamIsAlreadyInSession": "Your team \"{{teamName}}\" is already in this session"
   },
   "theme": {
     "themes": "Themes",
@@ -380,7 +410,8 @@
     "errorJoiningQuiz": "Error joining quiz",
     "couldNotFindTeacher": "Could not find your teacher. Please contact support.",
     "failedToLoadClassmates": "Failed to load classmates",
-    "failedToCreateTeam": "Failed to create team"
+    "failedToCreateTeam": "Failed to create team",
+    "failedToJoinTeam": "Failed to join team"
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",

@@ -691,8 +691,73 @@ export default function TeacherControl({ sessionId, setView }) {
         .update({ status: status })
         .eq("id", sessionId);
 
-      // Cleanup teams if in team mode - removes student memberships so teams don't persist
+      // Handle shared device mode - attribute results to all team members
       if (session.mode === 'team') {
+        try {
+          console.log('[TeacherControl] Checking for shared device teams...');
+
+          // Get all team participants with their team info
+          const { data: teamParticipants, error: fetchError } = await supabase
+            .from("session_participants")
+            .select(`
+              id,
+              score,
+              user_id,
+              team_id,
+              teams!inner(id, is_shared_device)
+            `)
+            .eq("session_id", sessionId)
+            .eq("is_team_entry", true);
+
+          if (fetchError) {
+            console.warn('[TeacherControl] Error fetching team participants:', fetchError);
+          } else if (teamParticipants) {
+            // Process shared device teams
+            for (const participant of teamParticipants) {
+              if (participant.teams?.is_shared_device) {
+                console.log('[TeacherControl] Processing shared device team:', participant.team_id);
+
+                // Get all team members who aren't the captain (the one who played)
+                const { data: teamMembers, error: membersError } = await supabase
+                  .from("team_members")
+                  .select("student_id")
+                  .eq("team_id", participant.team_id)
+                  .neq("student_id", participant.user_id);
+
+                if (membersError) {
+                  console.warn('[TeacherControl] Error fetching team members:', membersError);
+                  continue;
+                }
+
+                // Create participant records for each team member with the same score
+                for (const member of teamMembers || []) {
+                  console.log('[TeacherControl] Attributing score to team member:', member.student_id);
+
+                  const { error: upsertError } = await supabase
+                    .from("session_participants")
+                    .upsert({
+                      session_id: sessionId,
+                      user_id: member.student_id,
+                      team_id: participant.team_id,
+                      is_team_entry: true,
+                      score: participant.score
+                    }, {
+                      onConflict: 'session_id,user_id'
+                    });
+
+                  if (upsertError) {
+                    console.warn('[TeacherControl] Error attributing score to member:', upsertError);
+                  }
+                }
+              }
+            }
+          }
+        } catch (attrError) {
+          console.warn('[TeacherControl] Shared device attribution failed:', attrError);
+          // Not critical, continue with cleanup
+        }
+
+        // Cleanup teams - removes student memberships so teams don't persist
         try {
           console.log('[TeacherControl] Triggering team cleanup for session:', sessionId);
           await supabase.rpc('cleanup_session_teams', { p_session_id: sessionId });

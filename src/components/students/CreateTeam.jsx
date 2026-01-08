@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { ArrowLeft, Users, Check } from "lucide-react";
+import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone } from "lucide-react";
+import { generateTeamCode } from "../../utils/teamCode";
 
 export default function CreateTeam({ appState, setView, error, setError, onBack, isApproved }) {
   const { t } = useTranslation();
@@ -15,6 +16,12 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
   const [quizPin, setQuizPin] = useState("");
   const [session, setSession] = useState(null);
+
+  // New states for device mode and team code
+  const [isSharedDevice, setIsSharedDevice] = useState(false);
+  const [showTeamCode, setShowTeamCode] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [codeCopied, setCodeCopied] = useState(false);
 
 
 
@@ -130,13 +137,17 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
     try {
       const teacherId = appState.currentUser?.teacher_id;
 
+      // Generate team code for separate devices mode
+      const teamCode = generateTeamCode();
+
       // Create team
       const teamInsert = {
         name: teamName,
-        teacher_id: teacherId
+        teacher_id: teacherId,
+        creator_id: appState.currentUser.id,
+        team_code: teamCode,
+        is_shared_device: isSharedDevice
       };
-
-      teamInsert.creator_id = appState.currentUser.id;
 
       const { data: team, error: teamError } = await supabase
         .from("teams")
@@ -188,8 +199,14 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       setCreatedTeam(team);
       setTeamCreated(true);
 
-      // Navigate immediately
-      setView("student-quiz", session.id);
+      // For separate devices mode, show team code screen
+      // For shared device mode, navigate directly to quiz
+      if (!isSharedDevice) {
+        setGeneratedCode(team.team_code);
+        setShowTeamCode(true);
+      } else {
+        setView("student-quiz", session.id);
+      }
 
     } catch (err) {
       console.error("Error creating team and joining:", err);
@@ -216,6 +233,52 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           <p className="text-gray-600">
             {t('student.teamToolsUnlockMessage')}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Copy team code to clipboard
+  const copyTeamCode = () => {
+    navigator.clipboard.writeText(generatedCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
+  // TEAM CODE DISPLAY SCREEN (for Separate Devices mode)
+  if (showTeamCode) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+          <div className="text-5xl mb-4">🎉</div>
+          <h1 className="text-2xl font-bold mb-2">{t('student.teamCreated')}</h1>
+          <p className="text-gray-600 mb-6">{t('student.shareCodeWithTeammates')}</p>
+
+          {/* Team Code Display */}
+          <div className="bg-gray-100 rounded-xl p-6 mb-6">
+            <p className="text-gray-500 text-sm mb-2">{t('student.yourTeamCode')}</p>
+            <div className="text-5xl font-bold tracking-widest text-blue-700 mb-4">
+              {generatedCode}
+            </div>
+            <button
+              onClick={copyTeamCode}
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <Copy size={18} />
+              {codeCopied ? t('common.copied') : t('common.copyCode')}
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-500 mb-6">
+            {t('student.teammatesEnterCode')}
+          </p>
+
+          <button
+            onClick={() => setView("student-quiz", session.id)}
+            className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold"
+          >
+            {t('student.continueToQuiz')}
+          </button>
         </div>
       </div>
     );
@@ -345,6 +408,46 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             {selectedStudents.length + 1} {t('student.members')} ({t('student.includingYou')})
           </div>
         )}
+
+        {/* Device Mode Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            {t('student.howWillTeamPlay')}
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setIsSharedDevice(false)}
+              className={`p-4 border-2 rounded-xl text-left transition-all ${
+                !isSharedDevice
+                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Smartphone size={24} className={!isSharedDevice ? 'text-blue-600' : 'text-gray-400'} />
+                <Smartphone size={24} className={!isSharedDevice ? 'text-blue-600' : 'text-gray-400'} />
+              </div>
+              <div className="font-bold text-sm">{t('student.separateDevices')}</div>
+              <div className="text-xs text-gray-500">{t('student.separateDevicesDesc')}</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSharedDevice(true)}
+              className={`p-4 border-2 rounded-xl text-left transition-all ${
+                isSharedDevice
+                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Monitor size={24} className={isSharedDevice ? 'text-blue-600' : 'text-gray-400'} />
+              </div>
+              <div className="font-bold text-sm">{t('student.sharedDevice')}</div>
+              <div className="text-xs text-gray-500">{t('student.sharedDeviceDesc')}</div>
+            </button>
+          </div>
+        </div>
 
         <button
           onClick={createTeam}

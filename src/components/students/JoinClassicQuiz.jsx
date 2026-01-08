@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users, UserPlus, Link } from "lucide-react";
 import { saveActiveSession } from "../../utils/sessionPersistence";
+import JoinTeam from "./JoinTeam";
 
 export default function JoinClassicQuiz({ appState, setView, error, setError, onBack, isApproved }) {
   const { t } = useTranslation();
@@ -11,6 +12,11 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
   const [foundTeam, setFoundTeam] = useState(null);
   const [availableTeams, setAvailableTeams] = useState([]);
   const [pendingSession, setPendingSession] = useState(null);
+
+  // Team mode options state
+  const [showTeamModeOptions, setShowTeamModeOptions] = useState(false);
+  const [teamModeSession, setTeamModeSession] = useState(null);
+  const [showJoinTeamByCode, setShowJoinTeamByCode] = useState(false);
 
   const joinQuiz = async () => {
     if (!isApproved) {
@@ -168,9 +174,10 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
             return;
           }
         } else {
-          // Student doesn't belong to any team - show error in team mode
-          console.log('Student does not belong to any team');
-          setError(t('errors.mustJoinTeamFirst') || 'You must create or join a team before joining a Team Mode quiz.');
+          // Student doesn't belong to any team - show team mode options
+          console.log('Student does not belong to any team, showing team mode options');
+          setTeamModeSession(session);
+          setShowTeamModeOptions(true);
           setLoading(false);
           return;
         }
@@ -302,6 +309,78 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
     setLoading(true);
     await joinWithSpecificTeam(pendingSession, team);
   };
+
+  // Handle team mode "Join Team by Code" flow
+  if (showJoinTeamByCode && teamModeSession) {
+    return (
+      <JoinTeam
+        appState={appState}
+        setView={setView}
+        session={teamModeSession}
+        onBack={() => {
+          setShowJoinTeamByCode(false);
+          setShowTeamModeOptions(true);
+        }}
+      />
+    );
+  }
+
+  // Team mode options screen (Create Team vs Join Team)
+  if (showTeamModeOptions && teamModeSession) {
+    return (
+      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+          <button
+            onClick={() => {
+              setShowTeamModeOptions(false);
+              setTeamModeSession(null);
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+          >
+            <ArrowLeft size={20} />
+            {t('common.back')}
+          </button>
+
+          <div className="text-5xl mb-4">👥</div>
+          <h1 className="text-2xl font-bold mb-2">{t('student.teamModeQuiz')}</h1>
+          <p className="text-gray-600 mb-6">{t('student.teamModeDescription')}</p>
+
+          <div className="space-y-4">
+            {/* Create Team Option */}
+            <button
+              onClick={() => {
+                setShowTeamModeOptions(false);
+                // Navigate to CreateTeam, passing the session info
+                setView("create-team");
+              }}
+              className="w-full bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+            >
+              <UserPlus size={24} />
+              <div className="text-left">
+                <div className="font-bold text-lg">{t('student.createNewTeam')}</div>
+                <div className="text-sm opacity-90">{t('student.createNewTeamDesc')}</div>
+              </div>
+            </button>
+
+            {/* Join Team Option */}
+            <button
+              onClick={() => {
+                setShowTeamModeOptions(false);
+                setShowJoinTeamByCode(true);
+              }}
+              className="w-full bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-3"
+            >
+              <Link size={24} />
+              <div className="text-left">
+                <div className="font-bold text-lg">{t('student.joinExistingTeam')}</div>
+                <div className="text-sm opacity-90">{t('student.joinExistingTeamDesc')}</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (foundTeam) {
     return (
