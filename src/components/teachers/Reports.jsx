@@ -445,6 +445,14 @@ export default function Reports({ setView, appState }) {
         aValue = parseFloat(a.averageAccuracy);
         bValue = parseFloat(b.averageAccuracy);
         break;
+      case 'courseAccuracy':
+        aValue = parseFloat(a.courseAccuracy);
+        bValue = parseFloat(b.courseAccuracy);
+        break;
+      case 'nonCourseAccuracy':
+        aValue = parseFloat(a.nonCourseAccuracy);
+        bValue = parseFloat(b.nonCourseAccuracy);
+        break;
       default:
         return 0;
     }
@@ -539,11 +547,27 @@ export default function Reports({ setView, appState }) {
                           </span>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        {t("reports.courseAccuracy")}
+                      <th
+                        className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                        onClick={() => handleStudentSort('courseAccuracy')}
+                      >
+                        <div className="flex items-center gap-1">
+                          {t("reports.courseAccuracy")}
+                          <span className="text-gray-400">
+                            {studentSortConfig.key === 'courseAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                          </span>
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        {t("reports.nonCourseAccuracy")}
+                      <th
+                        className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                        onClick={() => handleStudentSort('nonCourseAccuracy')}
+                      >
+                        <div className="flex items-center gap-1">
+                          {t("reports.nonCourseAccuracy")}
+                          <span className="text-gray-400">
+                            {studentSortConfig.key === 'nonCourseAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                          </span>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -561,21 +585,21 @@ export default function Reports({ setView, appState }) {
                         <td className="px-6 py-4 text-gray-600">{student.quizzesParticipated}</td>
                         <td className="px-6 py-4">
                           <span className={`font-semibold ${student.averageAccuracy > 80 ? 'text-green-600' :
-                              student.averageAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                            student.averageAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {student.averageAccuracy}%
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`font-semibold ${student.courseAccuracy > 80 ? 'text-green-600' :
-                              student.courseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                            student.courseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {student.courseAccuracy}%
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`font-semibold ${student.nonCourseAccuracy > 80 ? 'text-green-600' :
-                              student.nonCourseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                            student.nonCourseAccuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {student.nonCourseAccuracy}%
                           </span>
@@ -597,31 +621,28 @@ export default function Reports({ setView, appState }) {
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setReportTab('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'all'
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'all'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {t("reports.allQuizzes")}
                 </button>
                 <button
                   onClick={() => setReportTab('course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'course'
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'course'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {t("reports.courseQuizzes")}
                 </button>
                 <button
                   onClick={() => setReportTab('non-course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'non-course'
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'non-course'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {t("reports.nonCourseQuizzes")}
                 </button>
@@ -727,8 +748,8 @@ export default function Reports({ setView, appState }) {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${quiz.mode === "Team" || quiz.mode === "team"
-                                ? "bg-blue-50 text-blue-800"
-                                : "bg-green-100 text-green-800"
+                              ? "bg-blue-50 text-blue-800"
+                              : "bg-green-100 text-green-800"
                               }`}>
                               {quiz.mode === "Team" || quiz.mode === "team" ? t("reports.teamMode") : t("reports.individual")}
                             </span>
@@ -871,13 +892,13 @@ export default function Reports({ setView, appState }) {
                                   {t("reports.answeredTimes", { count: q.totalAnswers })}
                                 </span>
                                 <span className={`font-semibold ${q.accuracy > 80 ? 'text-green-600' :
-                                    q.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                                  q.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                                   }`}>
                                   {t("reports.accuracy", { percent: q.accuracy })}
                                 </span>
                                 <span className={`px-2 py-0.5 rounded text-xs font-semibold ${q.difficultyKey === 'difficultyEasy' ? 'bg-green-100 text-green-800' :
-                                    q.difficultyKey === 'difficultyMedium' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-red-100 text-red-800'
+                                  q.difficultyKey === 'difficultyMedium' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
                                   }`}>
                                   {t(`reports.${q.difficultyKey}`)}
                                 </span>
@@ -966,8 +987,8 @@ export default function Reports({ setView, appState }) {
                               <tr key={student.id} className="border-b hover:bg-gray-50">
                                 <td className="px-6 py-4">
                                   <span className={`text-lg font-bold ${idx === 0 ? 'text-yellow-600' :
-                                      idx === 1 ? 'text-gray-400' :
-                                        idx === 2 ? 'text-orange-600' : 'text-gray-600'
+                                    idx === 1 ? 'text-gray-400' :
+                                      idx === 2 ? 'text-orange-600' : 'text-gray-600'
                                     }`}>
                                     {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
                                   </span>
@@ -982,7 +1003,7 @@ export default function Reports({ setView, appState }) {
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className={`font-semibold ${student.accuracy > 80 ? 'text-green-600' :
-                                      student.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
+                                    student.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
                                     }`}>
                                     {student.accuracy}%
                                   </span>
