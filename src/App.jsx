@@ -589,7 +589,15 @@ export default function QuizApp() {
       />
     );
 
-  if (view === "create-quiz") return <CreateQuiz setView={setView} appState={appState} />;
+  if (view === "create-quiz") return (
+    <CreateQuiz
+      setView={(v, id) => {
+        if (v === "edit-quiz") setSelectedQuizId(id);
+        setView(v);
+      }}
+      appState={appState}
+    />
+  );
 
   if (view === "edit-quiz")
     return <EditQuiz setView={setView} quizId={selectedQuizId} appState={appState} />;

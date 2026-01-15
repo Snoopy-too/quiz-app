@@ -503,29 +503,15 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         if (insertQuestionsError) throw insertQuestionsError;
       }
 
+      if (onQuizCreated) onQuizCreated();
+
       if (exit) {
-        if (onQuizCreated) onQuizCreated();
         setView("manage-quizzes");
         return;
       }
 
-      setAlertModal({
-        isOpen: true,
-        title: t('common.success'),
-        message: t('messages.quizCreatedSuccess'),
-        type: "success"
-      });
-      setTitle("");
-      setFolderId("");
-      setQuestions([]);
-      setIsTemplate(false);
-      setIsPublic(false);
-      setIsCourseMaterial(true);
-      setActiveTab("settings");
-      resetQuestionForm();
-      await fetchDefaultTheme();
-      setCustomThemeUrl(null);
-      if (onQuizCreated) onQuizCreated();
+      // Navigate to edit page for the newly created quiz so the user can continue working
+      setView("edit-quiz", quizData.id);
     } catch (err) {
       setAlertModal({
         isOpen: true,
