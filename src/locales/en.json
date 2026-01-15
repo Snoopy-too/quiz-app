@@ -37,7 +37,10 @@
     "copied": "Copied!",
     "copyCode": "Copy Code",
     "searching": "Searching...",
-    "actions": "Actions"
+    "actions": "Actions",
+    "student": "Student",
+    "status": "Status",
+    "score": "Score"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -683,7 +686,16 @@
     "assignToStudents": "Assign to {{count}} Students",
     "assigning": "Assigning...",
     "successTitle": "Quiz Assigned",
-    "successMessage": "Quiz has been assigned to {{count}} student(s). They will receive email notifications."
+    "successMessage": "Quiz has been assigned to {{count}} student(s). They will receive email notifications.",
+    "manageAssignments": "Manage Assignments",
+    "assignedStudents": "Assigned Students",
+    "unassign": "Unassign",
+    "unassignTitle": "Unassign Quiz",
+    "unassignConfirm": "Are you sure you want to unassign this quiz from {{name}}? This will delete their progress.",
+    "unassignSuccess": "Quiz unassigned successfully",
+    "viewAssignments": "View Assignments",
+    "noAssignments": "No active assignments for this quiz",
+    "actions": "Assign"
   },
   "assignedQuizzes": {
     "title": "Assigned Quizzes",
@@ -737,5 +749,10 @@
     "forAbsentStudents": "For absent students",
     "setDeadline": "Set deadline",
     "emailNotifications": "Email notifications"
+  },
+  "status": {
+    "completed": "Completed",
+    "pending": "Pending",
+    "expired": "Expired"
   }
 }

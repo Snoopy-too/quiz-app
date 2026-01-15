@@ -399,7 +399,12 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
       setAlertModal({
         isOpen: true,
         title: t("assignedQuiz.quizCompleted", "Quiz Completed!"),
-        message: t("assignedQuiz.scoreMessage", "You scored {score} points with {correct}/{total} correct answers.").replace("{score}", totalScore).replace("{correct}", correctAnswers).replace("{total}", questions.length),
+        message: t("assignedQuiz.scoreMessage", {
+          score: totalScore,
+          correct: correctAnswers,
+          total: questions.length,
+          defaultValue: "You scored {{score}} points with {{correct}}/{{total}} correct answers."
+        }),
         type: "success"
       });
     } catch (err) {
@@ -568,8 +573,8 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
             {/* Question Timer - Prominent */}
             {!answers[currentQuestion?.id] && timeLeft !== null && (
               <div className={`flex items-center gap-2 px-6 py-3 rounded-full font-black border-4 shadow-lg transform transition-all ${timeLeft <= 5
-                  ? "bg-red-100 border-red-500 text-red-600 scale-110 animate-pulse"
-                  : "bg-white border-blue-500 text-blue-600"
+                ? "bg-red-100 border-red-500 text-red-600 scale-110 animate-pulse"
+                : "bg-white border-blue-500 text-blue-600"
                 }`}>
                 <Clock size={32} strokeWidth={2.5} />
                 <span className="text-3xl tabular-nums tracking-wider">{timeLeft}</span>

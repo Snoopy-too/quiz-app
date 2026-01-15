@@ -265,9 +265,8 @@ export default function AssignQuizModal({
                   <div
                     key={student.id}
                     onClick={() => toggleStudent(student.id)}
-                    className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 transition-colors ${
-                      selectedStudents.has(student.id) ? "bg-orange-50" : ""
-                    }`}
+                    className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 transition-colors ${selectedStudents.has(student.id) ? "bg-orange-50" : ""
+                      }`}
                   >
                     {selectedStudents.has(student.id) ? (
                       <CheckSquare size={20} className="text-orange-600 flex-shrink-0" />
@@ -318,7 +317,7 @@ export default function AssignQuizModal({
               </>
             ) : (
               <>
-                {t("assignQuiz.assignToStudents", "Assign to {count} Students").replace("{count}", selectedStudents.size)}
+                {t("assignQuiz.assignToStudents", { count: selectedStudents.size, defaultValue: "Assign to {{count}} Students" })}
               </>
             )}
           </button>

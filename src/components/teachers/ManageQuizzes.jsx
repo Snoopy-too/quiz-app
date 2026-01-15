@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Plus, Edit2, Trash2, Play, Copy, Folder, FolderPlus, ChevronRight, ChevronDown, MoreVertical, FolderOpen, Search, Filter, CheckSquare, Square, Move, Archive, Eye, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Play, Copy, Folder, FolderPlus, ChevronRight, ChevronDown, MoreVertical, FolderOpen, Search, Filter, CheckSquare, Square, Move, Archive, Eye, PanelLeftClose, PanelLeftOpen, X, Calendar, Users } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import AssignQuizModal from "./AssignQuizModal";
+import QuizAssignmentsModal from "./QuizAssignmentsModal";
 
 export default function ManageQuizzes({ setView, appState }) {
   const { t } = useTranslation();
@@ -20,6 +22,8 @@ export default function ManageQuizzes({ setView, appState }) {
   const [editingFolder, setEditingFolder] = useState(null);
   const [folderContextMenu, setFolderContextMenu] = useState(null);
   const [moveQuizModal, setMoveQuizModal] = useState(null);
+  const [assignQuizModal, setAssignQuizModal] = useState(null);
+  const [viewAssignmentsModal, setViewAssignmentsModal] = useState(null);
   const [draggedItem, setDraggedItem] = useState(null);
   const [activeFolder, setActiveFolder] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,16 +77,17 @@ export default function ManageQuizzes({ setView, appState }) {
 
       const { data, error: fetchError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id)")
+        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id), quiz_assignments(count)")
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      // Add question count to each quiz
+      // Add question count and assignment count to each quiz
       const quizzesWithCount = (data || []).map((quiz) => ({
         ...quiz,
         questionCount: quiz.questions?.length || 0,
+        assignmentCount: quiz.quiz_assignments?.[0]?.count || 0,
         themeDetails: themeMap[quiz.theme_id] || null
       }));
 
@@ -599,9 +604,8 @@ export default function ManageQuizzes({ setView, appState }) {
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, folder)}
           onClick={() => setActiveFolder(folder.id)}
-          className={`flex items-center gap-2 py-2 px-3 rounded-lg group cursor-pointer transition-colors ${
-            isActive ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-          } ${draggedItem?.item.id === folder.id ? "opacity-50" : ""}`}
+          className={`flex items-center gap-2 py-2 px-3 rounded-lg group cursor-pointer transition-colors ${isActive ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
+            } ${draggedItem?.item.id === folder.id ? "opacity-50" : ""}`}
         >
           <button
             onClick={(e) => {
@@ -796,9 +800,8 @@ export default function ManageQuizzes({ setView, appState }) {
         key={quiz.id}
         draggable
         onDragStart={(e) => handleDragStart(e, quiz, "quiz")}
-        className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${
-          isSelected ? "border-cyan-400 ring-2 ring-blue-100" : "border-transparent"
-        } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
+        className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${isSelected ? "border-cyan-400 ring-2 ring-blue-100" : "border-transparent"
+          } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
       >
         {/* Theme Preview */}
         <div className="relative h-28">
@@ -855,50 +858,76 @@ export default function ManageQuizzes({ setView, appState }) {
           </div>
 
           {/* Action Buttons - Horizontal row */}
-          <div className="flex items-center gap-1 pt-3 border-t border-gray-100">
-            <button
-              onClick={() => handleStartQuiz(quiz.id)}
-              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
-              title={t('quiz.startQuiz')}
-            >
-              <Play size={14} />
-              {t('actions.start')}
-            </button>
-            <button
-              onClick={() => setView("preview-quiz", quiz.id)}
-              className="p-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition"
-              title={t('actions.preview')}
-            >
-              <Eye size={16} />
-            </button>
-            <button
-              onClick={() => setView("edit-quiz", quiz.id)}
-              className="p-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition"
-              title={t('common.edit')}
-            >
-              <Edit2 size={16} />
-            </button>
-            <button
-              onClick={() => handleDuplicate(quiz.id)}
-              className="p-2 bg-blue-50 text-blue-800 rounded-md hover:bg-blue-50 transition"
-              title={t('actions.duplicate')}
-            >
-              <Copy size={16} />
-            </button>
-            <button
-              onClick={() => setMoveQuizModal(quiz.id)}
-              className="p-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition"
-              title={t('folder.moveToFolder')}
-            >
-              <Move size={16} />
-            </button>
-            <button
-              onClick={() => handleDelete(quiz.id)}
-              className="p-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition"
-              title={t('common.delete')}
-            >
-              <Trash2 size={16} />
-            </button>
+          <div className="flex items-center gap-1 pt-3 border-t border-gray-100 flex-wrap">
+            <div className="flex gap-1 w-full mb-2">
+              <button
+                onClick={() => handleStartQuiz(quiz.id)}
+                className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                title={t('quiz.startQuiz')}
+              >
+                <Play size={14} />
+                {t('actions.start')}
+              </button>
+              <button
+                onClick={() => setAssignQuizModal(quiz)}
+                className="flex-1 bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                title={t('assignQuiz.title', "Assign")}
+              >
+                <Calendar size={14} />
+                {t('assignQuiz.actions', "Assign")}
+              </button>
+            </div>
+
+            <div className="flex gap-1 justify-between w-full">
+              <button
+                onClick={() => setView("preview-quiz", quiz.id)}
+                className="p-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition flex-1 flex justify-center"
+                title={t('actions.preview')}
+              >
+                <Eye size={16} />
+              </button>
+              <button
+                onClick={() => setView("edit-quiz", quiz.id)}
+                className="p-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition flex-1 flex justify-center"
+                title={t('common.edit')}
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => handleDuplicate(quiz.id)}
+                className="p-2 bg-blue-50 text-blue-800 rounded-md hover:bg-blue-50 transition flex-1 flex justify-center"
+                title={t('actions.duplicate')}
+              >
+                <Copy size={16} />
+              </button>
+              <button
+                onClick={() => setMoveQuizModal(quiz.id)}
+                className="p-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition flex-1 flex justify-center"
+                title={t('folder.moveToFolder')}
+              >
+                <Move size={16} />
+              </button>
+              <button
+                onClick={() => handleDelete(quiz.id)}
+                className="p-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition flex-1 flex justify-center"
+                title={t('common.delete')}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+
+            {/* Assignments Button - only if there are assignments */}
+            {quiz.assignmentCount > 0 && (
+              <button
+                onClick={() => setViewAssignmentsModal(quiz)}
+                className="w-full mt-2 p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition flex items-center justify-center gap-2 text-sm font-medium"
+                title={t('assignQuiz.viewAssignments', "View Assignments")}
+              >
+                <Users size={14} />
+                {t('assignQuiz.viewAssignments', "View Assignments")} ({quiz.assignmentCount})
+              </button>
+            )}
+
           </div>
         </div>
       </div>
@@ -935,397 +964,429 @@ export default function ManageQuizzes({ setView, appState }) {
 
         {/* Toolbar */}
         <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4">
-          {/* Left: Mobile folder toggle, Search and Filters */}
-          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-            {/* Mobile folder toggle button */}
-            <button
-              onClick={() => setMobileFolderPanelOpen(true)}
-              className="md:hidden p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex-shrink-0"
-              title={t('folder.folders')}
-            >
-              <PanelLeftOpen size={20} />
-            </button>
-            <div className="relative flex-1 max-w-md">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder={t('manager.searchQuizzes')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              />
+          <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4">
+            {/* Left: Mobile folder toggle, Search and Filters */}
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+              {/* Mobile folder toggle button */}
+              <button
+                onClick={() => setMobileFolderPanelOpen(true)}
+                className="md:hidden p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex-shrink-0"
+                title={t('folder.folders')}
+              >
+                <PanelLeftOpen size={20} />
+              </button>
+              <div className="relative flex-1 max-w-md">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t('manager.searchQuizzes')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                />
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+              >
+                <option value="created_at">{t('manager.sortNewest')}</option>
+                <option value="title">{t('manager.sortAZ')}</option>
+              </select>
             </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
-            >
-              <option value="created_at">{t('manager.sortNewest')}</option>
-              <option value="title">{t('manager.sortAZ')}</option>
-            </select>
-          </div>
+            {/* Right: Action Buttons */}
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+              {selectedQuizzes.size > 0 && (
+                <>
+                  <div className="px-2 md:px-3 py-1.5 md:py-2 bg-blue-50 text-blue-800 rounded-lg text-xs md:text-sm font-medium">
+                    {selectedQuizzes.size}
+                  </div>
+                  <button
+                    onClick={() => setMoveQuizModal("bulk")}
+                    className="p-2 md:px-4 md:py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2 text-sm"
+                    title={t('manager.move')}
+                  >
+                    <Move size={16} />
+                    <span className="hidden md:inline">{t('manager.move')}</span>
+                  </button>
+                  <button
+                    onClick={bulkDeleteQuizzes}
+                    className="p-2 md:px-4 md:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm"
+                    title={t('common.delete')}
+                  >
+                    <Trash2 size={16} />
+                    <span className="hidden md:inline">{t('common.delete')}</span>
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="p-2 md:px-3 md:py-2 text-gray-600 hover:text-gray-800 text-sm"
+                    title={t('manager.clear')}
+                  >
+                    <X size={16} className="md:hidden" />
+                    <span className="hidden md:inline">{t('manager.clear')}</span>
+                  </button>
+                </>
+              )}
 
-          {/* Right: Action Buttons */}
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            {selectedQuizzes.size > 0 && (
-              <>
-                <div className="px-2 md:px-3 py-1.5 md:py-2 bg-blue-50 text-blue-800 rounded-lg text-xs md:text-sm font-medium">
-                  {selectedQuizzes.size}
-                </div>
-                <button
-                  onClick={() => setMoveQuizModal("bulk")}
-                  className="p-2 md:px-4 md:py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2 text-sm"
-                  title={t('manager.move')}
-                >
-                  <Move size={16} />
-                  <span className="hidden md:inline">{t('manager.move')}</span>
-                </button>
-                <button
-                  onClick={bulkDeleteQuizzes}
-                  className="p-2 md:px-4 md:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm"
-                  title={t('common.delete')}
-                >
-                  <Trash2 size={16} />
-                  <span className="hidden md:inline">{t('common.delete')}</span>
-                </button>
-                <button
-                  onClick={clearSelection}
-                  className="p-2 md:px-3 md:py-2 text-gray-600 hover:text-gray-800 text-sm"
-                  title={t('manager.clear')}
-                >
-                  <X size={16} className="md:hidden" />
-                  <span className="hidden md:inline">{t('manager.clear')}</span>
-                </button>
-              </>
-            )}
-
-            {selectedQuizzes.size === 0 && (
-              <>
-                <button
-                  onClick={() => {
-                    setSelectedParentFolder(null);
-                    setShowNewFolderModal(true);
-                  }}
-                  className="p-2 md:px-4 md:py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition flex items-center gap-2 text-sm font-medium"
-                  title={t('folder.newFolder')}
-                >
-                  <FolderPlus size={16} />
-                  <span className="hidden md:inline">{t('folder.newFolder')}</span>
-                </button>
-                <button
-                  onClick={() => setView("create-quiz")}
-                  className="p-2 md:px-4 md:py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
-                  title={t('nav.createQuiz')}
-                >
-                  <Plus size={16} />
-                  <span className="hidden md:inline">{t('nav.createQuiz')}</span>
-                </button>
-              </>
-            )}
+              {selectedQuizzes.size === 0 && (
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectedParentFolder(null);
+                      setShowNewFolderModal(true);
+                    }}
+                    className="p-2 md:px-4 md:py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition flex items-center gap-2 text-sm font-medium"
+                    title={t('folder.newFolder')}
+                  >
+                    <FolderPlus size={16} />
+                    <span className="hidden md:inline">{t('folder.newFolder')}</span>
+                  </button>
+                  <button
+                    onClick={() => setView("create-quiz")}
+                    className="p-2 md:px-4 md:py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
+                    title={t('nav.createQuiz')}
+                  >
+                    <Plus size={16} />
+                    <span className="hidden md:inline">{t('nav.createQuiz')}</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Main Content Area */}
         <div className="flex h-[calc(100vh-140px)]">
-        {loading && (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-600">{t('common.loading')}</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-red-600">{t('common.error')}: {error}</p>
-          </div>
-        )}
-
-        {!loading && !error && quizzes.length === 0 && folders.length === 0 && (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus size={32} className="text-blue-700" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{t('quiz.noQuizzes')}</h3>
-              <p className="text-gray-600 mb-6">{t('manager.getStarted')}</p>
-              <button
-                onClick={() => setView("create-quiz")}
-                className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
-              >
-                {t('manager.createYourFirstQuiz')}
-              </button>
+          {loading && (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-gray-600">{t('common.loading')}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {!loading && !error && (folders.length > 0 || quizzes.length > 0) && (
-          <>
-            {/* Mobile Folder Panel Overlay */}
-            {mobileFolderPanelOpen && (
-              <>
-                {/* Backdrop */}
-                <div
-                  className="md:hidden fixed inset-0 bg-black/50 z-40"
-                  onClick={() => setMobileFolderPanelOpen(false)}
-                />
-                {/* Slide-in Panel */}
-                <div className="md:hidden fixed top-0 left-0 bottom-0 w-72 bg-gray-100 shadow-2xl z-50 overflow-y-auto" style={{ animation: 'slideInLeft 0.3s ease-out' }}>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-bold text-sm uppercase text-gray-600 px-2">{t('folder.folders')}</h3>
-                      <button
-                        onClick={() => setMobileFolderPanelOpen(false)}
-                        className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                      >
-                        <X size={20} className="text-gray-600" />
-                      </button>
-                    </div>
-                    <div className="space-y-0.5">
-                      {/* All Quizzes */}
-                      <div
-                        onClick={() => { setActiveFolder(null); setMobileFolderPanelOpen(false); }}
-                        className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                          activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                        }`}
-                      >
-                        <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
-                        <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {quizzes.length}
-                        </span>
+          {error && (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-red-600">{t('common.error')}: {error}</p>
+            </div>
+          )}
+
+          {!loading && !error && quizzes.length === 0 && folders.length === 0 && (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plus size={32} className="text-blue-700" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{t('quiz.noQuizzes')}</h3>
+                <p className="text-gray-600 mb-6">{t('manager.getStarted')}</p>
+                <button
+                  onClick={() => setView("create-quiz")}
+                  className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
+                >
+                  {t('manager.createYourFirstQuiz')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (folders.length > 0 || quizzes.length > 0) && (
+            <>
+              {/* Mobile Folder Panel Overlay */}
+              {mobileFolderPanelOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="md:hidden fixed inset-0 bg-black/50 z-40"
+                    onClick={() => setMobileFolderPanelOpen(false)}
+                  />
+                  {/* Slide-in Panel */}
+                  <div className="md:hidden fixed top-0 left-0 bottom-0 w-72 bg-gray-100 shadow-2xl z-50 overflow-y-auto" style={{ animation: 'slideInLeft 0.3s ease-out' }}>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-sm uppercase text-gray-600 px-2">{t('folder.folders')}</h3>
+                        <button
+                          onClick={() => setMobileFolderPanelOpen(false)}
+                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          <X size={20} className="text-gray-600" />
+                        </button>
                       </div>
+                      <div className="space-y-0.5">
+                        {/* All Quizzes */}
+                        <div
+                          onClick={() => { setActiveFolder(null); setMobileFolderPanelOpen(false); }}
+                          className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
+                            }`}
+                        >
+                          <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
+                          <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
+                            }`}>
+                            {quizzes.length}
+                          </span>
+                        </div>
 
-                      {/* Unfiled Quizzes */}
-                      <div
-                        onClick={() => { setActiveFolder("unfiled"); setMobileFolderPanelOpen(false); }}
-                        className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                          activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                        }`}
-                      >
-                        <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
-                        <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                        }`}>
-                          {getQuizzesWithoutFolder().length}
-                        </span>
-                      </div>
+                        {/* Unfiled Quizzes */}
+                        <div
+                          onClick={() => { setActiveFolder("unfiled"); setMobileFolderPanelOpen(false); }}
+                          className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
+                            }`}
+                        >
+                          <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
+                          <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
+                            }`}>
+                            {getQuizzesWithoutFolder().length}
+                          </span>
+                        </div>
 
-                      {/* Folder Tree */}
-                      <div className="pt-2 border-t border-gray-300 mt-2">
-                        {buildFolderTree(null).map((folder) => renderFolder(folder))}
+                        {/* Folder Tree */}
+                        <div className="pt-2 border-t border-gray-300 mt-2">
+                          {buildFolderTree(null).map((folder) => renderFolder(folder))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            {/* Left Sidebar: Folder Tree - Hidden on mobile */}
-            <div className="hidden md:block w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto">
-              <div className="p-4">
-                <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">{t('folder.folders')}</h3>
-                <div className="space-y-0.5">
-                  {/* All Quizzes */}
-                  <div
-                    onClick={() => setActiveFolder(null)}
-                    className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                      activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
-                    <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                    }`}>
-                      {quizzes.length}
-                    </span>
-                  </div>
-
-                  {/* Unfiled Quizzes */}
-                  <div
-                    onClick={() => setActiveFolder("unfiled")}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, null)}
-                    className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${
-                      activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
-                    <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                    }`}>
-                      {getQuizzesWithoutFolder().length}
-                    </span>
-                  </div>
-
-                  {/* Folder Tree */}
-                  <div className="pt-2 border-t border-gray-300 mt-2">
-                    {buildFolderTree(null).map((folder) => renderFolder(folder))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Quizzes Grid */}
-            <div className="flex-1 overflow-y-auto bg-white">
-              <div className="p-4 md:p-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-6">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                      {activeFolder === null
-                        ? t('folder.allQuizzes')
-                        : activeFolder === "unfiled"
-                          ? t('folder.unfiledQuizzes')
-                          : folders.find((f) => f.id === activeFolder)?.name || t('folder.folder')}
-                    </h2>
-                    <p className="text-xs md:text-sm text-gray-600 mt-1">
-                      {getDisplayedQuizzes().length} {getDisplayedQuizzes().length !== 1 ? t('quiz.quizzes') : t('quiz.quiz')}
-                      {searchQuery && ` ${t('manager.matchingSearch', { query: searchQuery })}`}
-                    </p>
-                  </div>
-
-                  {getDisplayedQuizzes().length > 0 && (
-                    <button
-                      onClick={selectAllQuizzes}
-                      className="text-sm text-blue-700 hover:text-blue-800 font-medium self-start sm:self-auto"
+              {/* Left Sidebar: Folder Tree - Hidden on mobile */}
+              <div className="hidden md:block w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto">
+                <div className="p-4">
+                  <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">{t('folder.folders')}</h3>
+                  <div className="space-y-0.5">
+                    {/* All Quizzes */}
+                    <div
+                      onClick={() => setActiveFolder(null)}
+                      className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
+                        }`}
                     >
-                      {t('manager.selectAll')}
-                    </button>
+                      <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
+                      <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
+                        }`}>
+                        {quizzes.length}
+                      </span>
+                    </div>
+
+                    {/* Unfiled Quizzes */}
+                    <div
+                      onClick={() => setActiveFolder("unfiled")}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, null)}
+                      className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
+                        }`}
+                    >
+                      <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
+                      <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
+                        }`}>
+                        {getQuizzesWithoutFolder().length}
+                      </span>
+                    </div>
+
+                    {/* Folder Tree */}
+                    <div className="pt-2 border-t border-gray-300 mt-2">
+                      {buildFolderTree(null).map((folder) => renderFolder(folder))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Quizzes Grid */}
+              <div className="flex-1 overflow-y-auto bg-white">
+                <div className="p-4 md:p-6">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-6">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                        {activeFolder === null
+                          ? t('folder.allQuizzes')
+                          : activeFolder === "unfiled"
+                            ? t('folder.unfiledQuizzes')
+                            : folders.find((f) => f.id === activeFolder)?.name || t('folder.folder')}
+                      </h2>
+                      <p className="text-xs md:text-sm text-gray-600 mt-1">
+                        {getDisplayedQuizzes().length} {getDisplayedQuizzes().length !== 1 ? t('quiz.quizzes') : t('quiz.quiz')}
+                        {searchQuery && ` ${t('manager.matchingSearch', { query: searchQuery })}`}
+                      </p>
+                    </div>
+
+                    {getDisplayedQuizzes().length > 0 && (
+                      <button
+                        onClick={selectAllQuizzes}
+                        className="text-sm text-blue-700 hover:text-blue-800 font-medium self-start sm:self-auto"
+                      >
+                        {t('manager.selectAll')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quizzes Grid */}
+                  {getDisplayedQuizzes().length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Search size={32} className="text-gray-400" />
+                      </div>
+                      <p className="text-gray-600">
+                        {searchQuery ? t('manager.noQuizzesFound', { query: searchQuery }) : t('manager.noQuizzesInFolder')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {getDisplayedQuizzes().map((quiz) => renderQuizCard(quiz))}
+                    </div>
                   )}
                 </div>
-
-                {/* Quizzes Grid */}
-                {getDisplayedQuizzes().length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Search size={32} className="text-gray-400" />
-                    </div>
-                    <p className="text-gray-600">
-                      {searchQuery ? t('manager.noQuizzesFound', { query: searchQuery }) : t('manager.noQuizzesInFolder')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {getDisplayedQuizzes().map((quiz) => renderQuizCard(quiz))}
-                  </div>
-                )}
               </div>
-            </div>
             </>
           )}
         </div>
 
         {/* New Folder Modal */}
         {showNewFolderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-96">
-            <h3 className="text-xl font-bold mb-4">
-              {selectedParentFolder ? t('folder.createSubfolder') : t('folder.createFolder')}
-            </h3>
-            <input
-              type="text"
-              placeholder={t('folder.folderName')}
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && createFolder()}
-              className="w-full px-4 py-2 border rounded-lg mb-4"
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setShowNewFolderModal(false);
-                  setNewFolderName("");
-                  setSelectedParentFolder(null);
-                }}
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={createFolder}
-                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
-              >
-                {t('common.create')}
-              </button>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-96">
+              <h3 className="text-xl font-bold mb-4">
+                {selectedParentFolder ? t('folder.createSubfolder') : t('folder.createFolder')}
+              </h3>
+              <input
+                type="text"
+                placeholder={t('folder.folderName')}
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createFolder()}
+                className="w-full px-4 py-2 border rounded-lg mb-4"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowNewFolderModal(false);
+                    setNewFolderName("");
+                    setSelectedParentFolder(null);
+                  }}
+                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={createFolder}
+                  className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                >
+                  {t('common.create')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Move Quiz to Folder Modal */}
-      {moveQuizModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-2">
-              {moveQuizModal === "bulk" ? t('folder.moveToFolder') + ` (${selectedQuizzes.size})` : t('folder.moveToFolder')}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">{t('folder.folder')}</p>
+        {/* Move Quiz to Folder Modal */}
+        {moveQuizModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-h-[80vh] overflow-y-auto">
+              <h3 className="text-xl font-bold mb-2">
+                {moveQuizModal === "bulk" ? t('folder.moveToFolder') + ` (${selectedQuizzes.size})` : t('folder.moveToFolder')}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">{t('folder.folder')}</p>
 
-            <div className="space-y-1 max-h-96 overflow-y-auto">
-              <button
-                onClick={() => {
-                  if (moveQuizModal === "bulk") {
-                    bulkMoveQuizzes(null);
-                  } else {
-                    moveQuizToFolder(moveQuizModal, null);
-                  }
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
-              >
-                <FolderOpen size={18} className="text-gray-600 group-hover:text-blue-700" />
-                <span className="text-sm group-hover:text-blue-800 font-medium">{t('folder.unfiledQuizzes')}</span>
-              </button>
+              <div className="space-y-1 max-h-96 overflow-y-auto">
+                <button
+                  onClick={() => {
+                    if (moveQuizModal === "bulk") {
+                      bulkMoveQuizzes(null);
+                    } else {
+                      moveQuizToFolder(moveQuizModal, null);
+                    }
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
+                >
+                  <FolderOpen size={18} className="text-gray-600 group-hover:text-blue-700" />
+                  <span className="text-sm group-hover:text-blue-800 font-medium">{t('folder.unfiledQuizzes')}</span>
+                </button>
 
-              {folders.map((folder) => {
-                const depth = (() => {
-                  let d = 0;
-                  let currentId = folder.parent_folder_id;
-                  while (currentId) {
-                    d++;
-                    const parent = folders.find((f) => f.id === currentId);
-                    currentId = parent?.parent_folder_id;
-                  }
-                  return d;
-                })();
+                {folders.map((folder) => {
+                  const depth = (() => {
+                    let d = 0;
+                    let currentId = folder.parent_folder_id;
+                    while (currentId) {
+                      d++;
+                      const parent = folders.find((f) => f.id === currentId);
+                      currentId = parent?.parent_folder_id;
+                    }
+                    return d;
+                  })();
 
-                return (
-                  <button
-                    key={folder.id}
-                    onClick={() => {
-                      if (moveQuizModal === "bulk") {
-                        bulkMoveQuizzes(folder.id);
-                      } else {
-                        moveQuizToFolder(moveQuizModal, folder.id);
-                      }
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
-                    style={{ paddingLeft: `${16 + depth * 20}px` }}
-                  >
-                    <Folder size={18} className="text-yellow-600 group-hover:text-blue-700" />
-                    <span className="text-sm group-hover:text-blue-800">{folder.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={folder.id}
+                      onClick={() => {
+                        if (moveQuizModal === "bulk") {
+                          bulkMoveQuizzes(folder.id);
+                        } else {
+                          moveQuizToFolder(moveQuizModal, folder.id);
+                        }
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
+                      style={{ paddingLeft: `${16 + depth * 20}px` }}
+                    >
+                      <Folder size={18} className="text-yellow-600 group-hover:text-blue-700" />
+                      <span className="text-sm group-hover:text-blue-800">{folder.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200 flex gap-2">
-              <button
-                onClick={() => setMoveQuizModal(null)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
-              >
-                {t('common.cancel')}
-              </button>
+              <div className="mt-6 pt-4 border-t border-gray-200 flex gap-2">
+                <button
+                  onClick={() => setMoveQuizModal(null)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
             </div>
           </div>
-          </div>
+        )}
+
+        {/* Assign Quiz Modal */}
+        {assignQuizModal && (
+          <AssignQuizModal
+            isOpen={!!assignQuizModal}
+            onClose={() => {
+              setAssignQuizModal(null);
+              // Refresh to update assignment count
+              fetchQuizzes();
+            }}
+            quizId={assignQuizModal.id}
+            quizTitle={assignQuizModal.title}
+            teacherId={appState.currentUser.id}
+            onAssignmentCreated={() => {
+              // Success handler
+              setAlertModal({
+                isOpen: true,
+                title: t("common.success", "Success"),
+                message: t("assignQuiz.successMessage", "Quiz assigned successfully!"),
+                type: "success"
+              });
+              // Refresh counts
+              fetchQuizzes();
+            }}
+          />
+        )}
+
+        {/* View Assignments Modal */}
+        {viewAssignmentsModal && (
+          <QuizAssignmentsModal
+            isOpen={!!viewAssignmentsModal}
+            onClose={() => {
+              setViewAssignmentsModal(null);
+              // Refresh to update assignment count if unassigned
+              fetchQuizzes();
+            }}
+            quizId={viewAssignmentsModal.id}
+            quizTitle={viewAssignmentsModal.title}
+          />
         )}
 
         {/* Custom Modals */}
