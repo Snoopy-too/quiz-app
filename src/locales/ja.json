@@ -307,7 +307,9 @@
     "disabledUntilApproved": "教師がアカウントを承認するまで無効です",
     "viewMyResults": "マイ結果を表示",
     "seeQuizHistoryAndScores": "クイズ履歴とスコアを確認します",
-    "comingSoon": "近日公開"
+    "comingSoon": "近日公開",
+    "assignedQuizzes": "割り当てられたクイズ",
+    "completeAssignedQuizzes": "教師から割り当てられたクイズを完了してください"
   },
   "theme": {
     "themes": "テーマ",
@@ -503,8 +505,7 @@
     "nonCourseQuizzes": "コース外",
     "type": "タイプ",
     "courseAccuracy": "コース正解率",
-    "nonCourseAccuracy": "コース外正解率",
-    "overallAccuracy": "全体正解率"
+    "nonCourseAccuracy": "コース外正解率"
   },
   "studentReport": {
     "totalQuizzes": "総クイズ数",
@@ -605,5 +606,77 @@
     "createStudentEmailExists": "このメールアドレスのアカウントは既に存在します。",
     "createStudentNoUser": "アカウントを作成できませんでした。もう一度お試しください。",
     "createStudentGenericError": "学生アカウントの作成に失敗しました。もう一度お試しください。"
+  },
+  "assignQuiz": {
+    "title": "クイズを割り当て",
+    "selectStudents": "学生を選択",
+    "selectAll": "すべて選択",
+    "deselectAll": "すべて解除",
+    "selected": "選択中",
+    "searchStudents": "学生を検索...",
+    "deadline": "締め切り",
+    "deadlineHint": "学生はこの日時までにクイズを完了する必要があります",
+    "setDeadline": "締め切りを設定してください",
+    "selectAtLeastOneStudent": "少なくとも1人の学生を選択してください",
+    "noStudents": "承認済みの学生が見つかりません",
+    "noStudentsHint": "承認済みの学生がアカウントにリンクされていることを確認してください",
+    "noMatchingStudents": "検索に一致する学生がいません",
+    "assignToStudents": "{{count}}人の学生に割り当て",
+    "assigning": "割り当て中...",
+    "successTitle": "クイズを割り当てました",
+    "successMessage": "クイズが{{count}}人の学生に割り当てられました。メール通知が送信されます。"
+  },
+  "assignedQuizzes": {
+    "title": "割り当てられたクイズ",
+    "subtitle": "締め切りまでに割り当てられたクイズを完了してください",
+    "pending": "未完了",
+    "completed": "完了",
+    "expired": "期限切れ",
+    "noPending": "未完了のクイズはありません",
+    "noPendingHint": "すべて完了しています！新しい割り当てを後で確認してください。",
+    "noCompleted": "完了したクイズはありません",
+    "noCompletedHint": "未完了のクイズを完了するとここに表示されます。",
+    "noExpired": "期限切れのクイズはありません",
+    "noExpiredHint": "期限内にクイズを完了しています。素晴らしい！",
+    "deadline": "締め切り",
+    "left": "残り",
+    "assignedBy": "割り当て元",
+    "completedOn": "完了",
+    "score": "スコア",
+    "deadlinePassed": "締め切り終了",
+    "startQuiz": "クイズを開始",
+    "continueQuiz": "続ける",
+    "viewResults": "結果を見る",
+    "progress": "進捗"
+  },
+  "assignedQuiz": {
+    "question": "問題",
+    "remaining": "残り",
+    "progress": "進捗",
+    "previous": "前へ",
+    "next": "次へ",
+    "submitQuiz": "クイズを提出",
+    "unansweredQuestions": "未回答の問題",
+    "unansweredWarning": "{{count}}問の未回答の問題があります。提出してもよろしいですか？",
+    "submitAnyway": "提出する",
+    "quizCompleted": "クイズ完了！",
+    "scoreMessage": "{{score}}点を獲得しました（{{correct}}/{{total}}問正解）。",
+    "points": "点",
+    "correct": "正解",
+    "accuracy": "正答率",
+    "questionReview": "問題の確認",
+    "yourAnswer": "あなたの回答",
+    "correctAnswer": "正解",
+    "notAnswered": "未回答",
+    "deadlinePassed": "このクイズの締め切りは過ぎています。",
+    "noQuestions": "このクイズには問題がないか、表示する権限がありません。",
+    "timeUpMessage": "この質問にはもう回答できません。"
+  },
+  "teacherControl": {
+    "assignQuiz": "クイズを割り当て",
+    "assignQuizDescription": "特定の学生に締め切り付きでクイズを割り当てます。",
+    "forAbsentStudents": "欠席した学生向け",
+    "setDeadline": "締め切りを設定",
+    "emailNotifications": "メール通知"
   }
 }

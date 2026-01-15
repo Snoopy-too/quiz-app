@@ -29,6 +29,8 @@ import PublicQuizzes from "./components/teachers/PublicQuizzes";
 
 // Student components
 import StudentQuiz from "./components/students/StudentQuiz";
+import AssignedQuizzes from "./components/students/AssignedQuizzes";
+import AssignedQuizTaking from "./components/students/AssignedQuizTaking";
 
 // Settings
 import Settings from "./components/settings/Settings";
@@ -103,6 +105,7 @@ export default function QuizApp() {
     return null;
   });
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -566,6 +569,27 @@ export default function QuizApp() {
     return (
       <StudentQuiz
         sessionId={selectedSessionId}
+        appState={appState}
+        setView={setView}
+      />
+    );
+
+  if (view === "assigned-quizzes")
+    return (
+      <AssignedQuizzes
+        setView={setView}
+        appState={appState}
+        onStartAssignment={(assignmentId, viewResultsOnly = false) => {
+          setSelectedAssignmentId(assignmentId);
+          setView("assigned-quiz-taking");
+        }}
+      />
+    );
+
+  if (view === "assigned-quiz-taking")
+    return (
+      <AssignedQuizTaking
+        assignmentId={selectedAssignmentId}
         appState={appState}
         setView={setView}
       />

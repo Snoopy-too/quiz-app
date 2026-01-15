@@ -62,6 +62,20 @@ export default function Reports({ setView, appState }) {
 
       if (participationsError) throw participationsError;
 
+      // 2b. Get all completed assignments
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('quiz_assignments')
+        .select(`
+           id,
+           student_id,
+           assignment_answers ( is_correct ),
+           quizzes ( is_course_material )
+        `)
+        .in('student_id', studentIds)
+        .eq('status', 'completed');
+
+      if (assignmentsError) throw assignmentsError;
+
       // Filter out cancelled sessions - only include completed quizzes
       const completedParticipations = participations.filter(
         p => p.quiz_sessions?.status === 'completed'
@@ -70,8 +84,9 @@ export default function Reports({ setView, appState }) {
       // 3. Process the data with course/non-course separation
       const performanceData = students.map(student => {
         const studentParticipations = completedParticipations.filter(p => p.user_id === student.id);
+        const studentAssignments = assignments.filter(a => a.student_id === student.id);
 
-        const quizzesParticipated = new Set(studentParticipations.map(p => p.session_id)).size;
+        const quizzesParticipated = new Set(studentParticipations.map(p => p.session_id)).size + studentAssignments.length;
 
         let totalCorrect = 0;
         let totalAnswered = 0;
@@ -80,10 +95,30 @@ export default function Reports({ setView, appState }) {
         let nonCourseCorrect = 0;
         let nonCourseAnswered = 0;
 
+        // Process Session Participations
         studentParticipations.forEach(p => {
           const isCourseMaterial = p.quiz_sessions?.quizzes?.is_course_material !== false;
           const correct = p.quiz_answers.filter(a => a.is_correct).length;
           const answered = p.quiz_answers.length;
+
+          totalCorrect += correct;
+          totalAnswered += answered;
+
+          if (isCourseMaterial) {
+            courseCorrect += correct;
+            courseAnswered += answered;
+          } else {
+            nonCourseCorrect += correct;
+            nonCourseAnswered += answered;
+          }
+        });
+
+        // Process Assignments
+        studentAssignments.forEach(a => {
+          const isCourseMaterial = a.quizzes?.is_course_material !== false;
+          // We use assignment_answers to calculate accuracy
+          const correct = a.assignment_answers.filter(ans => ans.is_correct).length;
+          const answered = a.assignment_answers.length;
 
           totalCorrect += correct;
           totalAnswered += answered;
@@ -131,7 +166,7 @@ export default function Reports({ setView, appState }) {
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) return;
 
-      // Fetch teacher's quizzes with session count
+      // Fetch teacher's quizzes with session and assignment count
       const { data: quizzesData, error: quizzesError } = await supabase
         .from("quizzes")
         .select(`
@@ -139,31 +174,50 @@ export default function Reports({ setView, appState }) {
           title,
           created_at,
           is_course_material,
-          quiz_sessions(id, status, created_at)
+          quiz_sessions(id, status, created_at),
+          quiz_assignments(id, status, completed_at)
         `)
         .eq("created_by", user.user.id);
 
       if (quizzesError) throw quizzesError;
 
-      // Transform data to include session info for each quiz
+      // Transform data to include session/assignment info for each quiz
       const transformedData = quizzesData?.map(quiz => {
         const sessions = quiz.quiz_sessions || [];
+        const assignments = quiz.quiz_assignments || [];
+
         const completedSessions = sessions.filter(s => s.status === "completed");
+        const completedAssignments = assignments.filter(a => a.status === "completed");
+
+        // Find latest activity
         const latestSession = completedSessions.length > 0
           ? completedSessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
           : null;
 
+        const latestAssignment = completedAssignments.length > 0
+          ? completedAssignments.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0]
+          : null;
+
+        const latestActivityDate = latestSession && latestAssignment
+          ? (new Date(latestSession.created_at) > new Date(latestAssignment.completed_at) ? latestSession.created_at : latestAssignment.completed_at)
+          : (latestSession ? latestSession.created_at : (latestAssignment ? latestAssignment.completed_at : null));
+
         return {
           ...quiz,
           sessionCount: sessions.length,
-          completedCount: completedSessions.length,
-          latestSession,
-          mode: "Individual", // Default mode, can be updated if mode column exists
+          assignmentCount: assignments.length,
+          completedCount: completedSessions.length + completedAssignments.length,
+          latestSession: latestActivityDate ? { created_at: latestActivityDate } : null, // Mock object for sorting
+          mode: "Individual", // Default mode
           isCourseMaterial: quiz.is_course_material !== false
         };
       })
-        .filter(quiz => quiz.sessionCount > 0)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) || [];
+        .filter(quiz => (quiz.sessionCount > 0 || quiz.assignmentCount > 0))
+        .sort((a, b) => {
+          const dateA = a.latestSession ? new Date(a.latestSession.created_at) : new Date(a.created_at);
+          const dateB = b.latestSession ? new Date(b.latestSession.created_at) : new Date(b.created_at);
+          return dateB - dateA;
+        }) || [];
 
       setQuizzes(transformedData);
       setLoading(false);
@@ -177,19 +231,17 @@ export default function Reports({ setView, appState }) {
     try {
       setLoading(true);
 
-      // Get all sessions for this quiz
+      // 1. Get all completed sessions for this quiz
       const { data: sessions, error: sessError } = await supabase
         .from("quiz_sessions")
         .select("id, created_at, status")
-        .eq("quiz_id", quizId);
+        .eq("quiz_id", quizId)
+        .eq("status", "completed");
 
       if (sessError) throw sessError;
 
-      // Filter to only completed sessions for statistics
-      const completedSessions = sessions?.filter(s => s.status === 'completed') || [];
-
-      // Get all participants (only from completed sessions)
-      const sessionIds = completedSessions.map(s => s.id);
+      // 2. Get all participants from these sessions
+      const sessionIds = sessions.map(s => s.id);
       const { data: participants, error: partError } = await supabase
         .from("session_participants")
         .select(`
@@ -203,9 +255,9 @@ export default function Reports({ setView, appState }) {
 
       if (partError) throw partError;
 
-      // Get all answers
+      // 3. Get all answers from these participants
       const participantIds = participants?.map(p => p.id) || [];
-      const { data: answers, error: ansError } = await supabase
+      const { data: sessionAnswers, error: ansError } = await supabase
         .from("quiz_answers")
         .select(`
           question_id,
@@ -218,6 +270,37 @@ export default function Reports({ setView, appState }) {
 
       if (ansError) throw ansError;
 
+      // 4. Get completed assignments for this quiz
+      const { data: assignments, error: assError } = await supabase
+        .from("quiz_assignments")
+        .select(`
+          id,
+          completed_at,
+          score,
+          status,
+          student_id,
+          users:student_id(name, email)
+        `)
+        .eq("quiz_id", quizId)
+        .eq("status", "completed");
+
+      if (assError) throw assError;
+
+      // 5. Get assignment answers
+      const assignmentIds = assignments?.map(a => a.id) || [];
+      const { data: assignmentAnswers, error: aaError } = await supabase
+        .from("assignment_answers")
+        .select(`
+          question_id,
+          selected_option_index,
+          is_correct,
+          points_earned,
+          assignment_id
+        `)
+        .in("assignment_id", assignmentIds);
+
+      if (aaError) throw aaError;
+
       // Get questions
       const { data: questions, error: qErr } = await supabase
         .from("questions")
@@ -227,21 +310,60 @@ export default function Reports({ setView, appState }) {
 
       if (qErr) throw qErr;
 
-      // Calculate statistics (only from completed sessions)
-      const totalSessions = completedSessions.length;
-      const totalParticipants = participants?.length || 0;
-      const totalAnswers = answers?.length || 0;
-      const correctAnswers = answers?.filter(a => a.is_correct).length || 0;
+      // --- Combine Data ---
+
+      // Unified Participants
+      // Add 'type' or similar to distinguish if needed, but for stats we treat them same
+      const unifiedParticipants = [
+        ...(participants || []).map(p => ({
+          id: p.id, // Session Participant ID
+          userId: p.user_id,
+          name: p.users?.name || "Unknown",
+          email: p.users?.email || "",
+          score: p.score || 0,
+          type: 'session',
+          sourceId: p.session_id
+        })),
+        ...(assignments || []).map(a => ({
+          id: a.id, // Assignment ID (acts as Participant ID)
+          userId: a.student_id,
+          name: a.users?.name || "Unknown",
+          email: a.users?.email || "",
+          score: a.score || 0,
+          type: 'assignment',
+          sourceId: a.id
+        }))
+      ];
+
+      // Unified Answers
+      // We need to map assignment_id to 'participant_id' logic for aggregation
+      const unifiedAnswers = [
+        ...(sessionAnswers || []),
+        ...(assignmentAnswers || []).map(a => ({
+          ...a,
+          participant_id: a.assignment_id // Map assignment_id to participant_id for consistent grouping
+        }))
+      ];
+
+      // --- Calculate Statistics ---
+
+      const totalSessions = (sessions?.length || 0);
+      const totalAssignments = (assignments?.length || 0);
+      const totalParticipants = unifiedParticipants.length;
+      const totalAnswersCount = unifiedAnswers.length;
+      const correctAnswersCount = unifiedAnswers.filter(a => a.is_correct).length;
+
       const averageScore = totalParticipants > 0
-        ? (participants.reduce((sum, p) => sum + (p.score || 0), 0) / totalParticipants).toFixed(0)
+        ? (unifiedParticipants.reduce((sum, p) => sum + (p.score || 0), 0) / totalParticipants).toFixed(0)
         : 0;
-      const overallAccuracy = totalAnswers > 0
-        ? ((correctAnswers / totalAnswers) * 100).toFixed(1)
+
+      const overallAccuracy = totalAnswersCount > 0
+        ? ((correctAnswersCount / totalAnswersCount) * 100).toFixed(1)
         : 0;
 
       // Question-level analytics
       const questionAnalytics = questions?.map(q => {
-        const questionAnswers = answers?.filter(a => a.question_id === q.id) || [];
+        const questionAnswers = unifiedAnswers.filter(a => a.question_id === q.id);
         const correct = questionAnswers.filter(a => a.is_correct).length;
         const total = questionAnswers.length;
         const accuracy = total > 0 ? ((correct / total) * 100).toFixed(1) : 0;
@@ -256,7 +378,7 @@ export default function Reports({ setView, appState }) {
         const wrongAnswers = questionAnswers.filter(a => !a.is_correct);
         const wrongOptionCounts = {};
         wrongAnswers.forEach(a => {
-          if (a.selected_option_index !== null) {
+          if (a.selected_option_index !== null && a.selected_option_index !== undefined) {
             wrongOptionCounts[a.selected_option_index] = (wrongOptionCounts[a.selected_option_index] || 0) + 1;
           }
         });
@@ -278,30 +400,33 @@ export default function Reports({ setView, appState }) {
       }) || [];
 
       // Student performance breakdown
-      const studentPerformance = participants?.map(p => {
-        const studentAnswers = answers?.filter(a => a.participant_id === p.id) || [];
+      const studentPerformance = unifiedParticipants.map(p => {
+        const studentAnswers = unifiedAnswers.filter(a => a.participant_id === p.id);
         const correct = studentAnswers.filter(a => a.is_correct).length;
         const total = studentAnswers.length;
 
         return {
           id: p.id,
-          name: p.users?.name || "Unknown",
-          email: p.users?.email || "",
-          score: p.score || 0,
+          studentId: p.userId,
+          name: p.name,
+          email: p.email,
+          score: p.score,
           questionsAnswered: total,
           correctAnswers: correct,
-          accuracy: total > 0 ? ((correct / total) * 100).toFixed(1) : 0
+          accuracy: total > 0 ? ((correct / total) * 100).toFixed(1) : 0,
+          type: p.type // Optional: show if it was assignment or session?
         };
-      }).sort((a, b) => b.score - a.score) || [];
+      }).sort((a, b) => b.score - a.score);
 
       setQuizStats({
         totalSessions,
+        totalAssignments,
         totalParticipants,
         averageScore,
         overallAccuracy,
         questionAnalytics,
         studentPerformance,
-        sessions: completedSessions.length
+        sessions: totalSessions // Legacy prop if used elsewhere
       });
 
       setLoading(false);
@@ -622,8 +747,8 @@ export default function Reports({ setView, appState }) {
                 <button
                   onClick={() => setReportTab('all')}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   {t("reports.allQuizzes")}
@@ -631,8 +756,8 @@ export default function Reports({ setView, appState }) {
                 <button
                   onClick={() => setReportTab('course')}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'course'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   {t("reports.courseQuizzes")}
@@ -640,8 +765,8 @@ export default function Reports({ setView, appState }) {
                 <button
                   onClick={() => setReportTab('non-course')}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${reportTab === 'non-course'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   {t("reports.nonCourseQuizzes")}
@@ -835,7 +960,7 @@ export default function Reports({ setView, appState }) {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-600">{t("reports.totalSessions")}</p>
-                          <p className="text-3xl font-bold text-blue-600">{quizStats.sessions}</p>
+                          <p className="text-3xl font-bold text-blue-600">{quizStats.sessions + (quizStats.totalAssignments || 0)}</p>
                         </div>
                         <BarChart3 className="text-blue-600" size={40} />
                       </div>
@@ -993,7 +1118,14 @@ export default function Reports({ setView, appState }) {
                                     {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 font-medium">{student.name}</td>
+                                <td className="px-6 py-4 font-medium">
+                                  <button
+                                    onClick={() => setView('student-report', { studentId: student.studentId })}
+                                    className="font-bold text-gray-900 hover:text-blue-600 text-left"
+                                  >
+                                    {student.name}
+                                  </button>
+                                </td>
                                 <td className="px-6 py-4 text-gray-600">{student.email}</td>
                                 <td className="px-6 py-4">
                                   <span className="text-lg font-bold text-green-600">{student.score}</span>

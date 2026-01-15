@@ -6,6 +6,8 @@
     "edit": "Edit",
     "create": "Create",
     "back": "Back",
+    "backToList": "Back to List",
+    "backToDashboard": "Back to Dashboard",
     "back_to_reports": "Back to Reports",
     "next": "Next",
     "previous": "Previous",
@@ -347,7 +349,9 @@
     "yourTeamIsAlreadyInSession": "Your team \"{{teamName}}\" is already in this session",
     "teamQuiz": "Team Quiz",
     "teamQuizDescription": "Create or join a team for team quizzes",
-    "enterPinForTeamQuiz": "Enter the Quiz PIN to create or join a team"
+    "enterPinForTeamQuiz": "Enter the Quiz PIN to create or join a team",
+    "assignedQuizzes": "Assigned Quizzes",
+    "completeAssignedQuizzes": "Complete quizzes assigned by your teacher"
   },
   "theme": {
     "themes": "Themes",
@@ -545,8 +549,7 @@
     "nonCourseQuizzes": "Non-Course",
     "type": "Type",
     "courseAccuracy": "Course Accuracy",
-    "nonCourseAccuracy": "Non-Course Accuracy",
-    "overallAccuracy": "Overall Accuracy"
+    "nonCourseAccuracy": "Non-Course Accuracy"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",
@@ -662,5 +665,77 @@
     "confirmUnlinkMessage": "Are you sure you want to unlink this student? They will no longer be associated with your class.",
     "linkStudentSuccess": "Student linked to your class successfully!",
     "unlinkStudentSuccess": "Student unlinked from your class successfully."
+  },
+  "assignQuiz": {
+    "title": "Assign Quiz",
+    "selectStudents": "Select Students",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "selected": "selected",
+    "searchStudents": "Search students...",
+    "deadline": "Deadline",
+    "deadlineHint": "Students must complete the quiz before this date and time",
+    "setDeadline": "Please set a deadline",
+    "selectAtLeastOneStudent": "Please select at least one student",
+    "noStudents": "No approved students found",
+    "noStudentsHint": "Make sure you have approved students linked to your account",
+    "noMatchingStudents": "No students match your search",
+    "assignToStudents": "Assign to {{count}} Students",
+    "assigning": "Assigning...",
+    "successTitle": "Quiz Assigned",
+    "successMessage": "Quiz has been assigned to {{count}} student(s). They will receive email notifications."
+  },
+  "assignedQuizzes": {
+    "title": "Assigned Quizzes",
+    "subtitle": "Complete your assigned quizzes before the deadline",
+    "pending": "Pending",
+    "completed": "Completed",
+    "expired": "Expired",
+    "noPending": "No Pending Quizzes",
+    "noPendingHint": "You're all caught up! Check back later for new assignments.",
+    "noCompleted": "No Completed Quizzes",
+    "noCompletedHint": "Complete your pending quizzes to see them here.",
+    "noExpired": "No Expired Quizzes",
+    "noExpiredHint": "Great job completing your quizzes on time!",
+    "deadline": "Deadline",
+    "left": "left",
+    "assignedBy": "Assigned by",
+    "completedOn": "Completed",
+    "score": "Score",
+    "deadlinePassed": "Deadline passed",
+    "startQuiz": "Start Quiz",
+    "continueQuiz": "Continue",
+    "viewResults": "View Results",
+    "progress": "Progress"
+  },
+  "assignedQuiz": {
+    "question": "Question",
+    "remaining": "remaining",
+    "progress": "Progress",
+    "previous": "Previous",
+    "next": "Next",
+    "submitQuiz": "Submit Quiz",
+    "unansweredQuestions": "Unanswered Questions",
+    "unansweredWarning": "You have {{count}} unanswered questions. Are you sure you want to submit?",
+    "submitAnyway": "Submit Anyway",
+    "quizCompleted": "Quiz Completed!",
+    "scoreMessage": "You scored {{score}} points with {{correct}}/{{total}} correct answers.",
+    "points": "Points",
+    "correct": "Correct",
+    "accuracy": "Accuracy",
+    "questionReview": "Question Review",
+    "yourAnswer": "Your answer",
+    "correctAnswer": "Correct",
+    "notAnswered": "Not answered",
+    "deadlinePassed": "The deadline for this quiz has passed.",
+    "noQuestions": "This quiz has no questions or you don't have permission to view them.",
+    "timeUpMessage": "You can no longer answer this question."
+  },
+  "teacherControl": {
+    "assignQuiz": "Assign Quiz",
+    "assignQuizDescription": "Assign this quiz to specific students with a deadline.",
+    "forAbsentStudents": "For absent students",
+    "setDeadline": "Set deadline",
+    "emailNotifications": "Email notifications"
   }
 }

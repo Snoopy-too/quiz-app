@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Trophy, TrendingUp, Target, Calendar, Award, ArrowLeft, BarChart3 } from "lucide-react";
+import { Trophy, TrendingUp, Target, Calendar, Award, ArrowLeft, BarChart3, X, CheckCircle, XCircle, Clock, FileText, ChevronRight, ChevronDown } from "lucide-react";
 
 export default function StudentResults({ appState, onBack }) {
   const { t } = useTranslation();
@@ -26,6 +26,10 @@ export default function StudentResults({ appState, onBack }) {
     averageAccuracy: 0,
     totalPoints: 0,
   });
+
+  // Detailed view state
+  const [selectedResult, setSelectedResult] = useState(null); // { quiz, details: [] }
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     fetchResults();
@@ -67,7 +71,7 @@ export default function StudentResults({ appState, onBack }) {
       );
 
       // For each session, fetch the answers
-      const historyWithDetails = await Promise.all(
+      const sessionHistory = await Promise.all(
         completedParticipantData.map(async (participant) => {
           const { data: answers, error: answersError } = await supabase
             .from("quiz_answers")
@@ -75,7 +79,7 @@ export default function StudentResults({ appState, onBack }) {
             .eq("participant_id", participant.id);
 
           if (answersError) {
-            console.error("Error fetching answers:", answersError);
+            console.error("Error fetching session answers:", answersError);
             return null;
           }
 
@@ -85,18 +89,77 @@ export default function StudentResults({ appState, onBack }) {
           const isCourseMaterial = participant.quiz_sessions?.quizzes?.is_course_material !== false;
 
           return {
-            sessionId: participant.session_id,
-            participantId: participant.id,
+            source: 'session',
+            id: participant.id,
+            quizId: participant.quiz_sessions?.quizzes?.id,
             quizTitle: participant.quiz_sessions?.quizzes?.title || "Unknown Quiz",
             score: participant.score,
             dateTaken: participant.joined_at,
             totalQuestions,
             correctAnswers,
             accuracy,
-            answers,
             isCourseMaterial,
           };
         })
+      );
+
+      // Fetch completed assignments
+      const { data: assignmentData, error: assignmentError } = await supabase
+        .from("quiz_assignments")
+        .select(`
+          id,
+          score,
+          completed_at,
+          correct_answers,
+          quizzes (
+            id,
+            title,
+            is_course_material
+          )
+        `)
+        .eq("student_id", appState.currentUser.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false });
+
+      if (assignmentError) throw assignmentError;
+
+      const assignmentHistory = await Promise.all(
+        assignmentData.map(async (assignment) => {
+          // We need total questions count. We can count answers in assignment_answers
+          const { count, error: countError } = await supabase
+            .from("assignment_answers")
+            .select("*", { count: "exact", head: true })
+            .eq("assignment_id", assignment.id);
+
+          if (countError) {
+            console.error("Error fetching assignment answer count:", countError);
+            return null;
+          }
+
+          const totalQuestions = count || 0;
+          // assignment.correct_answers is stored, but fallback to calculating from answers if needed? 
+          // Relied on stored correct_answers for simplicity as per AssignedQuizTaking implementation
+          const correctAnswers = assignment.correct_answers || 0;
+          const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+          const isCourseMaterial = assignment.quizzes?.is_course_material !== false;
+
+          return {
+            source: 'assignment',
+            id: assignment.id,
+            quizId: assignment.quizzes?.id,
+            quizTitle: assignment.quizzes?.title || "Unknown Assignment",
+            score: assignment.score,
+            dateTaken: assignment.completed_at,
+            totalQuestions,
+            correctAnswers,
+            accuracy,
+            isCourseMaterial,
+          };
+        })
+      );
+
+      const historyWithDetails = [...sessionHistory, ...assignmentHistory].sort((a, b) =>
+        new Date(b.dateTaken) - new Date(a.dateTaken)
       );
 
       const validHistory = historyWithDetails.filter((h) => h !== null);
@@ -169,6 +232,112 @@ export default function StudentResults({ appState, onBack }) {
     });
   };
 
+  // Fetch detailed results for a specific quiz attempt
+  const fetchResultDetails = async (quiz) => {
+    try {
+      setLoadingDetails(true);
+
+      // 1. Fetch questions for this quiz
+      // We need to fetch questions for the quizId.
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('quiz_id', quiz.quizId)
+        .order('order_index', { ascending: true }); // Assuming order_index exists
+
+      if (questionsError) throw questionsError;
+
+      // 2. Fetch answers based on type
+      let answers = [];
+      if (quiz.source === 'assignment') {
+        const { data: assignmentAnswers, error: ansError } = await supabase
+          .from('assignment_answers')
+          .select('*')
+          .eq('assignment_id', quiz.id); // quiz.id is the assignment id
+
+        if (ansError) throw ansError;
+        answers = assignmentAnswers;
+      } else {
+        // source === 'session'
+        const { data: sessionAnswers, error: ansError } = await supabase
+          .from('quiz_answers')
+          .select('*')
+          .eq('participant_id', quiz.id); // quiz.id is the participant id
+
+        if (ansError) throw ansError;
+        answers = sessionAnswers;
+      }
+
+      // 3. Merge data
+      const details = questions.map((question, index) => {
+        const answer = answers.find(a => a.question_id === question.id);
+        const options = question.options || []; // JSON array
+
+        // Determine student's answer text
+        let studentAnswerText = t('common.noAnswer', '-');
+        let isCorrect = false;
+
+        if (answer) {
+          isCorrect = answer.is_correct;
+
+          if (answer.response_text) {
+            // If there's a direct text response
+            studentAnswerText = answer.response_text;
+          } else if (answer.selected_option_index !== null && answer.selected_option_index !== undefined) {
+            // If it's an option selection
+            const selectedOpt = options[answer.selected_option_index];
+            studentAnswerText = selectedOpt ? selectedOpt.text : t('common.unknownOption', 'Unknown Option');
+          } else if (answer.answer_text) {
+            // Legacy/Alternative field check
+            studentAnswerText = answer.answer_text;
+          }
+        }
+
+        // Determine correct answer text
+        let correctAnswerText = '';
+        if (options.length > 0) {
+          // Multiple choice
+          const correctOpts = options.filter(o => o.is_correct);
+          correctAnswerText = correctOpts.map(o => o.text).join(', ');
+        } else {
+          // Text input (check correct_answer field if exists)
+          correctAnswerText = question.correct_answer || '';
+        }
+
+        return {
+          id: question.id,
+          number: index + 1,
+          questionText: question.question_text,
+          studentAnswer: studentAnswerText,
+          correctAnswer: correctAnswerText,
+          isCorrect: isCorrect,
+          points: answer?.points_earned || 0,
+          timeTaken: answer?.time_taken || 0,
+          type: question.type
+        };
+      });
+
+      setSelectedResult({
+        quiz: quiz,
+        details: details
+      });
+
+    } catch (err) {
+      console.error("Error fetching details:", err);
+      // Could show an error toast here if available, or just log
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleViewDetails = (quiz) => {
+    fetchResultDetails(quiz);
+  };
+
+  const closeDetails = () => {
+    setSelectedResult(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center p-4">
@@ -203,31 +372,28 @@ export default function StudentResults({ appState, onBack }) {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               {t("reports.allQuizzes")}
             </button>
             <button
               onClick={() => setActiveTab('course')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === 'course'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'course'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               {t("reports.courseQuizzes")}
             </button>
             <button
               onClick={() => setActiveTab('non-course')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === 'non-course'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'non-course'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               {t("reports.nonCourseQuizzes")}
             </button>
@@ -246,8 +412,8 @@ export default function StudentResults({ appState, onBack }) {
                 <p className="text-xs md:text-sm text-gray-600">{t("studentReport.totalQuizzes")}</p>
                 <p className="text-2xl md:text-3xl font-bold text-blue-700">
                   {activeTab === 'all' ? stats.totalQuizzes :
-                   activeTab === 'course' ? courseStats.totalQuizzes :
-                   nonCourseStats.totalQuizzes}
+                    activeTab === 'course' ? courseStats.totalQuizzes :
+                      nonCourseStats.totalQuizzes}
                 </p>
               </div>
             </div>
@@ -263,8 +429,8 @@ export default function StudentResults({ appState, onBack }) {
                 <p className="text-xs md:text-sm text-gray-600">{t("studentReport.averageScore")}</p>
                 <p className="text-2xl md:text-3xl font-bold text-green-700">
                   {activeTab === 'all' ? stats.averageScore :
-                   activeTab === 'course' ? courseStats.averageScore :
-                   nonCourseStats.averageScore}
+                    activeTab === 'course' ? courseStats.averageScore :
+                      nonCourseStats.averageScore}
                 </p>
               </div>
             </div>
@@ -280,8 +446,8 @@ export default function StudentResults({ appState, onBack }) {
                 <p className="text-xs md:text-sm text-gray-600">{t("studentReport.averageAccuracy")}</p>
                 <p className="text-2xl md:text-3xl font-bold text-purple-700">
                   {activeTab === 'all' ? stats.averageAccuracy :
-                   activeTab === 'course' ? courseStats.averageAccuracy :
-                   nonCourseStats.averageAccuracy}%
+                    activeTab === 'course' ? courseStats.averageAccuracy :
+                      nonCourseStats.averageAccuracy}%
                 </p>
               </div>
             </div>
@@ -297,8 +463,8 @@ export default function StudentResults({ appState, onBack }) {
                 <p className="text-xs md:text-sm text-gray-600">{t("quiz.totalPoints")}</p>
                 <p className="text-2xl md:text-3xl font-bold text-yellow-700">
                   {activeTab === 'all' ? stats.totalPoints :
-                   activeTab === 'course' ? courseStats.totalPoints :
-                   nonCourseStats.totalPoints}
+                    activeTab === 'course' ? courseStats.totalPoints :
+                      nonCourseStats.totalPoints}
                 </p>
               </div>
             </div>
@@ -315,7 +481,7 @@ export default function StudentResults({ appState, onBack }) {
           {(() => {
             const filteredHistory = activeTab === 'all' ? quizHistory :
               activeTab === 'course' ? quizHistory.filter(q => q.isCourseMaterial) :
-              quizHistory.filter(q => !q.isCourseMaterial);
+                quizHistory.filter(q => !q.isCourseMaterial);
 
             if (filteredHistory.length === 0) {
               return (
@@ -328,141 +494,147 @@ export default function StudentResults({ appState, onBack }) {
             }
 
             return (
-            <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        {t("studentReport.quizTitle")}
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        {t("studentReport.dateTaken")}
-                      </th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                        {t("quiz.questions")}
-                      </th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                        {t("studentReport.score")}
-                      </th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                        {t("studentReport.accuracy")}
-                      </th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                        {t("reports.type")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredHistory.map((quiz, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-100 hover:bg-blue-50 transition-colors"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="font-medium text-gray-800">{quiz.quizTitle}</div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">
-                          {formatDate(quiz.dateTaken)}
-                        </td>
-                        <td className="py-4 px-4 text-center">
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          {t("studentReport.quizTitle")}
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          {t("studentReport.dateTaken")}
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">
+                          {t("quiz.questions")}
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">
+                          {t("studentReport.score")}
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">
+                          {t("studentReport.accuracy")}
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">
+                          {t("reports.type")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory.map((quiz, index) => (
+                        <tr
+                          key={index}
+                          className="border-b border-gray-100 hover:bg-blue-50 transition-colors"
+                        >
+                          <td className="py-4 px-4">
+                            <button
+                              onClick={() => handleViewDetails(quiz)}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline text-left flex items-center gap-2"
+                            >
+                              <FileText size={16} />
+                              {quiz.quizTitle}
+                            </button>
+                          </td>
+                          <td className="py-4 px-4 text-gray-600">
+                            {formatDate(quiz.dateTaken)}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                              {quiz.correctAnswers}/{quiz.totalQuestions}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
+                              {quiz.score}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${quiz.accuracy >= 80
+                                ? "bg-green-100 text-green-800"
+                                : quiz.accuracy >= 60
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                                }`}
+                            >
+                              {Math.round(quiz.accuracy)}%
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${quiz.isCourseMaterial
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                  {filteredHistory.map((quiz, index) => (
+                    <div
+                      key={index}
+                      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border-l-4 border-blue-500 shadow-md"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <button
+                          onClick={() => handleViewDetails(quiz)}
+                          className="font-bold text-lg text-blue-700 hover:text-blue-900 hover:underline text-left flex items-center gap-2"
+                        >
+                          <FileText size={18} />
+                          {quiz.quizTitle}
+                        </button>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${quiz.isCourseMaterial
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
+                          }`}>
+                          {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">{t("studentReport.dateTaken")}</p>
+                          <p className="font-medium text-gray-800">{formatDate(quiz.dateTaken)}</p>
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">{t("quiz.questions")}</p>
                           <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
                             {quiz.correctAnswers}/{quiz.totalQuestions}
                           </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">{t("studentReport.score")}</p>
                           <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
                             {quiz.score}
                           </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
+                        </div>
+
+                        <div>
+                          <p className="text-gray-600 text-xs mb-1">{t("studentReport.accuracy")}</p>
                           <span
-                            className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                              quiz.accuracy >= 80
-                                ? "bg-green-100 text-green-800"
-                                : quiz.accuracy >= 60
+                            className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${quiz.accuracy >= 80
+                              ? "bg-green-100 text-green-800"
+                              : quiz.accuracy >= 60
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-red-100 text-red-800"
-                            }`}
+                              }`}
                           >
                             {Math.round(quiz.accuracy)}%
                           </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                            quiz.isCourseMaterial
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-4">
-                {filteredHistory.map((quiz, index) => (
-                  <div
-                    key={index}
-                    className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border-l-4 border-blue-500 shadow-md"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="font-bold text-lg text-gray-800">
-                        {quiz.quizTitle}
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        quiz.isCourseMaterial
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">{t("studentReport.dateTaken")}</p>
-                        <p className="font-medium text-gray-800">{formatDate(quiz.dateTaken)}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">{t("quiz.questions")}</p>
-                        <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                          {quiz.correctAnswers}/{quiz.totalQuestions}
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">{t("studentReport.score")}</p>
-                        <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
-                          {quiz.score}
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-600 text-xs mb-1">{t("studentReport.accuracy")}</p>
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                            quiz.accuracy >= 80
-                              ? "bg-green-100 text-green-800"
-                              : quiz.accuracy >= 60
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {Math.round(quiz.accuracy)}%
-                        </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </>
+                  ))}
+                </div>
+              </>
             );
           })()}
         </div>
@@ -475,12 +647,103 @@ export default function StudentResults({ appState, onBack }) {
               {stats.averageAccuracy >= 80
                 ? "You're doing excellent! Keep up the great work!"
                 : stats.averageAccuracy >= 60
-                ? "You're making good progress! Keep practicing!"
-                : "Keep learning and improving! You're on the right track!"}
+                  ? "You're making good progress! Keep practicing!"
+                  : "Keep learning and improving! You're on the right track!"}
             </p>
           </div>
         )}
       </div>
+
+      {/* Detailed Result Modal/Slide-over */}
+      {selectedResult && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={closeDetails}
+          ></div>
+
+          {/* Panel */}
+          <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-in-out">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedResult.quiz.quizTitle}</h2>
+                  <p className="text-sm text-gray-500">
+                    {formatDate(selectedResult.quiz.dateTaken)} • {selectedResult.quiz.score} pts • {Math.round(selectedResult.quiz.accuracy)}%
+                  </p>
+                </div>
+                <button
+                  onClick={closeDetails}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {loadingDetails ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {selectedResult.details.map((item) => (
+                    <div key={item.id} className={`border rounded-lg p-4 ${item.isCorrect ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-semibold text-gray-800 text-lg flex gap-2">
+                          <span className="text-gray-500">#{item.number}</span>
+                          {item.questionText}
+                        </h3>
+                        {item.isCorrect ? (
+                          <span className="flex items-center text-green-600 font-medium bg-green-100 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            <CheckCircle size={14} className="mr-1" />
+                            {t('common.correct', 'Correct')}
+                          </span>
+                        ) : (
+                          <span className="flex items-center text-red-600 font-medium bg-red-100 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            <XCircle size={14} className="mr-1" />
+                            {t('common.incorrect', 'Incorrect')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="bg-white p-3 rounded border border-gray-200">
+                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">{t('reports.studentAnswer', 'Your Answer')}</p>
+                          <p className={`font-medium ${item.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                            {item.studentAnswer}
+                          </p>
+                        </div>
+
+                        {!item.isCorrect && (
+                          <div className="bg-white p-3 rounded border border-gray-200">
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">{t('reports.correctAnswer', 'Correct Answer')}</p>
+                            <p className="font-medium text-gray-800">
+                              {item.correctAnswer}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-4 text-gray-500 text-xs mt-1">
+                          <span className="flex items-center">
+                            <Clock size={12} className="mr-1" />
+                            {item.timeTaken}s
+                          </span>
+                          {item.points > 0 && (
+                            <span className="flex items-center text-amber-600 font-semibold">
+                              +{item.points} pts
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Trophy, BookOpen, ShieldAlert, RefreshCw } from "lucide-react";
+import { Users, Trophy, BookOpen, ShieldAlert, RefreshCw, ClipboardList } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import VerticalNav from "../layout/VerticalNav";
 import JoinClassicQuiz from "../students/JoinClassicQuiz";
@@ -14,13 +14,45 @@ export default function StudentDashboard({ appState, setAppState, setView, error
   const isApproved = appState.currentUser?.approved;
   const [activeSession, setActiveSession] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [pendingAssignmentCount, setPendingAssignmentCount] = useState(0);
 
   // Check for active quiz session on mount
   useEffect(() => {
     if (appState.currentUser?.id) {
       checkForActiveSession();
+      fetchPendingAssignments();
     }
   }, [appState.currentUser?.id]);
+
+  const fetchPendingAssignments = async () => {
+    try {
+      // Try RPC function first, fall back to direct query if not available
+      let count = 0;
+      try {
+        const { data, error } = await supabase.rpc("get_pending_assignment_count", {
+          p_student_id: appState.currentUser.id
+        });
+        if (!error && data !== null) {
+          count = data;
+        }
+      } catch (rpcErr) {
+        // RPC not available, use direct query
+        const { data, error } = await supabase
+          .from("quiz_assignments")
+          .select("id", { count: "exact" })
+          .eq("student_id", appState.currentUser.id)
+          .in("status", ["pending", "in_progress"])
+          .gt("deadline", new Date().toISOString());
+
+        if (!error) {
+          count = data?.length || 0;
+        }
+      }
+      setPendingAssignmentCount(count);
+    } catch (err) {
+      console.error("Error fetching pending assignments:", err);
+    }
+  };
 
   const checkForActiveSession = async () => {
     try {
@@ -159,7 +191,7 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {/* Card 1: Join Quiz (Classic Mode) */}
                 <div
                   onClick={isApproved ? () => setCurrentView("join-classic") : undefined}
@@ -243,6 +275,44 @@ export default function StudentDashboard({ appState, setAppState, setView, error
                   <div className="mt-auto">
                     <span className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">
                       {t('common.view')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 4: Assigned Quizzes */}
+                <div
+                  onClick={isApproved ? () => setView("assigned-quizzes") : undefined}
+                  className={`bg-white rounded-2xl shadow-2xl p-8 transition-transform duration-200 flex flex-col items-center text-center relative ${
+                    isApproved
+                      ? "cursor-pointer hover:scale-105"
+                      : "cursor-not-allowed opacity-60"
+                  }`}
+                >
+                  {pendingAssignmentCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-sm font-bold rounded-full w-7 h-7 flex items-center justify-center animate-pulse">
+                      {pendingAssignmentCount}
+                    </span>
+                  )}
+                  <div className="bg-orange-100 rounded-full p-6 mb-4">
+                    <ClipboardList size={48} className="text-orange-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                    {t('student.assignedQuizzes', 'Assigned Quizzes')}
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    {isApproved
+                      ? t('student.completeAssignedQuizzes', 'Complete quizzes assigned by your teacher')
+                      : t('student.disabledUntilApproved')}
+                  </p>
+                  <div className="mt-auto">
+                    <span
+                      className={`inline-block px-6 py-2 rounded-lg font-semibold ${
+                        isApproved
+                          ? "bg-orange-600 text-white hover:bg-orange-700"
+                          : "bg-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {t('common.view', 'View')}
                     </span>
                   </div>
                 </div>

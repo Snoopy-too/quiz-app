@@ -6,6 +6,7 @@ import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
+import AssignQuizModal from "../teachers/AssignQuizModal";
 
 export default function TeacherControl({ sessionId, setView }) {
   const { t } = useTranslation();
@@ -34,6 +35,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   // Ref to hold current question for real-time subscription
   const currentQuestionRef = useRef(null);
@@ -774,7 +776,13 @@ export default function TeacherControl({ sessionId, setView }) {
     }
   };
 
-  const closeSession = async () => {
+  const closeSession = async (skipConfirm = false) => {
+    if (skipConfirm) {
+      // Skip confirmation and directly cancel session (used after assigning quiz)
+      await endQuiz("cancelled");
+      setView("manage-quizzes");
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: "End Session",
@@ -911,7 +919,7 @@ export default function TeacherControl({ sessionId, setView }) {
               <h2 className="text-4xl font-bold mb-4">Select Quiz Mode</h2>
               <p className="text-gray-600 mb-8">Choose how you want students to participate</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Classic Mode */}
                 <div
                   onClick={() => selectMode("classic")}
@@ -945,10 +953,47 @@ export default function TeacherControl({ sessionId, setView }) {
                     <li>✓ Combined scores</li>
                   </ul>
                 </div>
+
+                {/* Assign Quiz Mode */}
+                <div
+                  onClick={() => setShowAssignModal(true)}
+                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-orange-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                >
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-orange-600">{t("teacherControl.assignQuiz", "Assign Quiz")}</h3>
+                  <p className="text-gray-600 mb-4">
+                    {t("teacherControl.assignQuizDescription", "Assign this quiz to specific students with a deadline.")}
+                  </p>
+                  <ul className="text-left text-sm text-gray-600 space-y-2">
+                    <li>✓ {t("teacherControl.forAbsentStudents", "For absent students")}</li>
+                    <li>✓ {t("teacherControl.setDeadline", "Set deadline")}</li>
+                    <li>✓ {t("teacherControl.emailNotifications", "Email notifications")}</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        <AssignQuizModal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          quizId={quiz?.id}
+          quizTitle={quiz?.title}
+          teacherId={session?.host_id}
+          onAssignmentCreated={(assignments) => {
+            setShowAssignModal(false);
+            setAlertModal({
+              isOpen: true,
+              title: t("assignQuiz.successTitle", "Quiz Assigned"),
+              message: t("assignQuiz.successMessage", "Quiz has been assigned to {count} student(s). They will receive email notifications.").replace("{count}", assignments.length),
+              type: "success"
+            });
+            // Close the session and return to manage quizzes after a delay
+            setTimeout(() => {
+              closeSession(true); // Pass true to skip confirmation
+            }, 2000);
+          }}
+        />
       </>
     );
   }
