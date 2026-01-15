@@ -191,13 +191,15 @@ export default function QuizAssignmentsModal({
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => handleUnassign(assignment.id, assignment.users?.name)}
-                                                    className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                    title={t("assignQuiz.unassign", "Unassign")}
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                                {assignment.status !== "completed" && (
+                                                    <button
+                                                        onClick={() => handleUnassign(assignment.id, assignment.users?.name)}
+                                                        className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                        title={t("assignQuiz.unassign", "Unassign")}
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
