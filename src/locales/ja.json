@@ -408,7 +408,10 @@
     "importQuizConfirm": "このクイズのコピーをあなたのアカウントに作成します。続行しますか？",
     "importSuccess": "クイズが正常にインポートされました！「マイクイズ」で確認できます。",
     "importError": "クイズのインポート中にエラーが発生しました",
-    "yourQuiz": "あなたのクイズ"
+    "yourQuiz": "あなたのクイズ",
+    "imported": "インポート済み",
+    "updateAvailable": "更新あり",
+    "reimport": "再インポート"
   },
   "time": {
     "seconds": "秒",

@@ -455,7 +455,10 @@
     "importQuizConfirm": "This will create a copy of this quiz in your account. Do you want to continue?",
     "importSuccess": "Quiz imported successfully! You can find it in 'My Quizzes'.",
     "importError": "Error importing quiz",
-    "yourQuiz": "Your Quiz"
+    "yourQuiz": "Your Quiz",
+    "imported": "Imported",
+    "updateAvailable": "Updated",
+    "reimport": "Re-import"
   },
   "time": {
     "seconds": "seconds",

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Copy, Search, Eye, Globe, User, Calendar, Hash } from "lucide-react";
+import { Copy, Search, Eye, Globe, User, Calendar, Hash, Check, RefreshCw } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -14,6 +14,7 @@ export default function PublicQuizzes({ setView, appState }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [themesById, setThemesById] = useState({});
+  const [importedQuizzes, setImportedQuizzes] = useState({}); // Map of source_quiz_id -> imported quiz info
 
   // Alert/Confirm modals
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -22,10 +23,39 @@ export default function PublicQuizzes({ setView, appState }) {
   useEffect(() => {
     const init = async () => {
       const themesMap = await fetchThemes();
+      await fetchImportedQuizzes();
       await fetchPublicQuizzes(themesMap);
     };
     init();
   }, []);
+
+  // Fetch quizzes that the current user has imported (have source_quiz_id)
+  const fetchImportedQuizzes = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) return;
+
+      const { data, error: fetchError } = await supabase
+        .from("quizzes")
+        .select("id, source_quiz_id, imported_at")
+        .eq("created_by", user.user.id)
+        .not("source_quiz_id", "is", null);
+
+      if (fetchError) throw fetchError;
+
+      // Create a map of source_quiz_id -> imported quiz info
+      const importedMap = {};
+      (data || []).forEach((quiz) => {
+        importedMap[quiz.source_quiz_id] = {
+          importedQuizId: quiz.id,
+          importedAt: quiz.imported_at
+        };
+      });
+      setImportedQuizzes(importedMap);
+    } catch (err) {
+      console.error("Error fetching imported quizzes:", err.message);
+    }
+  };
 
   const fetchThemes = async () => {
     try {
@@ -65,6 +95,7 @@ export default function PublicQuizzes({ setView, appState }) {
           theme_id,
           background_image_url,
           created_at,
+          updated_at,
           created_by,
           users!quizzes_created_by_fkey(name, email, avatar_url),
           questions(id)
@@ -137,7 +168,9 @@ export default function PublicQuizzes({ setView, appState }) {
             randomize_answers: quiz.randomize_answers,
             is_template: false,
             is_public: false, // Imported quizzes are private by default
-            folder_id: null
+            folder_id: null,
+            source_quiz_id: quizId, // Track which public quiz this was imported from
+            imported_at: new Date().toISOString() // Track when it was imported
           },
         ])
         .select()
@@ -166,6 +199,15 @@ export default function PublicQuizzes({ setView, appState }) {
 
         if (questionsInsertError) throw questionsInsertError;
       }
+
+      // Update the imported quizzes map
+      setImportedQuizzes(prev => ({
+        ...prev,
+        [quizId]: {
+          importedQuizId: newQuiz.id,
+          importedAt: newQuiz.imported_at
+        }
+      }));
 
       setAlertModal({
         isOpen: true,
@@ -276,8 +318,29 @@ export default function PublicQuizzes({ setView, appState }) {
     };
   };
 
+  // Check if a public quiz has been updated since it was imported
+  const hasQuizBeenUpdated = (quiz) => {
+    const importInfo = importedQuizzes[quiz.id];
+    if (!importInfo || !importInfo.importedAt) return false;
+
+    // Compare source quiz's updated_at with imported_at
+    const sourceUpdatedAt = new Date(quiz.updated_at || quiz.created_at);
+    const importedAt = new Date(importInfo.importedAt);
+
+    return sourceUpdatedAt > importedAt;
+  };
+
+  // Get import status for a quiz
+  const getImportStatus = (quiz) => {
+    if (quiz.isOwnQuiz) return "own";
+    if (!importedQuizzes[quiz.id]) return "not_imported";
+    if (hasQuizBeenUpdated(quiz)) return "update_available";
+    return "imported";
+  };
+
   const renderQuizCard = (quiz) => {
     const themeMeta = getThemeMeta(quiz);
+    const importStatus = getImportStatus(quiz);
 
     return (
       <div
@@ -291,6 +354,20 @@ export default function PublicQuizzes({ setView, appState }) {
           <div className="absolute top-2 right-2">
             <Globe size={20} className="text-white drop-shadow" />
           </div>
+          {/* Show "Imported" badge if already imported */}
+          {importStatus === "imported" && (
+            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <Check size={12} />
+              {t('publicQuizzes.imported')}
+            </div>
+          )}
+          {/* Show "Update Available" badge if source was updated */}
+          {importStatus === "update_available" && (
+            <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <RefreshCw size={12} />
+              {t('publicQuizzes.updateAvailable')}
+            </div>
+          )}
           <div className="absolute bottom-2 left-3 right-3">
             <span
               className="text-sm font-semibold drop-shadow"
@@ -344,7 +421,9 @@ export default function PublicQuizzes({ setView, appState }) {
               <Eye size={14} />
               {t('actions.preview')}
             </button>
-            {!quiz.isOwnQuiz && (
+
+            {/* Not imported yet - show Import button */}
+            {importStatus === "not_imported" && (
               <button
                 onClick={() => handleImportQuiz(quiz.id)}
                 className="flex-1 bg-blue-700 text-white px-3 py-2 rounded-md hover:bg-blue-800 transition text-sm font-medium flex items-center justify-center gap-1.5"
@@ -354,7 +433,29 @@ export default function PublicQuizzes({ setView, appState }) {
                 {t('publicQuizzes.import')}
               </button>
             )}
-            {quiz.isOwnQuiz && (
+
+            {/* Already imported - show grayed out Imported indicator */}
+            {importStatus === "imported" && (
+              <div className="flex-1 bg-gray-100 text-gray-500 px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5">
+                <Check size={14} />
+                {t('publicQuizzes.imported')}
+              </div>
+            )}
+
+            {/* Update available - show Re-import button */}
+            {importStatus === "update_available" && (
+              <button
+                onClick={() => handleImportQuiz(quiz.id)}
+                className="flex-1 bg-amber-500 text-white px-3 py-2 rounded-md hover:bg-amber-600 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                title={t('publicQuizzes.reimport')}
+              >
+                <RefreshCw size={14} />
+                {t('publicQuizzes.reimport')}
+              </button>
+            )}
+
+            {/* Own quiz - show Your Quiz indicator */}
+            {importStatus === "own" && (
               <div className="flex-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-md text-sm font-medium text-center">
                 {t('publicQuizzes.yourQuiz')}
               </div>
