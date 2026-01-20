@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Copy, Search, Eye, Globe, User, Calendar, Hash, Check, RefreshCw } from "lucide-react";
+import { Copy, Search, Eye, Globe, User, Calendar, Hash, Check, RefreshCw, List, X, ChevronDown, ChevronUp } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -19,6 +19,12 @@ export default function PublicQuizzes({ setView, appState }) {
   // Alert/Confirm modals
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [viewQuestionsModal, setViewQuestionsModal] = useState({
+    isOpen: false,
+    quizTitle: "",
+    questions: [],
+    loading: false
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -338,6 +344,91 @@ export default function PublicQuizzes({ setView, appState }) {
     return "imported";
   };
 
+  const handleViewQuestions = async (quiz) => {
+    setViewQuestionsModal({
+      isOpen: true,
+      quizTitle: quiz.title,
+      questions: [],
+      loading: true
+    });
+
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('quiz_id', quiz.id)
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+
+      setViewQuestionsModal(prev => ({
+        ...prev,
+        loading: false,
+        questions: data || []
+      }));
+    } catch (err) {
+      console.error("Error fetching questions:", err);
+      // Fallback to empty list or handle error gracefully
+      setViewQuestionsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const renderQuestionsModal = () => {
+    if (!viewQuestionsModal.isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl">
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                {t('quiz.questions')} ({viewQuestionsModal.questions.length})
+              </p>
+              <h3 className="text-xl font-bold text-gray-800 line-clamp-1">{viewQuestionsModal.quizTitle}</h3>
+            </div>
+            <button
+              onClick={() => setViewQuestionsModal(prev => ({ ...prev, isOpen: false }))}
+              className="text-gray-400 hover:text-gray-600 transition-colors bg-white p-2 rounded-full border border-gray-200 hover:shadow-sm"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100/50">
+            {viewQuestionsModal.loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-500">{t('common.loading')}</p>
+              </div>
+            ) : viewQuestionsModal.questions.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200 border-dashed">
+                <p className="text-gray-500">{t('quiz.noQuestions')}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {viewQuestionsModal.questions.map((q, idx) => (
+                  <QuestionItem key={q.id} question={q} index={idx} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-white rounded-b-xl flex justify-end">
+            <button
+              onClick={() => setViewQuestionsModal(prev => ({ ...prev, isOpen: false }))}
+              className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium text-sm"
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderQuizCard = (quiz) => {
     const themeMeta = getThemeMeta(quiz);
     const importStatus = getImportStatus(quiz);
@@ -412,54 +503,66 @@ export default function PublicQuizzes({ setView, appState }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100">
             <button
               onClick={() => setView("preview-quiz", quiz.id)}
-              className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
+              className="bg-blue-600 text-white px-2 py-2 rounded-md hover:bg-blue-700 transition text-xs font-medium flex items-center justify-center gap-1"
               title={t('actions.preview')}
             >
-              <Eye size={14} />
+              <Eye size={13} />
               {t('actions.preview')}
             </button>
 
-            {/* Not imported yet - show Import button */}
-            {importStatus === "not_imported" && (
-              <button
-                onClick={() => handleImportQuiz(quiz.id)}
-                className="flex-1 bg-blue-700 text-white px-3 py-2 rounded-md hover:bg-blue-800 transition text-sm font-medium flex items-center justify-center gap-1.5"
-                title={t('publicQuizzes.import')}
-              >
-                <Copy size={14} />
-                {t('publicQuizzes.import')}
-              </button>
-            )}
+            <button
+              onClick={() => handleViewQuestions(quiz)}
+              className="bg-violet-600 text-white px-2 py-2 rounded-md hover:bg-violet-700 transition text-xs font-medium flex items-center justify-center gap-1"
+              title="View Questions"
+            >
+              <List size={13} />
+              Questions
+            </button>
 
-            {/* Already imported - show grayed out Imported indicator */}
-            {importStatus === "imported" && (
-              <div className="flex-1 bg-gray-100 text-gray-500 px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5">
-                <Check size={14} />
-                {t('publicQuizzes.imported')}
-              </div>
-            )}
+            {/* Import actions - span both columns */}
+            <div className="col-span-2">
+              {/* Not imported yet - show Import button */}
+              {importStatus === "not_imported" && (
+                <button
+                  onClick={() => handleImportQuiz(quiz.id)}
+                  className="w-full bg-blue-700 text-white px-3 py-2 rounded-md hover:bg-blue-800 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                  title={t('publicQuizzes.import')}
+                >
+                  <Copy size={14} />
+                  {t('publicQuizzes.import')}
+                </button>
+              )}
 
-            {/* Update available - show Re-import button */}
-            {importStatus === "update_available" && (
-              <button
-                onClick={() => handleImportQuiz(quiz.id)}
-                className="flex-1 bg-amber-500 text-white px-3 py-2 rounded-md hover:bg-amber-600 transition text-sm font-medium flex items-center justify-center gap-1.5"
-                title={t('publicQuizzes.reimport')}
-              >
-                <RefreshCw size={14} />
-                {t('publicQuizzes.reimport')}
-              </button>
-            )}
+              {/* Already imported - show grayed out Imported indicator */}
+              {importStatus === "imported" && (
+                <div className="w-full bg-gray-100 text-gray-500 px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 border border-gray-200">
+                  <Check size={14} />
+                  {t('publicQuizzes.imported')}
+                </div>
+              )}
 
-            {/* Own quiz - show Your Quiz indicator */}
-            {importStatus === "own" && (
-              <div className="flex-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-md text-sm font-medium text-center">
-                {t('publicQuizzes.yourQuiz')}
-              </div>
-            )}
+              {/* Update available - show Re-import button */}
+              {importStatus === "update_available" && (
+                <button
+                  onClick={() => handleImportQuiz(quiz.id)}
+                  className="w-full bg-amber-500 text-white px-3 py-2 rounded-md hover:bg-amber-600 transition text-sm font-medium flex items-center justify-center gap-1.5"
+                  title={t('publicQuizzes.reimport')}
+                >
+                  <RefreshCw size={14} />
+                  {t('publicQuizzes.reimport')}
+                </button>
+              )}
+
+              {/* Own quiz - show Your Quiz indicator */}
+              {importStatus === "own" && (
+                <div className="w-full bg-gray-100 text-gray-600 px-3 py-2 rounded-md text-sm font-medium text-center border border-gray-200">
+                  {t('publicQuizzes.yourQuiz')}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -588,6 +691,105 @@ export default function PublicQuizzes({ setView, appState }) {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
         confirmStyle="primary"
       />
+
+      {renderQuestionsModal()}
+    </div>
+  );
+}
+
+function QuestionItem({ question, index }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Ensure options is an array
+  let options = [];
+  try {
+    options = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+  } catch (e) {
+    console.error("Error parsing options", e);
+  }
+
+  // Helper to determine shape color like Kahoot
+  const getShapeColor = (idx) => {
+    // Red, Blue, Yellow, Green for 0, 1, 2, 3
+    const colors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
+    return colors[idx % colors.length];
+  };
+
+  // Helper for shape icon (simple CSS shapes or just use the color block with index)
+  // We can just use the color block as in Kahoot compact view.
+
+  const answerIcons = ['▲', '◆', '●', '■'];
+
+  return (
+    <div className={`bg-white rounded-lg shadow-sm border transition-all duration-200 overflow-hidden ${expanded ? 'border-blue-300 ring-4 ring-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
+      {/* Header / Clickable Area */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50/80 transition-colors gap-4"
+      >
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Quiz</span>
+          <h4 className={`font-semibold text-gray-800 text-sm md:text-base leading-snug ${expanded ? '' : 'line-clamp-1'}`}>
+            {question.question_text}
+          </h4>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {question.image_url && !expanded && (
+            <div className="h-8 w-12 rounded bg-gray-100 overflow-hidden border border-gray-200">
+              <img src={question.image_url} alt="" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className={`p-1 rounded-full transition-transform duration-200 ${expanded ? 'bg-blue-100 text-blue-600 rotate-180' : 'text-gray-400'}`}>
+            <ChevronDown size={18} />
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <div className="border-t border-gray-100 p-4 pt-2 bg-gray-50/30">
+          <div className="flex flex-col md:flex-row gap-6 mt-2 ml-1">
+            {/* Image if exists */}
+            {question.image_url && (
+              <div className="shrink-0">
+                <div className="rounded-lg overflow-hidden h-32 w-auto aspect-video bg-gray-200 border border-gray-200 shadow-sm">
+                  <img src={question.image_url} alt="Question" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
+
+            {/* Options Grid */}
+            <div className="flex-1 grid grid-cols-1 gap-2 self-start w-full">
+              {Array.isArray(options) && options.map((opt, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between p-2.5 rounded-md border 
+                    ${opt.is_correct
+                      ? 'bg-green-50 border-green-200 shadow-sm'
+                      : 'bg-white border-gray-200 opacity-80'}`}
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    {/* Shape/Color Icon */}
+                    <div className={`w-6 h-6 rounded shrink-0 flex items-center justify-center text-white text-[10px] shadow-sm ${getShapeColor(i)}`}>
+                      {answerIcons[i % 4]}
+                    </div>
+                    <span className={`text-sm font-medium truncate ${opt.is_correct ? 'text-gray-900' : 'text-gray-600'}`}>
+                      {opt.text}
+                    </span>
+                  </div>
+                  <div className="shrink-0 pl-2">
+                    {opt.is_correct ? (
+                      <Check size={18} className="text-green-600" />
+                    ) : (
+                      <X size={18} className="text-red-300" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
