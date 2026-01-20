@@ -27,6 +27,12 @@ export default function ThemeSelector({
   const [editingThemeId, setEditingThemeId] = useState(null);
   const [editingName, setEditingName] = useState("");
 
+  // Delete confirmation state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [themeToDelete, setThemeToDelete] = useState(null);
+  const [deletingTheme, setDeletingTheme] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -210,31 +216,55 @@ export default function ThemeSelector({
     setEditingName("");
   };
 
-  const handleDeleteTheme = async (themeId, e) => {
+  const handleOpenDeleteModal = (theme, e) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this custom theme?")) return;
+    setThemeToDelete(theme);
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
 
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+    setThemeToDelete(null);
+    setDeleteError(null);
+  };
+
+  const confirmDeleteTheme = async () => {
+    if (!themeToDelete) return;
+
+    setDeletingTheme(true);
+    setDeleteError(null);
     try {
       const { error } = await supabase
         .from("themes")
         .delete()
-        .eq("id", themeId)
+        .eq("id", themeToDelete.id)
         .eq("created_by", currentUserId);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23503") {
+          throw new Error("This theme is being used by one or more quizzes. You must change the theme of those quizzes before you can delete this theme.");
+        }
+        throw error;
+      }
 
       // Remove from local state
-      setUserThemes((prev) => prev.filter((t) => t.id !== themeId));
+      setUserThemes((prev) => prev.filter((t) => t.id !== themeToDelete.id));
 
       // If this was the selected theme, clear selection
-      if (selectedThemeId === themeId) {
+      if (selectedThemeId === themeToDelete.id) {
         const defaultTheme = themes.find((t) => t.is_default) || themes[0];
         if (defaultTheme) {
           onThemeSelect?.(defaultTheme.id);
         }
       }
+
+      handleCloseDeleteModal();
     } catch (err) {
       console.error("Failed to delete theme:", err);
+      setDeleteError(err.message || "Failed to delete theme. It might be in use.");
+    } finally {
+      setDeletingTheme(false);
     }
   };
 
@@ -253,11 +283,10 @@ export default function ThemeSelector({
         key={theme.id}
         type="button"
         onClick={() => !isEditing && handleThemeSelect(theme.id)}
-        className={`relative rounded-lg overflow-hidden border-2 transition-all group ${
-          isSelected
-            ? "border-blue-700 ring-2 ring-cyan-300"
-            : "border-gray-200 hover:border-cyan-400"
-        }`}
+        className={`relative rounded-lg overflow-hidden border-2 transition-all group ${isSelected
+          ? "border-blue-700 ring-2 ring-cyan-300"
+          : "border-gray-200 hover:border-cyan-400"
+          }`}
         style={{ height: "120px" }}
       >
         <div
@@ -341,7 +370,7 @@ export default function ThemeSelector({
                 <Pencil size={14} />
               </button>
               <button
-                onClick={(e) => handleDeleteTheme(theme.id, e)}
+                onClick={(e) => handleOpenDeleteModal(theme, e)}
                 className="p-1 bg-white/90 text-red-600 rounded hover:bg-white"
                 title="Delete theme"
               >
@@ -384,11 +413,10 @@ export default function ThemeSelector({
 
           {/* Upload custom image tile */}
           <label
-            className={`relative rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-all ${
-              uploading
-                ? "border-cyan-400 bg-blue-50 text-blue-700"
-                : "border-gray-300 hover:border-cyan-400 hover:bg-blue-50"
-            }`}
+            className={`relative rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-center p-4 cursor-pointer transition-all ${uploading
+              ? "border-cyan-400 bg-blue-50 text-blue-700"
+              : "border-gray-300 hover:border-cyan-400 hover:bg-blue-50"
+              }`}
             style={{ minHeight: "120px" }}
           >
             <input
@@ -414,11 +442,10 @@ export default function ThemeSelector({
       {/* Legacy custom background preview (for quizzes that already have one) */}
       {customBackgroundUrl && (
         <div
-          className={`mt-4 relative rounded-lg overflow-hidden border-2 transition-all ${
-            isCustomSelected
-              ? "border-blue-700 ring-2 ring-cyan-300"
-              : "border-gray-200"
-          }`}
+          className={`mt-4 relative rounded-lg overflow-hidden border-2 transition-all ${isCustomSelected
+            ? "border-blue-700 ring-2 ring-cyan-300"
+            : "border-gray-200"
+            }`}
           style={{ height: "140px" }}
         >
           <button
@@ -494,7 +521,6 @@ export default function ThemeSelector({
           </p>
         </div>
       )}
-
       {/* Name Theme Modal */}
       {showNameModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -540,6 +566,53 @@ export default function ThemeSelector({
                   onClick={handleCancelCustomTheme}
                   disabled={savingTheme}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="flex items-center gap-3 text-red-600 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <Trash2 size={24} />
+                </div>
+                <h3 className="text-xl font-bold">Delete Theme?</h3>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-800">"{themeToDelete?.name}"</span>?
+                This action cannot be undone.
+              </p>
+              <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg mb-6 border border-amber-100">
+                <strong>Please note:</strong> If this quiz is currently using this theme, you must select a different theme and <strong>SAVE the quiz</strong> before you can delete it.
+              </p>
+
+              {deleteError && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmDeleteTheme}
+                  disabled={deletingTheme}
+                  className="flex-1 bg-red-600 text-white px-4 py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors"
+                >
+                  {deletingTheme ? "Deleting..." : "Yes, Delete Theme"}
+                </button>
+                <button
+                  onClick={handleCloseDeleteModal}
+                  disabled={deletingTheme}
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
                   Cancel
                 </button>
