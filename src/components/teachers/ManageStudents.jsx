@@ -174,23 +174,15 @@ export default function ManageStudents({ setView, appState }) {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           // Use RPC to delete from both public and auth tables
+          // We removed the fallback because using standard delete() creates orphaned auth users.
+          // If this fails, we want to know about it (alert modal), so we can fix the RPC/Permissions.
           const { error } = await supabase.rpc('delete_student_account', {
             target_user_id: studentId
           });
 
           if (error) {
             console.error("RPC Delete Error:", error);
-            // Fallback to standard delete if RPC fails (e.g. if not run yet)
-            if (error.code === '42883') { // undefined_function
-              console.warn("RPC not found, falling back to public table only delete");
-              const { error: fallbackError } = await supabase
-                .from("users")
-                .delete()
-                .eq("id", studentId);
-              if (fallbackError) throw fallbackError;
-            } else {
-              throw error;
-            }
+            throw error;
           }
           await fetchStudents();
           setShowDetails(false);
