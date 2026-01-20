@@ -173,12 +173,25 @@ export default function ManageStudents({ setView, appState }) {
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
-          const { error } = await supabase
-            .from("users")
-            .delete()
-            .eq("id", studentId);
+          // Use RPC to delete from both public and auth tables
+          const { error } = await supabase.rpc('delete_student_account', {
+            target_user_id: studentId
+          });
 
-          if (error) throw error;
+          if (error) {
+            console.error("RPC Delete Error:", error);
+            // Fallback to standard delete if RPC fails (e.g. if not run yet)
+            if (error.code === '42883') { // undefined_function
+              console.warn("RPC not found, falling back to public table only delete");
+              const { error: fallbackError } = await supabase
+                .from("users")
+                .delete()
+                .eq("id", studentId);
+              if (fallbackError) throw fallbackError;
+            } else {
+              throw error;
+            }
+          }
           await fetchStudents();
           setShowDetails(false);
         } catch (err) {
