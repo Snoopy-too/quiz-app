@@ -45,7 +45,8 @@ export default function StudentReport({ setView, studentId, appState }) {
               quizzes (
                 id,
                 title,
-                is_course_material
+                is_course_material,
+                questions (id)
               )
             ),
             quiz_answers (
@@ -68,7 +69,8 @@ export default function StudentReport({ setView, studentId, appState }) {
             quizzes (
               id,
               title,
-              is_course_material
+              is_course_material,
+              questions (id)
             ),
             assignment_answers (
               is_correct
@@ -83,9 +85,9 @@ export default function StudentReport({ setView, studentId, appState }) {
       const sessionQuizzes = participations
         .filter(p => p.quiz_sessions?.status === 'completed')
         .map(p => {
-          const totalAnswers = p.quiz_answers.length;
           const correctAnswers = p.quiz_answers.filter(a => a.is_correct).length;
-          const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+          const totalQuestions = p.quiz_sessions?.quizzes?.questions?.length || p.quiz_answers.length;
+          const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
           const isCourseMaterial = p.quiz_sessions.quizzes.is_course_material !== false;
           return {
             type: 'session',
@@ -95,6 +97,8 @@ export default function StudentReport({ setView, studentId, appState }) {
             title: p.quiz_sessions.quizzes.title,
             date: new Date(p.quiz_sessions.created_at).toLocaleDateString(),
             score: p.score,
+            correctAnswers,
+            totalQuestions,
             accuracy: accuracy.toFixed(1),
             isCourseMaterial,
           };
@@ -102,9 +106,9 @@ export default function StudentReport({ setView, studentId, appState }) {
 
       // Process assignments
       const assignmentQuizzes = assignmentsData.map(a => {
-        const totalAnswers = a.assignment_answers.length;
         const correctAnswers = a.assignment_answers.filter(ans => ans.is_correct).length;
-        const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+        const totalQuestions = a.quizzes?.questions?.length || a.assignment_answers.length;
+        const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
         const isCourseMaterial = a.quizzes?.is_course_material !== false;
 
         return {
@@ -115,6 +119,8 @@ export default function StudentReport({ setView, studentId, appState }) {
           title: a.quizzes?.title || 'Unknown Quiz',
           date: new Date(a.completed_at).toLocaleDateString(),
           score: a.score,
+          correctAnswers,
+          totalQuestions,
           accuracy: accuracy.toFixed(1),
           isCourseMaterial
         };
@@ -489,6 +495,7 @@ export default function StudentReport({ setView, studentId, appState }) {
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.quizTitle')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.dateTaken')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.score')}</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.correctTotal')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.accuracy')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('reports.type')}</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('common.actions')}</th>
@@ -510,6 +517,9 @@ export default function StudentReport({ setView, studentId, appState }) {
                             </td>
                             <td className="px-6 py-4 text-gray-600">{quiz.date}</td>
                             <td className="px-6 py-4 text-green-600 font-semibold">{quiz.score}</td>
+                            <td className="px-6 py-4 text-gray-600 font-medium">
+                              {quiz.correctAnswers} / {quiz.totalQuestions}
+                            </td>
                             <td className="px-6 py-4 font-semibold">{quiz.accuracy}%</td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${quiz.isCourseMaterial
@@ -580,7 +590,7 @@ export default function StudentReport({ setView, studentId, appState }) {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">{selectedResult.quiz.title}</h2>
                   <p className="text-sm text-gray-500">
-                    {selectedResult.quiz.date} • {selectedResult.quiz.score} pts • {selectedResult.quiz.accuracy}%
+                    {selectedResult.quiz.date} • {selectedResult.quiz.score} pts • {selectedResult.quiz.correctAnswers}/{selectedResult.quiz.totalQuestions} • {selectedResult.quiz.accuracy}%
                   </p>
                 </div>
                 <button

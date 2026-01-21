@@ -518,7 +518,8 @@
     "quizTitle": "クイズタイトル",
     "dateTaken": "受験日",
     "score": "スコア",
-    "accuracy": "正解率"
+    "accuracy": "正答率",
+    "correctTotal": "正解数"
   },
   "manageStudents": {
     "title": "学生管理",

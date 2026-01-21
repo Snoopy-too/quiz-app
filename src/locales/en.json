@@ -572,7 +572,8 @@
     "deleteError": "Failed to delete result",
     "toggleType": "Toggle Type",
     "typeUpdated": "Quiz type changed to {{type}}",
-    "typeUpdateError": "Failed to update quiz type"
+    "typeUpdateError": "Failed to update quiz type",
+    "correctTotal": "Questions"
   },
   "manageStudents": {
     "title": "Manage Students",
