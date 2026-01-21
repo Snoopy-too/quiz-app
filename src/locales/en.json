@@ -670,7 +670,13 @@
     "confirmUnlinkTitle": "Unlink Student",
     "confirmUnlinkMessage": "Are you sure you want to unlink this student? They will no longer be associated with your class.",
     "linkStudentSuccess": "Student linked to your class successfully!",
-    "unlinkStudentSuccess": "Student unlinked from your class successfully."
+    "unlinkStudentSuccess": "Student unlinked from your class successfully.",
+    "editStudent": "Edit Student",
+    "editStudentTitle": "Edit Student Details",
+    "saveChanges": "Save Changes",
+    "passwordHint": "Leave blank to keep current password",
+    "updateStudentSuccess": "Student updated successfully!",
+    "errorUpdatingStudent": "Error updating student: "
   },
   "assignQuiz": {
     "title": "Assign Quiz",
