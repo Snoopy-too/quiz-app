@@ -103,7 +103,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       // Optional: Enforce team mode?
       // User said "team mode quiz", implies checks.
       if (foundSession.mode !== 'team') {
-        setError("This quiz is not in Team Mode. Please use 'Join Quiz' for individual mode.");
+        setError(t('errors.notTeamMode'));
         setLoading(false);
         return;
       }
@@ -397,7 +397,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             disabled={loading}
             className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Verifying..." : t('common.next')}
+            {loading ? t('common.verifying') : t('common.next')}
           </button>
         </div>
       </div>
@@ -531,7 +531,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           disabled={loading || loadingClassmates}
           className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? t('student.joining') : t('student.createTeam') + " & Join"}
+          {loading ? t('student.joining') : t('student.createTeamAndJoin')}
         </button>
       </div>
     </div>

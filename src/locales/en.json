@@ -37,6 +37,7 @@
     "copied": "Copied!",
     "copyCode": "Copy Code",
     "searching": "Searching...",
+    "verifying": "Verifying...",
     "actions": "Actions",
     "student": "Student",
     "status": "Status",
@@ -354,7 +355,8 @@
     "teamQuizDescription": "Create or join a team for team quizzes",
     "enterPinForTeamQuiz": "Enter the Quiz PIN to create or join a team",
     "assignedQuizzes": "Assigned Quizzes",
-    "completeAssignedQuizzes": "Complete quizzes assigned by your teacher"
+    "completeAssignedQuizzes": "Complete quizzes assigned by your teacher",
+    "createTeamAndJoin": "Create Team & Join"
   },
   "theme": {
     "themes": "Themes",
@@ -422,7 +424,8 @@
     "couldNotFindTeacher": "Could not find your teacher. Please contact support.",
     "failedToLoadClassmates": "Failed to load classmates",
     "failedToCreateTeam": "Failed to create team",
-    "failedToJoinTeam": "Failed to join team"
+    "failedToJoinTeam": "Failed to join team",
+    "notTeamMode": "This quiz is not in Team Mode. Please use 'Join Quiz' for individual mode."
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",

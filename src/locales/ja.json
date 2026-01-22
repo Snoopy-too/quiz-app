@@ -29,7 +29,11 @@
     "saving": "保存中...",
     "noDataAvailable": "データがありません",
     "view": "表示",
-    "dropHere": "ここにドロップ"
+    "dropHere": "ここにドロップ",
+    "verifying": "確認中...",
+    "searching": "検索中...",
+    "copied": "コピーしました！",
+    "copyCode": "コードをコピー"
   },
   "nav": {
     "dashboard": "ダッシュボード",
@@ -309,7 +313,39 @@
     "seeQuizHistoryAndScores": "クイズ履歴とスコアを確認します",
     "comingSoon": "近日公開",
     "assignedQuizzes": "割り当てられたクイズ",
-    "completeAssignedQuizzes": "教師から割り当てられたクイズを完了してください"
+    "completeAssignedQuizzes": "教師から割り当てられたクイズを完了してください",
+    "shareCodeWithTeammates": "このコードをチームメイトに共有して参加してもらいましょう！",
+    "yourTeamCode": "あなたのチームコード",
+    "teammatesEnterCode": "チームメイトはクイズ参加画面で「チームに参加」を選択した後、このコードを入力できます。",
+    "continueToQuiz": "クイズに進む",
+    "howWillTeamPlay": "チームでどのようにプレイしますか？",
+    "separateDevices": "個別のデバイス",
+    "separateDevicesDesc": "各メンバーが自分のデバイスでプレイします",
+    "sharedDevice": "共有デバイス",
+    "sharedDeviceDesc": "1つのデバイスで一緒にプレイします",
+    "teamModeQuiz": "チームモードクイズ",
+    "teamModeDescription": "このクイズはチームモードです。新しいチームを作成するか、既存のチームに参加してください。",
+    "createNewTeam": "新しいチームを作成",
+    "createNewTeamDesc": "キャプテンになってチームメイトを招待します",
+    "joinExistingTeam": "既存のチームに参加",
+    "joinExistingTeamDesc": "キャプテンから受け取ったチームコードを入力します",
+    "enterTeamCodeFromCaptain": "キャプテンに4桁のコードを聞いてください",
+    "teamCodePlaceholder": "ABCD",
+    "findTeam": "チームを探す",
+    "teamFound": "チームが見つかりました！",
+    "teamCode": "チームコード",
+    "joinTeam": "チームに参加",
+    "enterValid4CharCode": "有効な4桁のチームコードを入力してください",
+    "teamNotFound": "チームが見つかりませんでした。コードを確認してもう一度お試しください。",
+    "teamIsSharedDevice": "このチームは共有デバイスでプレイしています。キャプテンのデバイスから参加してください。",
+    "alreadyInSession": "既にこのクイズセッションに参加しています。",
+    "joinAsTeamMember": "チームメンバーとして参加",
+    "yourTeamIsAlreadyInSession": "あなたのチーム「{{teamName}}」は既にこのセッションに参加しています",
+    "teamQuiz": "チームクイズ",
+    "teamQuizDescription": "チームを作成またはチームに参加してクイズに挑戦します",
+    "enterPinForTeamQuiz": "クイズPINを入力してチーム作成または参加をします",
+    "enterTeamCode": "チームコードを入力",
+    "createTeamAndJoin": "チームを作成して参加"
   },
   "theme": {
     "themes": "テーマ",
@@ -376,7 +412,8 @@
     "errorJoiningQuiz": "クイズ参加中にエラーが発生しました",
     "couldNotFindTeacher": "教師が見つかりませんでした。サポートにお問い合わせください。",
     "failedToLoadClassmates": "クラスメートの読み込みに失敗しました",
-    "failedToCreateTeam": "チームの作成に失敗しました"
+    "failedToCreateTeam": "チームの作成に失敗しました",
+    "notTeamMode": "このクイズはチームモードではありません。個人モードの「参加」を使用してください。"
   },
   "messages": {
     "quizDuplicatedSuccess": "クイズが正常に複製されました！",
@@ -390,6 +427,7 @@
   },
   "actions": {
     "start": "開始",
+    "enter": "開始",
     "preview": "プレビュー",
     "duplicate": "複製",
     "archive": "アーカイブ",
