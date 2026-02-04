@@ -5,7 +5,8 @@
  * Row 1: Quiz Title
  * Row 2: (empty)
  * Row 3: Header - Question Number,Question,Option 1,Option 2,Option 3,Option 4,Correct Answer(s)
- * Row 4+: Questions - 1,"Question text","Opt1","Opt2","Opt3","Opt4","2"
+ * Row 4+: Multiple Choice - 1,"Question text","Opt1","Opt2","Opt3","Opt4","2"
+ *         True/False     - 1,"Question text","True","False","1"
  */
 
 /**
@@ -87,25 +88,43 @@ export function parseKahootCSV(csvContent) {
 
     const fields = parseCSVLine(line);
 
-    // Expect at least: Question Number, Question, 4 Options, Correct Answer
-    if (fields.length < 7) {
+    // Expect at least: Question Number, Question, 2 Options, Correct Answer
+    if (fields.length < 5) {
       console.warn(`Skipping row ${i + 1}: insufficient fields`);
       continue;
     }
 
-    const [, questionText, opt1, opt2, opt3, opt4, correctAnswer] = fields;
+    // Detect True/False vs Multiple Choice based on field count
+    const isTrueFalse = fields.length < 7;
+    let questionText, options, correctIndices;
 
-    // Parse correct answer (1-based index, could be multiple like "1,3")
-    const correctIndices = correctAnswer
-      .split(/[,;]/)
-      .map(s => parseInt(s.trim(), 10) - 1) // Convert to 0-based
-      .filter(n => !isNaN(n) && n >= 0 && n < 4);
-
-    const options = [opt1, opt2, opt3, opt4].map((text, index) => ({
-      text: text || '',
-      is_correct: correctIndices.includes(index),
-      image_url: ''
-    }));
+    if (isTrueFalse) {
+      const [, qText, opt1, opt2, correctAnswer] = fields;
+      questionText = qText;
+      const numOptions = 2;
+      correctIndices = correctAnswer
+        .split(/[,;]/)
+        .map(s => parseInt(s.trim(), 10) - 1)
+        .filter(n => !isNaN(n) && n >= 0 && n < numOptions);
+      options = [opt1, opt2].map((text, index) => ({
+        text: text || '',
+        is_correct: correctIndices.includes(index),
+        image_url: ''
+      }));
+    } else {
+      const [, qText, opt1, opt2, opt3, opt4, correctAnswer] = fields;
+      questionText = qText;
+      const numOptions = 4;
+      correctIndices = correctAnswer
+        .split(/[,;]/)
+        .map(s => parseInt(s.trim(), 10) - 1)
+        .filter(n => !isNaN(n) && n >= 0 && n < numOptions);
+      options = [opt1, opt2, opt3, opt4].map((text, index) => ({
+        text: text || '',
+        is_correct: correctIndices.includes(index),
+        image_url: ''
+      }));
+    }
 
     // Validate that at least one correct answer exists
     if (!options.some(opt => opt.is_correct)) {
@@ -116,7 +135,7 @@ export function parseKahootCSV(csvContent) {
     questions.push({
       tempId: generateTempId(),
       question_text: questionText || '',
-      question_type: 'multiple_choice',
+      question_type: isTrueFalse ? 'true_false' : 'multiple_choice',
       time_limit: 30,
       points: 100,
       image_url: '',
