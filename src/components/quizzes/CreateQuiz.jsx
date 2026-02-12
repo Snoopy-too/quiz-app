@@ -391,7 +391,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           throw new Error('Failed to read file');
         }
 
-        const { title: csvTitle, questions: csvQuestions } = parseKahootCSV(csvContent);
+        const { title: csvTitle, questions: csvQuestions } = parseKahootCSV(csvContent, file.name);
 
         // Set title if empty
         if (!title.trim() && csvTitle) {

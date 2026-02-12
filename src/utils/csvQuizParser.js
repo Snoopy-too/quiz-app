@@ -10,6 +10,20 @@
  */
 
 /**
+ * Derive a quiz title from a file name
+ * e.g. "quiz_sample.csv" → "Quiz Sample"
+ * @param {string} fileName
+ * @returns {string}
+ */
+function titleFromFileName(fileName) {
+  return fileName
+    .replace(/\.csv$/i, '')
+    .replace(/[_-]/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .trim();
+}
+
+/**
  * Parse a CSV line handling quoted fields with embedded commas
  * @param {string} line - CSV line to parse
  * @returns {string[]} Array of field values
@@ -56,29 +70,40 @@ function generateTempId() {
 /**
  * Parse CSV content into quiz data
  * @param {string} csvContent - Raw CSV file content
+ * @param {string} [fileName] - Original file name (used for title when CSV has no title row)
  * @returns {{ title: string, questions: Array }} Parsed quiz data
  */
-export function parseKahootCSV(csvContent) {
+export function parseKahootCSV(csvContent, fileName) {
   const lines = csvContent.split(/\r?\n/).filter(line => line.trim() !== '');
 
-  if (lines.length < 4) {
-    throw new Error('CSV file must have at least a title, header, and one question');
+  if (lines.length < 2) {
+    throw new Error('CSV file must have at least a header and one question');
   }
 
-  // Extract title from first line
-  const title = lines[0].replace(/^["']|["']$/g, '').trim();
+  // Check if line 0 is a header row (no separate title row)
+  const firstLineLower = lines[0].toLowerCase();
+  const firstLineIsHeader = firstLineLower.includes('question number') ||
+    (firstLineLower.includes('question') && firstLineLower.includes('answer'));
 
-  // Skip the header row (line index 1, which is the 3rd line in original with empty line)
-  // Find the header row by looking for "Question Number" or similar
-  let headerIndex = 1;
-  // Search deeper for the header row (up to 100 lines) to handle files with long preambles
-  for (let i = 1; i < Math.min(lines.length, 100); i++) {
-    const line = lines[i].toLowerCase();
-    // Check for standard Kahoot/generic CSV headers
-    if (line.includes('question number') ||
-      (line.includes('question') && line.includes('answer'))) {
-      headerIndex = i;
-      break;
+  let title = '';
+  let headerIndex = 0;
+
+  if (firstLineIsHeader) {
+    // No title row — header is line 0, derive title from filename
+    headerIndex = 0;
+    title = fileName ? titleFromFileName(fileName) : '';
+  } else {
+    // First line is the title
+    title = lines[0].replace(/^["']|["']$/g, '').trim();
+    // Find the header row starting from line 1
+    headerIndex = 1;
+    for (let i = 1; i < Math.min(lines.length, 100); i++) {
+      const line = lines[i].toLowerCase();
+      if (line.includes('question number') ||
+        (line.includes('question') && line.includes('answer'))) {
+        headerIndex = i;
+        break;
+      }
     }
   }
 
