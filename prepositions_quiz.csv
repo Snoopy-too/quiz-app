@@ -1,0 +1,25 @@
+"In the context of junior high school students in Japan let's make a fill-in-the-blank/translation quiz for the following:
+
+I should
+I have to
+I must
+I have
+I want to
+Will you
+Can you
+Do you
+Are you
+Did you
+"
+
+Question Number,Question,Option 1,Option 2,Option 3,Option 4,Correct Answer(s)
+1,"Choose the best translation for: 「私は今すぐ行かなければなりません。」","I should go now.","I must go now.","I want to go now.","I have go now.","2"
+2,"You want to ask your friend to open the window. What do you say?","Do you open the window?","Are you open the window?","Will you open the window?","Did you open the window?","3"
+3,"母に「宿題をやりなさい」と言われました。友達に「宿題をしないといけないんだ」と伝える時、最も適切なものはどれですか。","I have to do my homework.","I should do my homework.","I want to do my homework.","I do my homework.","1"
+4,"Choose the correct translation for: ""I have a lot of pens.""","私はペンをたくさん持っています。","私はペンをたくさん持っていました。","私はペンをたくさん持ちたいです。","私はペンをたくさん持つべきです。","1"
+5,"Fill in the blank: ""A: I'm very tired. B: You ________ go to bed early tonight.""","must","should","want to","have to","2"
+6,"「あなたは昨夜、テレビを見ましたか？」を英語に直しなさい。","Do you watch TV last night?","Are you watch TV last night?","Did you watch TV last night?","Can you watch TV last night?","3"
+7,"You are hungry and you feel like eating a burger. What do you say?","I should eat a burger.","I want to eat a burger.","I have to eat a burger.","I must eat a burger.","2"
+8,"友達がピアノを弾くことができるか知りたいです。何と聞きますか。","Do you play the piano?","Are you play the piano?","Will you play the piano?","Can you play the piano?","4"
+9,"Fill in the blank: ""A: ________ a student? B: Yes, I am.""","Do you","Are you","Did you","Can you","2"
+10,"Fill in the blank: ""________ you like apples?""","Are","Do","Did","Will","2"

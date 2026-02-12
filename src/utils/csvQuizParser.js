@@ -71,9 +71,12 @@ export function parseKahootCSV(csvContent) {
   // Skip the header row (line index 1, which is the 3rd line in original with empty line)
   // Find the header row by looking for "Question Number" or similar
   let headerIndex = 1;
-  for (let i = 1; i < Math.min(lines.length, 5); i++) {
+  // Search deeper for the header row (up to 100 lines) to handle files with long preambles
+  for (let i = 1; i < Math.min(lines.length, 100); i++) {
     const line = lines[i].toLowerCase();
-    if (line.includes('question number') || line.includes('question,')) {
+    // Check for standard Kahoot/generic CSV headers
+    if (line.includes('question number') ||
+      (line.includes('question') && line.includes('answer'))) {
       headerIndex = i;
       break;
     }

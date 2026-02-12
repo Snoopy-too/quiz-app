@@ -1,6 +1,9 @@
 -- Function to allow teachers to update their own students' details and password
 -- This uses SECURITY DEFINER to allow it to update auth.users
 
+-- Ensure pgcrypto is enabled in the extensions schema
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 CREATE OR REPLACE FUNCTION update_student_account(
   target_user_id UUID,
   new_name TEXT,
@@ -10,7 +13,7 @@ CREATE OR REPLACE FUNCTION update_student_account(
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   requesting_user_id UUID;
@@ -49,9 +52,10 @@ BEGIN
   -- We use the service role capability of security definer to update auth.users
   IF new_password IS NOT NULL AND new_password <> '' THEN
     UPDATE auth.users 
-    SET encrypted_password = crypt(new_password, gen_salt('bf'))
+    SET encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf'))
     WHERE id = target_user_id;
   END IF;
   
 END;
 $$;
+
