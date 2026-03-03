@@ -92,7 +92,7 @@ export default function PublicQuizzes({ setView, appState }) {
         return;
       }
 
-      // Fetch all public quizzes with creator information
+      // Fetch all public quizzes with creator information (including school_id)
       const { data, error: fetchError } = await supabase
         .from("quizzes")
         .select(`
@@ -103,7 +103,7 @@ export default function PublicQuizzes({ setView, appState }) {
           created_at,
           updated_at,
           created_by,
-          users!quizzes_created_by_fkey(name, email, avatar_url),
+          users!quizzes_created_by_fkey(name, email, avatar_url, school_id),
           questions(id)
         `)
         .eq("is_public", true)
@@ -111,15 +111,29 @@ export default function PublicQuizzes({ setView, appState }) {
 
       if (fetchError) throw fetchError;
 
-      // Add question count and theme details to each quiz
-      const quizzesWithCount = (data || []).map((quiz) => ({
-        ...quiz,
-        questionCount: quiz.questions?.length || 0,
-        themeDetails: themeMap[quiz.theme_id] || null,
-        creatorName: quiz.users?.name || quiz.users?.email || "Unknown",
-        creatorAvatar: quiz.users?.avatar_url || null,
-        isOwnQuiz: quiz.created_by === user.user.id
-      }));
+      // Get the current teacher's school_id
+      const currentSchoolId = appState.currentUser?.school_id;
+
+      // Add question count and theme details, then filter by same school
+      const quizzesWithCount = (data || [])
+        .filter((quiz) => {
+          // If the current teacher has a school_id assigned,
+          // only show quizzes from creators at the same school.
+          if (currentSchoolId) {
+            return quiz.users?.school_id === currentSchoolId;
+          }
+          // If teacher has no school yet, show nothing from other schools
+          // (only their own quizzes, if any)
+          return quiz.created_by === user.user.id;
+        })
+        .map((quiz) => ({
+          ...quiz,
+          questionCount: quiz.questions?.length || 0,
+          themeDetails: themeMap[quiz.theme_id] || null,
+          creatorName: quiz.users?.name || quiz.users?.email || "Unknown",
+          creatorAvatar: quiz.users?.avatar_url || null,
+          isOwnQuiz: quiz.created_by === user.user.id
+        }));
 
       setPublicQuizzes(quizzesWithCount);
     } catch (err) {
