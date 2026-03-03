@@ -59,6 +59,9 @@ export default function ManageStudents({ setView, appState }) {
         .or(`teacher_id.eq.${appState.currentUser.id},teacher_id.is.null`)
         .order("created_at", { ascending: false });
 
+      // NOTE: We fetch all students (mine + unlinked) here.
+      // The "unlinked" filter in the UI further restricts by school_id match.
+
       if (studentsError) throw studentsError;
 
       setStudents(studentsData || []);
@@ -311,6 +314,7 @@ export default function ManageStudents({ setView, appState }) {
         role: "student",
         student_id: studentId || null,
         teacher_id: appState.currentUser.id,
+        school_id: appState.currentUser.school_id || null, // Inherit school from teacher
         approved: true,
         verified: true,
       };
@@ -418,16 +422,16 @@ export default function ManageStudents({ setView, appState }) {
 
       if (error) throw error;
 
-      setAlertModal({ 
-        isOpen: true, 
-        title: t("manageStudents.successTitle"), 
-        message: t("manageStudents.updateStudentSuccess"), 
-        type: "success" 
+      setAlertModal({
+        isOpen: true,
+        title: t("manageStudents.successTitle"),
+        message: t("manageStudents.updateStudentSuccess"),
+        type: "success"
       });
-      
+
       setIsEditing(false);
       await fetchStudents();
-      
+
       // Update selected student with new details
       setSelectedStudent(prev => ({
         ...prev,
@@ -435,11 +439,11 @@ export default function ManageStudents({ setView, appState }) {
         student_id: editForm.studentId
       }));
     } catch (err) {
-      setAlertModal({ 
-        isOpen: true, 
-        title: t("manageStudents.errorTitle"), 
-        message: t("manageStudents.errorUpdatingStudent") + err.message, 
-        type: "error" 
+      setAlertModal({
+        isOpen: true,
+        title: t("manageStudents.errorTitle"),
+        message: t("manageStudents.errorUpdatingStudent") + err.message,
+        type: "error"
       });
     } finally {
       setUpdatingStudent(false);
@@ -461,9 +465,14 @@ export default function ManageStudents({ setView, appState }) {
     .filter((student) => {
       // Filter logic
       // 1. If filter is 'unlinked', explicitly show only unlinked students
+      //    that share the same school_id as the current teacher
       if (filterStatus === "unlinked") {
         const isUnlinked = student.teacher_id === null;
         if (!isUnlinked) return false;
+
+        // Only show unlinked students from the same school
+        const teacherSchoolId = appState.currentUser?.school_id;
+        if (teacherSchoolId && student.school_id !== teacherSchoolId) return false;
 
         // Apply search if needed
         return (

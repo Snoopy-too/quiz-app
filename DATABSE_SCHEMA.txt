@@ -69,6 +69,12 @@ CREATE TABLE public.sessions (
   CONSTRAINT sessions_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id),
   CONSTRAINT sessions_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.schools (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT schools_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -79,5 +85,7 @@ CREATE TABLE public.users (
   verified boolean DEFAULT false,
   approved boolean DEFAULT false,
   name text,
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+  school_id uuid,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_school_id_fkey FOREIGN KEY (school_id) REFERENCES public.schools(id) ON DELETE SET NULL
 );

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -24,13 +24,24 @@ export default function SuperAdminDashboard({ setView, appState }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
+  // Schools state
+  const [schools, setSchools] = useState([]);
+  const [activeTab, setActiveTab] = useState("users"); // "users" or "schools"
+  const [showCreateSchoolModal, setShowCreateSchoolModal] = useState(false);
+  const [showEditSchoolModal, setShowEditSchoolModal] = useState(false);
+  const [createSchoolForm, setCreateSchoolForm] = useState({ name: "" });
+  const [editSchoolForm, setEditSchoolForm] = useState({ name: "" });
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [filterSchool, setFilterSchool] = useState("all");
+
   // Form states
   const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
     password: "",
     role: "student",
-    student_id: ""
+    student_id: "",
+    school_id: ""
   });
 
   const [editForm, setEditForm] = useState({
@@ -39,7 +50,8 @@ export default function SuperAdminDashboard({ setView, appState }) {
     role: "",
     student_id: "",
     approved: false,
-    verified: false
+    verified: false,
+    school_id: ""
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -49,6 +61,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
 
   useEffect(() => {
     fetchUsers();
+    fetchSchools();
 
     // Debug: Check current user's role
     const checkUserRole = async () => {
@@ -66,6 +79,75 @@ export default function SuperAdminDashboard({ setView, appState }) {
     checkUserRole();
   }, []);
 
+  const fetchSchools = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("*")
+        .order("name", { ascending: true });
+      if (error) {
+        console.error("Error fetching schools:", error.message);
+      } else {
+        setSchools(data || []);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching schools:", err);
+    }
+  };
+
+  const handleCreateSchool = async (e) => {
+    e.preventDefault();
+    const schoolName = createSchoolForm.name.trim();
+    if (!schoolName) return;
+    try {
+      const { error } = await supabase.from("schools").insert([{ name: schoolName }]);
+      if (error) throw error;
+      setAlertModal({ isOpen: true, title: "Success", message: "School created successfully!", type: "success" });
+      setShowCreateSchoolModal(false);
+      setCreateSchoolForm({ name: "" });
+      fetchSchools();
+    } catch (error) {
+      setAlertModal({ isOpen: true, title: "Error", message: "Error creating school: " + error.message, type: "error" });
+    }
+  };
+
+  const handleEditSchool = async (e) => {
+    e.preventDefault();
+    const schoolName = editSchoolForm.name.trim();
+    if (!schoolName || !selectedSchool) return;
+    try {
+      const { error } = await supabase.from("schools").update({ name: schoolName }).eq("id", selectedSchool.id);
+      if (error) throw error;
+      setAlertModal({ isOpen: true, title: "Success", message: "School updated successfully!", type: "success" });
+      setShowEditSchoolModal(false);
+      setSelectedSchool(null);
+      fetchSchools();
+      fetchUsers(); // Refresh to reflect name changes
+    } catch (error) {
+      setAlertModal({ isOpen: true, title: "Error", message: "Error updating school: " + error.message, type: "error" });
+    }
+  };
+
+  const handleDeleteSchool = (school) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete School",
+      message: `Are you sure you want to delete the school "${school.name}"?\n\nAll users assigned to this school will have their school assignment cleared.`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        try {
+          const { error } = await supabase.from("schools").delete().eq("id", school.id);
+          if (error) throw error;
+          setAlertModal({ isOpen: true, title: "Success", message: "School deleted successfully.", type: "success" });
+          fetchSchools();
+          fetchUsers();
+        } catch (error) {
+          setAlertModal({ isOpen: true, title: "Error", message: "Error deleting school: " + error.message, type: "error" });
+        }
+      }
+    });
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     setError("");
@@ -73,7 +155,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("*")
+        .select("*, schools(id, name)")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -125,6 +207,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
         email: createForm.email,
         role: createForm.role,
         student_id: createForm.student_id || null,
+        school_id: createForm.school_id || null,
         verified: true, // Admin-created users are auto-verified
         approved: true  // Admin-created users are auto-approved
       }]);
@@ -138,7 +221,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
         type: "success"
       });
       setShowCreateModal(false);
-      setCreateForm({ name: "", email: "", password: "", confirmPassword: "", role: "student", student_id: "" });
+      setCreateForm({ name: "", email: "", password: "", confirmPassword: "", role: "student", student_id: "", school_id: "" });
       fetchUsers();
     } catch (error) {
       setAlertModal({
@@ -171,6 +254,7 @@ export default function SuperAdminDashboard({ setView, appState }) {
           email: editForm.email,
           role: editForm.role,
           student_id: editForm.student_id || null,
+          school_id: editForm.school_id || null,
           approved: editForm.approved,
           verified: editForm.verified
         })
@@ -274,7 +358,8 @@ export default function SuperAdminDashboard({ setView, appState }) {
       role: user.role || "",
       student_id: user.student_id || "",
       approved: user.approved || false,
-      verified: user.verified || false
+      verified: user.verified || false,
+      school_id: user.school_id || ""
     });
     setShowEditModal(true);
   };
@@ -285,12 +370,20 @@ export default function SuperAdminDashboard({ setView, appState }) {
     setShowPasswordModal(true);
   };
 
+  // Helper: look up school name by ID
+  const getSchoolName = (schoolId) => {
+    if (!schoolId) return "—";
+    const school = schools.find(s => s.id === schoolId);
+    return school ? school.name : "—";
+  };
+
   // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
-    return matchesSearch && matchesRole;
+    const matchesSchool = filterSchool === "all" || user.school_id === filterSchool || (filterSchool === "none" && !user.school_id);
+    return matchesSearch && matchesRole && matchesSchool;
   });
 
   // Stats
@@ -362,10 +455,142 @@ export default function SuperAdminDashboard({ setView, appState }) {
       {/* Main Content */}
       <div className="flex-1 md:ml-64 pt-16 md:pt-0">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-blue-700">Super Admin Dashboard</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-blue-700">Super Admin Dashboard</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === "users" ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
+              >
+                <Users size={16} className="inline mr-1" /> Users
+              </button>
+              <button
+                onClick={() => setActiveTab("schools")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === "schools" ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
+              >
+                <School size={16} className="inline mr-1" /> Schools
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div className="container mx-auto p-6">
+
+          {/* ============================== */}
+          {/* SCHOOLS TAB                    */}
+          {/* ============================== */}
+          {activeTab === "schools" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-800">Manage Schools</h2>
+                <button
+                  onClick={() => setShowCreateSchoolModal(true)}
+                  className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
+                >
+                  <Plus size={20} /> Create School
+                </button>
+              </div>
+
+              <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">School Name</th>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">Teachers</th>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">Students</th>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">Created</th>
+                      <th className="p-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {schools.length === 0 ? (
+                      <tr><td colSpan="5" className="p-8 text-center text-gray-500">No schools yet. Create one to get started.</td></tr>
+                    ) : (
+                      schools.map((school) => {
+                        const schoolTeachers = users.filter(u => u.school_id === school.id && u.role === "teacher").length;
+                        const schoolStudents = users.filter(u => u.school_id === school.id && u.role === "student").length;
+                        return (
+                          <tr key={school.id} className="hover:bg-gray-50">
+                            <td className="p-4 font-medium">{school.name}</td>
+                            <td className="p-4">{schoolTeachers}</td>
+                            <td className="p-4">{schoolStudents}</td>
+                            <td className="p-4 text-sm text-gray-600">{new Date(school.created_at).toLocaleDateString()}</td>
+                            <td className="p-4">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => { setSelectedSchool(school); setEditSchoolForm({ name: school.name }); setShowEditSchoolModal(true); }}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit School"
+                                ><Edit2 size={18} /></button>
+                                <button
+                                  onClick={() => handleDeleteSchool(school)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded" title="Delete School"
+                                ><Trash2 size={18} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Create School Modal */}
+              {showCreateSchoolModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                    <h2 className="text-2xl font-bold mb-6">Create New School</h2>
+                    <form onSubmit={handleCreateSchool} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">School Name</label>
+                        <input
+                          type="text" required
+                          value={createSchoolForm.name}
+                          onChange={(e) => setCreateSchoolForm({ name: e.target.value })}
+                          className="w-full border rounded px-3 py-2"
+                          placeholder="e.g. Lincoln High School"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-6">
+                        <button type="submit" className="flex-1 bg-blue-700 text-white py-2 rounded hover:bg-blue-800">Create School</button>
+                        <button type="button" onClick={() => setShowCreateSchoolModal(false)} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit School Modal */}
+              {showEditSchoolModal && selectedSchool && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                    <h2 className="text-2xl font-bold mb-6">Edit School</h2>
+                    <form onSubmit={handleEditSchool} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">School Name</label>
+                        <input
+                          type="text" required
+                          value={editSchoolForm.name}
+                          onChange={(e) => setEditSchoolForm({ name: e.target.value })}
+                          className="w-full border rounded px-3 py-2"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-6">
+                        <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Save Changes</button>
+                        <button type="button" onClick={() => setShowEditSchoolModal(false)} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ============================== */}
+          {/* USERS TAB                      */}
+          {/* ============================== */}
+          {activeTab === "users" && (
+            <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -444,6 +669,18 @@ export default function SuperAdminDashboard({ setView, appState }) {
                   <option value="teacher">Teachers</option>
                   <option value="superadmin">Admins</option>
                 </select>
+
+                <select
+                  value={filterSchool}
+                  onChange={(e) => setFilterSchool(e.target.value)}
+                  className="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="all">All Schools</option>
+                  <option value="none">No School Assigned</option>
+                  {schools.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
 
               <button
@@ -500,6 +737,14 @@ export default function SuperAdminDashboard({ setView, appState }) {
                       </th>
                       <th
                         className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("school_id")}
+                      >
+                        <div className="flex items-center gap-2">
+                          School {getSortIcon("school_id")}
+                        </div>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
                         onClick={() => handleSort("status")}
                       >
                         <div className="flex items-center gap-2">
@@ -531,6 +776,9 @@ export default function SuperAdminDashboard({ setView, appState }) {
                           </span>
                         </td>
                         <td className="p-4">{user.student_id || "N/A"}</td>
+                        <td className="p-4">
+                          <span className="text-sm">{getSchoolName(user.school_id)}</span>
+                        </td>
                         <td className="p-4">
                           <div className="flex gap-2">
                             {user.verified ? (
@@ -664,6 +912,20 @@ export default function SuperAdminDashboard({ setView, appState }) {
                     </div>
                   )}
 
+                  <div>
+                    <label className="block text-sm font-medium mb-1">School</label>
+                    <select
+                      value={createForm.school_id}
+                      onChange={(e) => setCreateForm({ ...createForm, school_id: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="">— Select a School —</option>
+                      {schools.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="flex gap-2 mt-6">
                     <button
                       type="submit"
@@ -736,6 +998,20 @@ export default function SuperAdminDashboard({ setView, appState }) {
                       />
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">School</label>
+                    <select
+                      value={editForm.school_id}
+                      onChange={(e) => setEditForm({ ...editForm, school_id: e.target.value })}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="">— No School —</option>
+                      {schools.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2">
@@ -831,6 +1107,9 @@ export default function SuperAdminDashboard({ setView, appState }) {
                 </form>
               </div>
             </div>
+          )}
+
+          </>
           )}
 
           {/* Custom Modals */}

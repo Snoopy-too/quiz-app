@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { generateTeacherCode, unformatTeacherCode } from "../../utils/teacherCode";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,19 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
   const [role, setRole] = useState(user?.role || "");
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [schools, setSchools] = useState([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+
+  useEffect(() => {
+    const fetchSchools = async () => {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("id, name")
+        .order("name", { ascending: true });
+      if (!error && data) setSchools(data);
+    };
+    fetchSchools();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +55,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
         const { data: teacher, error: teacherError } = await supabase
           .from("users")
-          .select("id, teacher_code, name")
+          .select("id, teacher_code, name, school_id")
           .eq("teacher_code", cleanedCode)
           .eq("role", "teacher")
           .maybeSingle();
@@ -60,8 +73,16 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
         updates.teacher_id = teacher.id;
         updates.teacher_invite_code = cleanedCode;
+        updates.school_id = teacher.school_id || null; // Inherit school from teacher
         linkedTeacher = teacher;
       } else if (role === "teacher") {
+        // Validate school selection
+        if (!selectedSchoolId) {
+          setLocalError("Please select your school.");
+          setSubmitting(false);
+          return;
+        }
+        updates.school_id = selectedSchoolId;
         // Ensure the teacher has a shareable teacher_code
         let existingCode = user?.teacher_code;
 
@@ -199,7 +220,26 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
               <option value="teacher">{t('auth.teacher')}</option>
             </select>
             {role === "teacher" && (
-              <p className="mt-1 text-xs text-gray-500">{t('auth.teachersNoCodeNeeded')}</p>
+              <>
+                <p className="mt-1 text-xs text-gray-500">{t('auth.teachersNoCodeNeeded')}</p>
+                <div className="mt-3">
+                  <label htmlFor="school" className="block text-sm font-medium text-gray-700">
+                    Select Your School
+                  </label>
+                  <select
+                    id="school"
+                    value={selectedSchoolId}
+                    onChange={(e) => setSelectedSchoolId(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    required
+                  >
+                    <option value="">— Select a School —</option>
+                    {schools.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
           </div>
 

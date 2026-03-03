@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { generateTeacherCode } from "../../utils/teacherCode";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,21 @@ export default function Register({ setView, setAppState, error, setError, succes
     role: "student",
     studentId: "",
     teacherCode: "",
+    school_id: "",
   });
+
+  const [schools, setSchools] = useState([]);
+
+  useEffect(() => {
+    const fetchSchools = async () => {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("id, name")
+        .order("name", { ascending: true });
+      if (!error && data) setSchools(data);
+    };
+    fetchSchools();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -80,7 +94,7 @@ export default function Register({ setView, setAppState, error, setError, succes
         // Look up teacher by code
         const { data: teacher, error: teacherError } = await supabase
           .from("users")
-          .select("id, name, teacher_code")
+          .select("id, name, teacher_code, school_id")
           .eq("teacher_code", cleanCode)
           .eq("role", "teacher")
           .maybeSingle();
@@ -110,12 +124,16 @@ export default function Register({ setView, setAppState, error, setError, succes
           return;
         }
 
-        console.log("Teacher found! ID:", teacher.id, "Name:", teacher.name);
+        console.log("Teacher found! ID:", teacher.id, "Name:", teacher.name, "School:", teacher.school_id);
         teacherId = teacher.id;
       }
 
-      // For teachers: generate unique teacher code
+      // For teachers: validate school selection and generate unique teacher code
       if (formData.role === "teacher") {
+        if (!formData.school_id) {
+          setError("Please select a school.");
+          return;
+        }
         let codeExists = true;
         while (codeExists) {
           teacherCodeToSave = generateTeacherCode();
@@ -126,6 +144,20 @@ export default function Register({ setView, setAppState, error, setError, succes
             .maybeSingle();
           codeExists = !!existing;
         }
+      }
+
+      // Determine school_id: for students, inherit from teacher; for teachers, from form
+      let resolvedSchoolId = null;
+      if (formData.role === "student" && teacherId) {
+        // Look up teacher's school_id (already fetched above into `teacher`)
+        const { data: teacherData } = await supabase
+          .from("users")
+          .select("school_id")
+          .eq("id", teacherId)
+          .single();
+        resolvedSchoolId = teacherData?.school_id || null;
+      } else if (formData.role === "teacher") {
+        resolvedSchoolId = formData.school_id || null;
       }
 
       // 1. Create auth user with Supabase Auth
@@ -188,6 +220,7 @@ export default function Register({ setView, setAppState, error, setError, succes
         teacher_id: teacherId, // Set teacher_id for students
         teacher_invite_code: cleanedTeacherInvite, // Preserve invite code used during onboarding
         teacher_code: teacherCodeToSave, // Set teacher_code for teachers
+        school_id: resolvedSchoolId, // Permanent school assignment
         verified: false, // Email verification required via Supabase email link
         approved: false, // All new users need approval (students by teacher, teachers by admin)
       };
@@ -360,6 +393,24 @@ export default function Register({ setView, setAppState, error, setError, succes
                 {t('auth.teacherCodeHelp')}
               </p>
             </>
+          )}
+
+          {formData.role === "teacher" && (
+            <select
+              name="school_id"
+              value={formData.school_id}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border-2 rounded-lg focus:outline-none transition-colors"
+              style={{ borderColor: '#e0e0e0', color: '#1f3a52' }}
+              onFocus={(e) => e.target.style.borderColor = '#4db8d8'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+              required
+            >
+              <option value="">{t('auth.selectSchool') || '— Select Your School —'}</option>
+              {schools.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           )}
 
           <button
