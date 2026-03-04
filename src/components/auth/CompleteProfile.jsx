@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function CompleteProfile({ user, setAppState, setView, setSuccess, setError }) {
+  console.log('[CompleteProfile] Mounted/rendered, user:', user?.email, 'role:', user?.role);
   const { t } = useTranslation();
   const [teacherInviteCode, setTeacherInviteCode] = useState(user?.teacher_invite_code || "");
   const [role, setRole] = useState(user?.role || "");

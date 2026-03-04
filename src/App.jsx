@@ -154,6 +154,7 @@ export default function QuizApp() {
   // Bootstrap session on initial load & on auth state changes
   useEffect(() => {
     let ignore = false;
+    let oauthProfileCreationHandled = false; // Prevent double-fire from SIGNED_IN + INITIAL_SESSION
 
     const routeByRole = (role) => {
       // Check if there's a saved view in sessionStorage (active session)
@@ -472,36 +473,38 @@ export default function QuizApp() {
             }
           } else {
             // No profile exists - this is a new OAuth user
-            console.log('No profile found for OAuth user:', session.user.id);
-            console.log('User metadata:', session.user.user_metadata);
+            // Guard against double-fire (SIGNED_IN + INITIAL_SESSION both race here)
+            if (oauthProfileCreationHandled) {
+              console.log('[onAuthStateChange] Profile creation already in progress, skipping duplicate');
+              return;
+            }
+            oauthProfileCreationHandled = true;
 
-            // Create a basic profile for OAuth user
+            console.log('No profile found for OAuth user:', session.user.id);
+
             const email = session.user.email;
             const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
 
             console.log('Creating profile for new OAuth user:', email);
 
-            // Use upsert to handle the case where onAuthStateChange fires
-            // multiple times (SIGNED_IN + INITIAL_SESSION) and both try to create
             const { data: newProfile, error: createError } = await supabase
               .from("users")
-              .upsert({
+              .insert({
                 id: session.user.id,
                 email: email,
                 name: name,
                 role: null,
                 teacher_invite_code: null,
                 teacher_id: null,
-                verified: true, // OAuth users are pre-verified via Google
-                approved: false, // Needs teacher/admin approval
-              }, { onConflict: 'id', ignoreDuplicates: true })
+                verified: true,
+                approved: false,
+              })
               .select()
               .single();
 
             if (createError) {
-              // If upsert still fails, the profile may have been created by the
-              // other onAuthStateChange call — try fetching it instead
-              console.warn('Upsert failed, trying to fetch existing profile:', createError);
+              console.error('Failed to create profile for OAuth user:', createError);
+              // Could be a duplicate from a previous attempt — try fetching
               const { data: existingProfile } = await supabase
                 .from("users")
                 .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url, school_id")
@@ -509,15 +512,12 @@ export default function QuizApp() {
                 .maybeSingle();
 
               if (existingProfile) {
-                console.log('Found existing profile after upsert conflict');
+                console.log('Found existing profile, redirecting to complete-profile');
                 setAppState((s) => ({ ...s, currentUser: existingProfile }));
-                if (!existingProfile.role) {
-                  setView("complete-profile");
-                }
+                setView("complete-profile");
                 return;
               }
 
-              console.error('Failed to create or find profile for OAuth user:', createError);
               setError(`Failed to create user profile. Please try again.`);
               await supabase.auth.signOut();
               setView("login");
@@ -588,7 +588,8 @@ export default function QuizApp() {
       />
     );
 
-  if (view === "complete-profile")
+  if (view === "complete-profile") {
+    console.log('[App] Rendering CompleteProfile, user:', appState.currentUser?.email, 'role:', appState.currentUser?.role);
     return (
       <CompleteProfile
         user={appState.currentUser}
@@ -598,6 +599,7 @@ export default function QuizApp() {
         setSuccess={setSuccess}
       />
     );
+  }
 
   if (view === "student-dashboard")
     return (
