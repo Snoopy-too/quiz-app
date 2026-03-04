@@ -31,16 +31,19 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
     setSuccess?.("");
 
     if (!role) {
-      setLocalError("Please select your role to continue.");
+      setLocalError(t('errors.selectRoleToContinue') || "Please select your role to continue.");
       return;
     }
 
     const trimmedCode = teacherInviteCode?.trim();
-    if (role === "student" && !trimmedCode) {
-      setLocalError("Please enter your teacher invitation code.");
+    if (role === "student" && !teacherInviteCode.trim()) {
+      setLocalError(t('errors.teacherCodeRequired') || "Teacher code is required for students.");
       return;
     }
-
+    if (role === "teacher" && !selectedSchoolId) {
+      setLocalError(t('errors.selectSchool') || "Please select a school.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -62,11 +65,12 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
         if (teacherError) {
           console.error("Failed to validate teacher code:", teacherError);
-          throw new Error("Unable to validate teacher invitation code. Please try again.");
+          throw new Error(t('errors.unableToValidateTeacherCode') || "Unable to validate teacher invitation code. Please try again.");
         }
 
         if (!teacher) {
-          setLocalError("Invalid teacher invitation code. Please double-check the code you received.");
+          console.error("Invalid teacher code:", cleanedCode);
+          setLocalError(t('errors.invalidTeacherCode') || "Invalid teacher code. Please check the code and try again.");
           setSubmitting(false);
           return;
         }
@@ -78,7 +82,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
       } else if (role === "teacher") {
         // Validate school selection
         if (!selectedSchoolId) {
-          setLocalError("Please select your school.");
+          setLocalError(t('errors.selectSchool') || "Please select your school.");
           setSubmitting(false);
           return;
         }
@@ -101,7 +105,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
             if (codeError) {
               console.error("Failed to validate teacher code uniqueness:", codeError);
-              throw new Error("Unable to generate teacher code. Please try again.");
+              throw new Error(t('errors.unableToGenerateTeacherCode') || "Unable to generate teacher code. Please try again.");
             }
 
             if (!codeMatch) {
@@ -110,7 +114,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
           }
 
           if (!uniqueCode) {
-            throw new Error("Unable to generate a teacher code. Please try again later.");
+            throw new Error(t('errors.unableToGenerateTeacherCodeLater') || "Unable to generate a teacher code. Please try again later.");
           }
 
           updates.teacher_code = uniqueCode;
@@ -132,7 +136,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
       if (updateError) {
         console.error("Failed to update user profile:", updateError);
-        throw new Error(updateError.message || "Profile update failed. Please try again.");
+        throw new Error(updateError.message || t('errors.profileUpdateFailed') || "Profile update failed. Please try again.");
       }
 
       setAppState?.((prev) => ({
@@ -140,26 +144,23 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
         currentUser: updatedUser,
       }));
 
-      if (role === "student") {
-        setSuccess?.(
-          linkedTeacher
-            ? `You're all set! You're now connected to ${linkedTeacher.name}.`
-            : "Profile updated successfully."
-        );
+      if (role === "student" && (teacherInviteCode || (user && user.teacher_id))) {
+        const teacherName = linkedTeacher?.name || "your teacher";
+        setSuccess?.(t('auth.successConnected', { name: teacherName }) || `You're all set! You're now connected to ${teacherName}.`);
         setView?.("student-dashboard");
       } else if (role === "teacher") {
-        setSuccess?.("Welcome! Your teacher profile is ready.");
+        setSuccess?.(t('auth.welcomeTeacher') || "Welcome! Your teacher profile is ready.");
         setView?.("teacher-dashboard");
       } else if (role === "superadmin") {
-        setSuccess?.("Profile updated successfully.");
+        setSuccess?.(t('messages.profileUpdatedSuccess') || "Profile updated successfully.");
         setView?.("superadmin-dashboard");
       } else {
-        setSuccess?.("Profile updated successfully.");
+        setSuccess?.(t('messages.profileUpdatedSuccess') || "Profile updated successfully.");
         setView?.("student-dashboard");
       }
     } catch (err) {
       console.error("Profile completion failed:", err);
-      setLocalError(err.message || "Failed to complete profile. Please try again.");
+      setLocalError(err.message || t('errors.registrationFailedGeneral') || "Failed to complete profile. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +225,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
                 <p className="mt-1 text-xs text-gray-500">{t('auth.teachersNoCodeNeeded')}</p>
                 <div className="mt-3">
                   <label htmlFor="school" className="block text-sm font-medium text-gray-700">
-                    Select Your School
+                    {t('auth.selectSchoolTitle') || "Select Your School"}
                   </label>
                   <select
                     id="school"
@@ -233,7 +234,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     required
                   >
-                    <option value="">— Select a School —</option>
+                    <option value="">{t('auth.selectSchool') || "— Select a School —"}</option>
                     {schools.map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}

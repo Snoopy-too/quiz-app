@@ -8,6 +8,7 @@ import VerifyEmail from "./components/auth/VerifyEmail";
 import CompleteProfile from "./components/auth/CompleteProfile";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ResetPassword from "./components/auth/ResetPassword";
+import RegistrationSuccess from "./components/auth/RegistrationSuccess";
 
 // Dashboards
 import StudentDashboard from "./components/dashboards/StudentDashboard";
@@ -324,6 +325,13 @@ export default function QuizApp() {
         return;
       }
 
+      // Don't interfere while registration is in progress
+      const registrationInProgress = sessionStorage.getItem('quizapp_registration_in_progress');
+      if (registrationInProgress) {
+        console.log('[onAuthStateChange] Registration in progress, skipping');
+        return;
+      }
+
       if (!session) {
         setAppState((s) => ({ ...s, currentUser: null }));
         // Clear saved session data when signed out
@@ -519,6 +527,9 @@ export default function QuizApp() {
         setSuccess={setSuccess}
       />
     );
+
+  if (view === "registration-success")
+    return <RegistrationSuccess setView={setView} />;
 
   if (view === "verify")
     return (

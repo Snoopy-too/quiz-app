@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../utils/accessibility';
 
 export default function AlertModal({
@@ -6,9 +7,12 @@ export default function AlertModal({
   title,
   message,
   onClose,
-  buttonText = "OK",
+  buttonText,
   type = "info" // "info", "success", "error", "warning"
 }) {
+  const { t } = useTranslation();
+  const finalButtonText = buttonText || t('common.ok') || "OK";
+
   const modalRef = useRef(null);
   useFocusTrap(modalRef, isOpen);
   useEffect(() => {
@@ -86,7 +90,7 @@ export default function AlertModal({
             onClick={onClose}
             className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${buttonStyles[type]}`}
           >
-            {buttonText}
+            {finalButtonText}
           </button>
         </div>
       </div>

@@ -181,14 +181,14 @@ export default function Login({
 
       if (error) {
         console.error('OAuth initiation error:', error);
-        setErrorMsg(`Google sign-in failed: ${error.message}`);
+        setErrorMsg(`${t('errors.googleSignInFailed') || 'Google sign-in failed'}: ${error.message}`);
         setLoading(false);
       }
 
       // On success, browser redirects to Google - don't set loading to false
     } catch (err) {
       console.error('OAuth exception:', err);
-      setErrorMsg("Failed to initiate Google sign-in. Please try again.");
+      setErrorMsg(t('errors.failedToInitiateGoogleSignIn') || "Failed to initiate Google sign-in. Please try again.");
       setLoading(false);
     }
   };

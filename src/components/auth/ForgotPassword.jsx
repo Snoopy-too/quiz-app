@@ -50,16 +50,15 @@ export default function ForgotPassword({ setView }) {
           {t("auth.forgotPassword") || "Forgot Password"}
         </h1>
         <p className="text-center text-sm text-gray-600 mb-6">
-          {t("auth.forgotPasswordDescription") || "Enter your email and we'll send you a reset link."}
+          {t("auth.forgotPasswordDescription") || "If this email exists in our system, you will receive a reset link shortly."}
         </p>
 
         {message && (
           <div
-            className={`mb-4 rounded-md p-3 text-sm border ${
-              message.type === "error"
+            className={`mb-4 rounded-md p-3 text-sm border ${message.type === "error"
                 ? "bg-red-50 text-red-700 border-red-200"
                 : "bg-green-50 text-green-700 border-green-200"
-            }`}
+              }`}
           >
             {message.text}
           </div>

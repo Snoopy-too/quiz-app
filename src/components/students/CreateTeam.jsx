@@ -132,7 +132,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
       return;
     }
 
-    if (selectedStudents.length === 0) {
+    if (isSharedDevice && selectedStudents.length === 0) {
       setError(t('student.pleaseSelectOneTeammate'));
       return;
     }
@@ -442,50 +442,6 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           />
         </div>
 
-        {/* Teammates Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            {t('student.selectTeammates')} * ({t('student.chooseAtLeastOne')})
-          </label>
-
-          {loadingClassmates ? (
-            <div className="text-center py-8 text-gray-500">
-              {t('student.loadingClassmates')}
-            </div>
-          ) : classmates.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {t('student.noOtherStudentsInClass')}
-            </div>
-          ) : (
-            <div className="border-2 rounded-lg max-h-64 overflow-y-auto">
-              {classmates.map((student) => (
-                <div
-                  key={student.id}
-                  onClick={() => toggleStudent(student.id)}
-                  className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
-                    }`}
-                >
-                  <div>
-                    <div className="font-semibold">{student.name}</div>
-                    <div className="text-sm text-gray-500">{student.email}</div>
-                  </div>
-                  {selectedStudents.includes(student.id) && (
-                    <Check size={20} className="text-blue-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Count */}
-        {selectedStudents.length > 0 && (
-          <div className="mb-4 text-sm text-gray-600">
-            <Users size={16} className="inline mr-1" />
-            {selectedStudents.length + 1} {t('student.members')} ({t('student.includingYou')})
-          </div>
-        )}
-
         {/* Device Mode Selection */}
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -494,7 +450,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setIsSharedDevice(false)}
+              onClick={() => { setIsSharedDevice(false); setSelectedStudents([]); }}
               className={`p-4 border-2 rounded-xl text-left transition-all ${
                 !isSharedDevice
                   ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
@@ -525,6 +481,59 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             </button>
           </div>
         </div>
+
+        {/* Teammates Selection — only for shared device mode */}
+        {isSharedDevice && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {t('student.selectTeammates')} * ({t('student.chooseAtLeastOne')})
+            </label>
+
+            {loadingClassmates ? (
+              <div className="text-center py-8 text-gray-500">
+                {t('student.loadingClassmates')}
+              </div>
+            ) : classmates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {t('student.noOtherStudentsInClass')}
+              </div>
+            ) : (
+              <div className="border-2 rounded-lg max-h-64 overflow-y-auto">
+                {classmates.map((student) => (
+                  <div
+                    key={student.id}
+                    onClick={() => toggleStudent(student.id)}
+                    className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
+                      }`}
+                  >
+                    <div>
+                      <div className="font-semibold">{student.name}</div>
+                      <div className="text-sm text-gray-500">{student.email}</div>
+                    </div>
+                    {selectedStudents.includes(student.id) && (
+                      <Check size={20} className="text-blue-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedStudents.length > 0 && (
+              <div className="mt-3 text-sm text-gray-600">
+                <Users size={16} className="inline mr-1" />
+                {selectedStudents.length + 1} {t('student.members')} ({t('student.includingYou')})
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Hint for separate devices mode */}
+        {!isSharedDevice && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+            <Users size={16} className="inline mr-1" />
+            {t('student.teammatesWillJoinWithCode') || "After creating the team, share the team code with your teammates so they can join."}
+          </div>
+        )}
 
         <button
           onClick={createTeam}

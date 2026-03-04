@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function ConfirmModal({
   isOpen,
@@ -6,10 +7,13 @@ export default function ConfirmModal({
   message,
   onConfirm,
   onCancel,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   confirmStyle = "primary" // "primary" or "danger"
 }) {
+  const { t } = useTranslation();
+  const finalConfirmText = confirmText || t('common.confirm') || "Confirm";
+  const finalCancelText = cancelText || t('common.cancel') || "Cancel";
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -70,13 +74,13 @@ export default function ConfirmModal({
             onClick={onCancel}
             className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
-            {cancelText}
+            {finalCancelText}
           </button>
           <button
             onClick={onConfirm}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${confirmButtonClass}`}
           >
-            {confirmText}
+            {finalConfirmText}
           </button>
         </div>
       </div>

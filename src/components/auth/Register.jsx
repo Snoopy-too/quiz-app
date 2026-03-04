@@ -40,7 +40,7 @@ export default function Register({ setView, setAppState, error, setError, succes
 
     // Prevent self-registration as superadmin
     if (formData.role === "superadmin") {
-      setError("Superadmin accounts must be created by the system administrator.");
+      setError(t('errors.superadminRestricted') || "Superadmin accounts must be created by the system administrator.");
       return;
     }
 
@@ -62,13 +62,13 @@ export default function Register({ setView, setAppState, error, setError, succes
       if (checkError && checkError.code !== 'PGRST116') {
         // PGRST116 is "not found" which is fine
         console.error("Error checking existing user:", checkError);
-        setError("Unable to verify email availability. Please try again.");
+        setError(t('errors.verifyEmailAvailability') || "Unable to verify email availability. Please try again.");
         return;
       }
 
       if (existingUser) {
         console.error("Email already registered:", existingUser);
-        setError("This email is already registered. Please login instead or use a different email.");
+        setError(t('errors.emailAlreadyRegistered') || "This email is already registered. Please login instead or use a different email.");
         return;
       }
 
@@ -81,7 +81,7 @@ export default function Register({ setView, setAppState, error, setError, succes
       // For students: validate teacher code
       if (formData.role === "student") {
         if (!formData.teacherCode.trim()) {
-          setError("Teacher code is required for students.");
+          setError(t('errors.teacherCodeRequired') || "Teacher code is required for students.");
           return;
         }
 
@@ -120,7 +120,7 @@ export default function Register({ setView, setAppState, error, setError, succes
           console.log("All teachers in database:", allTeachers);
           console.log("Debug query error:", debugError);
 
-          setError("Invalid teacher code. Please check the code and try again.");
+          setError(t('errors.invalidTeacherCode') || "Invalid teacher code. Please check the code and try again.");
           return;
         }
 
@@ -131,7 +131,7 @@ export default function Register({ setView, setAppState, error, setError, succes
       // For teachers: validate school selection and generate unique teacher code
       if (formData.role === "teacher") {
         if (!formData.school_id) {
-          setError("Please select a school.");
+          setError(t('errors.selectSchool') || "Please select a school.");
           return;
         }
         let codeExists = true;
@@ -160,12 +160,10 @@ export default function Register({ setView, setAppState, error, setError, succes
         resolvedSchoolId = formData.school_id || null;
       }
 
-      // 1. Create auth user with Supabase Auth
-      console.log("=== CREATING AUTH USER ===");
-      console.log("Email:", formData.email.trim().toLowerCase());
-      console.log("Role:", formData.role);
-      console.log("Teacher ID to assign:", teacherId);
+      // Flag to prevent onAuthStateChange from hijacking the registration flow
+      sessionStorage.setItem('quizapp_registration_in_progress', 'true');
 
+      // 1. Create auth user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
@@ -183,23 +181,25 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       if (authError) {
         console.error("Supabase auth error:", authError);
+        sessionStorage.removeItem('quizapp_registration_in_progress');
 
         // Handle specific error cases
         if (authError.message?.includes("already registered") || authError.message?.includes("already exists")) {
-          setError("This email is already registered. Please login instead.");
+          setError(t('errors.emailAlreadyRegisteredShort') || "This email is already registered. Please login instead.");
         } else if (authError.message?.includes("Invalid email")) {
-          setError("Please enter a valid email address.");
+          setError(t('errors.invalidEmail') || "Please enter a valid email address.");
         } else if (authError.message?.includes("Password")) {
-          setError("Password must be at least 6 characters long.");
+          setError(t('errors.passwordTooShortSignup') || "Password must be at least 6 characters long.");
         } else {
-          setError(authError.message || "Registration failed. Try again.");
+          setError(authError.message || t('errors.registrationFailed') || "Registration failed. Try again.");
         }
         return;
       }
 
       if (!authData.user) {
         console.error("No user returned from auth signup");
-        setError("Registration failed. Please try again.");
+        sessionStorage.removeItem('quizapp_registration_in_progress');
+        setError(t('errors.registrationFailedGeneral') || "Registration failed. Please try again.");
         return;
       }
 
@@ -237,16 +237,17 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
+        sessionStorage.removeItem('quizapp_registration_in_progress');
 
         // Handle specific profile creation errors
         if (profileError.code === '23505' || profileError.message?.includes("duplicate key")) {
           console.error("Duplicate key error - email already exists in users table");
-          setError("This email is already registered. Please login instead or contact support if you believe this is an error.");
+          setError(t('errors.emailAlreadyRegisteredLong') || "This email is already registered. Please login instead or contact support if you believe this is an error.");
         } else if (profileError.message?.includes("violates foreign key constraint")) {
           console.error("Foreign key constraint error:", profileError.message);
-          setError("Invalid teacher reference. Please try again or contact support.");
+          setError(t('errors.invalidTeacherReference') || "Invalid teacher reference. Please try again or contact support.");
         } else {
-          setError(`Registration failed: ${profileError.message || "Unknown error occurred"}`);
+          setError(`${t('errors.registrationFailedPrefix') || 'Registration failed'}: ${profileError.message || t('errors.unknownError') || "Unknown error occurred"}`);
         }
 
         // Note: Auth user was created but profile failed. User should contact support or try logging in.
@@ -256,26 +257,24 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       console.log("✅ Profile created successfully!");
 
-      // 3. Show success message
-      console.log("✅ Registration complete!");
+      // Sign out the auto-created session — the registration flag keeps
+      // onAuthStateChange from redirecting to login during sign-out
+      await supabase.auth.signOut();
+
+      // Now clear the flag and navigate to the appropriate view
+      sessionStorage.removeItem('quizapp_registration_in_progress');
 
       if (formData.role === "student") {
-        setSuccess("Registration successful! Your teacher will approve your account shortly.");
-        // Students are auto-verified, go straight to login
-        setTimeout(() => {
-          setView("login");
-        }, 3000);
+        setView("registration-success");
       } else {
-        setSuccess("Registration successful! Please verify your email, then a superadmin will approve your account.");
-        // Teachers still need email verification
-        setTimeout(() => {
-          setView("verify");
-        }, 3000);
+        setSuccess(t('auth.registrationSuccessDetailed') || "Registration successful! Please verify your email, then a superadmin will approve your account.");
+        setView("verify");
       }
 
     } catch (err) {
       console.error("Unexpected error:", err);
-      setError("Something went wrong. Try again.");
+      sessionStorage.removeItem('quizapp_registration_in_progress');
+      setError(t('errors.somethingWentWrong') || "Something went wrong. Try again.");
     }
   };
 

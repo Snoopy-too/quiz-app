@@ -69,7 +69,7 @@ export default function ResetPassword({ setView, setSuccess }) {
         setView("login");
       }
     } catch (err) {
-      setMessage({ type: "error", text: "An unexpected error occurred. Please try again." });
+      setMessage({ type: "error", text: t("auth.unexpectedError") || "An unexpected error occurred. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -100,11 +100,10 @@ export default function ResetPassword({ setView, setSuccess }) {
           <>
             {message && (
               <div
-                className={`mb-4 rounded-md p-3 text-sm border ${
-                  message.type === "error"
-                    ? "bg-red-50 text-red-700 border-red-200"
-                    : "bg-green-50 text-green-700 border-green-200"
-                }`}
+                className={`mb-4 rounded-md p-3 text-sm border ${message.type === "error"
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "bg-green-50 text-green-700 border-green-200"
+                  }`}
               >
                 {message.text}
               </div>
@@ -155,9 +154,7 @@ export default function ResetPassword({ setView, setSuccess }) {
                 className="w-full text-white font-semibold py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 hover:opacity-90"
                 style={{ background: "linear-gradient(to right, #2c5aa0, #4db8d8)" }}
               >
-                {loading
-                  ? t("auth.resetting") || "Resetting..."
-                  : t("auth.resetPasswordButton") || "Reset Password"}
+                {loading ? t('auth.resetting') || "Resetting..." : t('auth.resetPasswordButton') || "Reset Password"}
               </button>
             </form>
 
