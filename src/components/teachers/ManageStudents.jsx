@@ -43,10 +43,11 @@ export default function ManageStudents({ setView, appState }) {
   const knownStudentIdsRef = useRef(new Set());
 
   // Helper: highlight new students with a glow, then fade after 3s.
-  // Uses requestAnimationFrame to ensure the row is in the DOM before the animation starts.
+  // Uses setTimeout to ensure the row is in the DOM after React re-renders.
   const highlightNewStudents = (newIds) => {
     if (newIds.length === 0) return;
-    requestAnimationFrame(() => {
+    // Delay slightly to let React commit the new row to the DOM first
+    setTimeout(() => {
       setHighlightedIds(prev => {
         const next = new Set(prev);
         newIds.forEach(id => next.add(id));
@@ -59,7 +60,7 @@ export default function ManageStudents({ setView, appState }) {
           return next;
         });
       }, 3500);
-    });
+    }, 100);
   };
 
   useEffect(() => {
