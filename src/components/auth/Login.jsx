@@ -55,17 +55,18 @@ export default function Login({
         }
 
         if (!profile) {
-          console.log('Login: No profile found, waiting for profile creation...');
-          // Profile might be being created by App.jsx's onAuthStateChange
-          // Don't show error, just wait
-          setLoading(false);
+          console.log('Login: No profile found, waiting for App.jsx onAuthStateChange to create it...');
+          // Profile is being created by App.jsx's onAuthStateChange
+          // Keep loading spinner visible so user knows something is happening
           return;
         }
 
         // Google OAuth users who haven't completed their profile yet
-        // should be handled by App.jsx's load() which redirects to complete-profile
+        // should be redirected to complete-profile
         if (!profile.role) {
-          console.log('Login: Profile incomplete (no role), letting App.jsx handle redirect');
+          console.log('Login: Profile incomplete (no role), redirecting to complete-profile');
+          setAppState?.({ ...appState, currentUser: profile });
+          setView?.("complete-profile");
           setLoading(false);
           return;
         }
@@ -286,7 +287,8 @@ export default function Login({
           <button
             onClick={handleGoogleSignIn}
             type="button"
-            className="mt-4 w-full flex items-center justify-center gap-3 border-2 font-medium py-2.5 px-4 rounded-lg transition-all duration-200"
+            disabled={loading}
+            className="mt-4 w-full flex items-center justify-center gap-3 border-2 font-medium py-2.5 px-4 rounded-lg transition-all duration-200 disabled:opacity-50"
             style={{ borderColor: '#4db8d8', color: '#2c5aa0' }}
             onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(77, 184, 216, 0.1)'}
             onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}

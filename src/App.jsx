@@ -269,6 +269,14 @@ export default function QuizApp() {
       }
 
       if (!profile) {
+        // For OAuth users, the profile might not exist yet -
+        // onAuthStateChange will create it and redirect to complete-profile
+        const appMetadata = sessionInfo.user?.app_metadata || {};
+        const primaryProvider = appMetadata.provider;
+        if (primaryProvider === "google") {
+          console.log('[load] No profile yet for Google OAuth user, waiting for onAuthStateChange to create it');
+          return; // Let onAuthStateChange handle profile creation
+        }
         console.warn('No profile found for user:', userId);
         setError("User profile not found. Please contact support.");
         setView("login");
