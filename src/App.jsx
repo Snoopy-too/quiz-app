@@ -504,17 +504,57 @@ export default function QuizApp() {
 
             if (createError) {
               console.error('Failed to create profile for OAuth user:', createError);
-              // Could be a duplicate from a previous attempt — try fetching
-              const { data: existingProfile } = await supabase
+
+              // Could be an orphaned row from a previous auth user with same email
+              // (user was deleted from auth but not from users table)
+              // Try to find by email and update the id to match the new auth user
+              const { data: orphanedProfile } = await supabase
                 .from("users")
                 .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url, school_id")
-                .eq("id", session.user.id)
+                .eq("email", email)
                 .maybeSingle();
 
-              if (existingProfile) {
-                console.log('Found existing profile, redirecting to complete-profile');
-                setAppState((s) => ({ ...s, currentUser: existingProfile }));
+              if (orphanedProfile && orphanedProfile.id !== session.user.id) {
+                console.log('Found orphaned profile with old id:', orphanedProfile.id, '— deleting and re-creating with new auth id:', session.user.id);
+                // Delete the orphaned row then re-insert with correct id
+                await supabase
+                  .from("users")
+                  .delete()
+                  .eq("id", orphanedProfile.id);
+
+                const { data: freshProfile, error: reinsertError } = await supabase
+                  .from("users")
+                  .insert({
+                    id: session.user.id,
+                    email: email,
+                    name: name,
+                    role: null,
+                    teacher_invite_code: null,
+                    teacher_id: null,
+                    verified: true,
+                    approved: false,
+                  })
+                  .select()
+                  .single();
+
+                if (reinsertError) {
+                  console.error('Failed to re-create profile:', reinsertError);
+                  setError('Failed to set up your account. Please contact support.');
+                  await supabase.auth.signOut();
+                  setView("login");
+                  return;
+                }
+
+                console.log('Profile re-created successfully');
+                setAppState((s) => ({ ...s, currentUser: freshProfile }));
                 setView("complete-profile");
+                return;
+              } else if (orphanedProfile) {
+                // Same id, just redirect
+                setAppState((s) => ({ ...s, currentUser: orphanedProfile }));
+                if (!orphanedProfile.role) {
+                  setView("complete-profile");
+                }
                 return;
               }
 
