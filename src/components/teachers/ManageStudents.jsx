@@ -139,6 +139,11 @@ export default function ManageStudents({ setView, appState }) {
         throw error;
       }
 
+      // RLS silently blocks updates — if data is empty, the policy rejected it
+      if (!data || data.length === 0) {
+        throw new Error(t("manageStudents.permissionDenied") + " (RLS policy blocked the update. Run the fix-teacher-approval-policy.sql script in Supabase.)");
+      }
+
       console.log("Student approved successfully. Updated data:", data);
       setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.studentApprovedSuccess"), type: "success" });
       await fetchStudents();
@@ -161,12 +166,16 @@ export default function ManageStudents({ setView, appState }) {
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from("users")
             .update({ approved: false })
-            .eq("id", studentId);
+            .eq("id", studentId)
+            .select();
 
           if (error) throw error;
+          if (!data || data.length === 0) {
+            throw new Error(t("manageStudents.permissionDenied"));
+          }
           await fetchStudents();
         } catch (err) {
           setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: t("manageStudents.errorRejectingStudent") + err.message, type: "error" });
