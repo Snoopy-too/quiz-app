@@ -481,10 +481,11 @@ export default function QuizApp() {
 
             console.log('Creating profile for new OAuth user:', email);
 
-            // Create a minimal profile and collect required details afterwards
+            // Use upsert to handle the case where onAuthStateChange fires
+            // multiple times (SIGNED_IN + INITIAL_SESSION) and both try to create
             const { data: newProfile, error: createError } = await supabase
               .from("users")
-              .insert([{
+              .upsert({
                 id: session.user.id,
                 email: email,
                 name: name,
@@ -493,13 +494,31 @@ export default function QuizApp() {
                 teacher_id: null,
                 verified: true, // OAuth users are pre-verified via Google
                 approved: false, // Needs teacher/admin approval
-              }])
+              }, { onConflict: 'id', ignoreDuplicates: true })
               .select()
               .single();
 
             if (createError) {
-              console.error('Failed to create profile for OAuth user:', createError);
-              setError(`Failed to create user profile: ${createError.message}. Please contact support.`);
+              // If upsert still fails, the profile may have been created by the
+              // other onAuthStateChange call — try fetching it instead
+              console.warn('Upsert failed, trying to fetch existing profile:', createError);
+              const { data: existingProfile } = await supabase
+                .from("users")
+                .select("id, role, email, name, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url, school_id")
+                .eq("id", session.user.id)
+                .maybeSingle();
+
+              if (existingProfile) {
+                console.log('Found existing profile after upsert conflict');
+                setAppState((s) => ({ ...s, currentUser: existingProfile }));
+                if (!existingProfile.role) {
+                  setView("complete-profile");
+                }
+                return;
+              }
+
+              console.error('Failed to create or find profile for OAuth user:', createError);
+              setError(`Failed to create user profile. Please try again.`);
               await supabase.auth.signOut();
               setView("login");
               return;
