@@ -115,19 +115,34 @@ export default function ManageStudents({ setView, appState }) {
           event: 'UPDATE',
           schema: 'public',
           table: 'users',
-          filter: `teacher_id=eq.${teacherId}`,
         },
         (payload) => {
           const updated = payload.new;
           if (updated.role !== 'student') return;
+          // Only care about students linked to this teacher
+          if (updated.teacher_id !== teacherId) return;
           realtimeWorking = true;
 
-          setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+          setStudents(prev => {
+            // If student already in list, update them
+            if (prev.some(s => s.id === updated.id)) {
+              return prev.map(s => s.id === updated.id ? updated : s);
+            }
+            // New student just linked to this teacher (e.g. Google OAuth CompleteProfile)
+            return [updated, ...prev];
+          });
+
           setPendingStudents(prev => {
             const withoutThis = prev.filter(s => s.id !== updated.id);
             if (!updated.approved) return [...withoutThis, updated];
             return withoutThis;
           });
+
+          // Highlight if this is a newly appearing student
+          if (!knownStudentIdsRef.current.has(updated.id)) {
+            knownStudentIdsRef.current.add(updated.id);
+            highlightNewStudents([updated.id]);
+          }
         }
       )
       .subscribe((status) => {
