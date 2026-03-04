@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../supabaseClient";
 import { createClient } from "@supabase/supabase-js";
 import { Search, UserCheck, TrendingUp, Award, Clock, CheckCircle, XCircle, UserPlus, ChevronUp, ChevronDown, Copy } from "lucide-react";
@@ -40,6 +40,24 @@ export default function ManageStudents({ setView, appState }) {
   });
   const [updatingStudent, setUpdatingStudent] = useState(false);
   const [highlightedIds, setHighlightedIds] = useState(new Set());
+  const knownStudentIdsRef = useRef(new Set());
+
+  // Helper: highlight new students with a glow, then fade after 3s
+  const highlightNewStudents = (newIds) => {
+    if (newIds.length === 0) return;
+    setHighlightedIds(prev => {
+      const next = new Set(prev);
+      newIds.forEach(id => next.add(id));
+      return next;
+    });
+    setTimeout(() => {
+      setHighlightedIds(prev => {
+        const next = new Set(prev);
+        newIds.forEach(id => next.delete(id));
+        return next;
+      });
+    }, 3000);
+  };
 
   useEffect(() => {
     if (appState.currentUser?.id) {
@@ -47,11 +65,14 @@ export default function ManageStudents({ setView, appState }) {
     }
   }, [appState.currentUser]);
 
-  // Realtime subscription for new/updated students
+  // Realtime subscription + lightweight fallback poll
   useEffect(() => {
     const teacherId = appState.currentUser?.id;
     if (!teacherId) return;
 
+    let realtimeWorking = false;
+
+    // --- Realtime: instant updates when the users table has replication enabled ---
     const channel = supabase
       .channel('manage-students-realtime')
       .on(
@@ -65,16 +86,15 @@ export default function ManageStudents({ setView, appState }) {
         (payload) => {
           const newStudent = payload.new;
           if (newStudent.role !== 'student') return;
+          realtimeWorking = true;
 
-          console.log('[ManageStudents] New student registered:', newStudent.name);
+          console.log('[ManageStudents] Realtime INSERT:', newStudent.name);
 
-          // Add to state directly — no extra fetch needed
           setStudents(prev => {
             if (prev.some(s => s.id === newStudent.id)) return prev;
             return [newStudent, ...prev];
           });
 
-          // Update pending count if not approved
           if (!newStudent.approved) {
             setPendingStudents(prev => {
               if (prev.some(s => s.id === newStudent.id)) return prev;
@@ -82,15 +102,8 @@ export default function ManageStudents({ setView, appState }) {
             });
           }
 
-          // Trigger glow highlight
-          setHighlightedIds(prev => new Set(prev).add(newStudent.id));
-          setTimeout(() => {
-            setHighlightedIds(prev => {
-              const next = new Set(prev);
-              next.delete(newStudent.id);
-              return next;
-            });
-          }, 3000);
+          knownStudentIdsRef.current.add(newStudent.id);
+          highlightNewStudents([newStudent.id]);
         }
       )
       .on(
@@ -104,8 +117,8 @@ export default function ManageStudents({ setView, appState }) {
         (payload) => {
           const updated = payload.new;
           if (updated.role !== 'student') return;
+          realtimeWorking = true;
 
-          // Update in-place — no refetch
           setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
           setPendingStudents(prev => {
             const withoutThis = prev.filter(s => s.id !== updated.id);
@@ -120,9 +133,53 @@ export default function ManageStudents({ setView, appState }) {
         }
       });
 
+    // --- Fallback poll: lightweight count check every 10s ---
+    // Only does a full fetch if the student count changed.
+    // Skips entirely if realtime has already delivered an event.
+    const pollTimer = setInterval(async () => {
+      if (realtimeWorking) return; // realtime is delivering — no need to poll
+
+      try {
+        const { count, error: countError } = await supabase
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'student')
+          .or(`teacher_id.eq.${teacherId},teacher_id.is.null`);
+
+        if (countError) return;
+
+        const currentCount = knownStudentIdsRef.current.size;
+        if (count !== currentCount) {
+          console.log('[ManageStudents] Poll detected change:', currentCount, '->', count);
+          // Full fetch to get the new data
+          const { data, error: fetchErr } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role', 'student')
+            .or(`teacher_id.eq.${teacherId},teacher_id.is.null`)
+            .order('created_at', { ascending: false });
+
+          if (!fetchErr && data) {
+            // Find newly appeared student IDs
+            const newIds = data
+              .filter(s => !knownStudentIdsRef.current.has(s.id))
+              .map(s => s.id);
+
+            setStudents(data);
+            setPendingStudents(data.filter(s => s.teacher_id === teacherId && !s.approved));
+            knownStudentIdsRef.current = new Set(data.map(s => s.id));
+
+            highlightNewStudents(newIds);
+          }
+        }
+      } catch {
+        // Silent — poll failures are non-critical
+      }
+    }, 10000);
+
     return () => {
-      console.log('[ManageStudents] Cleaning up realtime subscription');
       channel.unsubscribe();
+      clearInterval(pollTimer);
     };
   }, [appState.currentUser?.id]);
 
@@ -145,6 +202,7 @@ export default function ManageStudents({ setView, appState }) {
       if (studentsError) throw studentsError;
 
       setStudents(studentsData || []);
+      knownStudentIdsRef.current = new Set((studentsData || []).map(s => s.id));
       // Pending count is based on MY students only to avoid noise
       setPendingStudents(studentsData?.filter(s => s.teacher_id === appState.currentUser.id && !s.approved) || []);
     } catch (err) {
