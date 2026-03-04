@@ -269,29 +269,31 @@ export default function QuizApp() {
       }
 
       if (!profile) {
-        // For OAuth users, the profile might not exist yet -
-        // onAuthStateChange will create it and redirect to complete-profile
-        const appMetadata = sessionInfo.user?.app_metadata || {};
-        const primaryProvider = appMetadata.provider;
-        if (primaryProvider === "google") {
-          console.log('[load] No profile yet for Google OAuth user, waiting for onAuthStateChange to create it');
-          return; // Let onAuthStateChange handle profile creation
-        }
-        console.warn('No profile found for user:', userId);
-        setError("User profile not found. Please contact support.");
-        setView("login");
+        // Profile might not exist yet (OAuth user, being created by onAuthStateChange)
+        // Wait for onAuthStateChange to handle it instead of showing an error
+        console.log('[load] No profile yet for user, waiting for onAuthStateChange to handle it');
         return;
       }
 
-      console.log('Profile loaded:', profile.email, 'Role:', profile.role);
+      console.log('Profile loaded:', profile.email, 'Role:', profile.role, 'isGoogleUser:', isGoogleUser);
+
+      // Any user without a role needs to complete their profile
+      // This catches Google OAuth users AND any edge case where role is missing
+      if (!profile.role) {
+        console.log('[load] No role set, redirecting to complete-profile');
+        setAppState((s) => ({ ...s, currentUser: profile }));
+        setView("complete-profile");
+        return;
+      }
 
       const hasInviteOrLink =
         profile.teacher_invite_code ||
         profile.teacher_id ||
         (profile.role === "teacher" && profile.teacher_code);
-      const needsProfileCompletion = isGoogleUser && (!profile.role || !hasInviteOrLink);
+      const needsProfileCompletion = isGoogleUser && !hasInviteOrLink;
 
       if (needsProfileCompletion) {
+        console.log('[load] Google user missing teacher link, redirecting to complete-profile');
         setAppState((s) => ({ ...s, currentUser: profile }));
         setView("complete-profile");
         return;
@@ -395,15 +397,23 @@ export default function QuizApp() {
               }
             }
 
+            // Any user without a role needs to complete their profile
+            if (!profile.role) {
+              console.log('[onAuthStateChange] No role set, redirecting to complete-profile');
+              setAppState((s) => ({ ...s, currentUser: profile }));
+              setView("complete-profile");
+              return;
+            }
+
             const hasInviteOrLink =
               profile.teacher_invite_code ||
               profile.teacher_id ||
               (profile.role === "teacher" && profile.teacher_code);
             // Superadmins don't need teacher links, so skip profile completion check for them
-            const needsProfileCompletion = isGoogleUser && profile.role !== "superadmin" && (!profile.role || !hasInviteOrLink);
+            const needsProfileCompletion = isGoogleUser && profile.role !== "superadmin" && !hasInviteOrLink;
 
             if (needsProfileCompletion) {
-              console.log('[onAuthStateChange] Profile incomplete, redirecting to completion flow');
+              console.log('[onAuthStateChange] Google user missing teacher link, redirecting to completion flow');
               setAppState((s) => ({ ...s, currentUser: profile }));
               setView("complete-profile");
               return;
