@@ -132,7 +132,9 @@
     "accountCreatedSuccessfully": "Your account has been created successfully.",
     "waitingForTeacherApproval": "Waiting for Teacher Approval",
     "teacherWillApprove": "Your teacher will review and approve your account. Once approved, you can log in and start taking quizzes!",
-    "goToLogin": "Go to Login"
+    "goToLogin": "Go to Login",
+    "accountApproved": "Account Approved!",
+    "youCanNowLogin": "Your teacher has approved your account. You can now log in and start taking quizzes!"
   },
   "quiz": {
     "quiz": "Quiz",

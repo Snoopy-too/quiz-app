@@ -132,7 +132,9 @@
     "accountCreatedSuccessfully": "アカウントが正常に作成されました。",
     "waitingForTeacherApproval": "先生の承認待ち",
     "teacherWillApprove": "先生がアカウントを確認して承認します。承認されたら、ログインしてクイズに参加できます！",
-    "goToLogin": "ログインへ"
+    "goToLogin": "ログインへ",
+    "accountApproved": "アカウントが承認されました！",
+    "youCanNowLogin": "先生がアカウントを承認しました。ログインしてクイズに参加できます！"
   },
   "quiz": {
     "quiz": "クイズ",

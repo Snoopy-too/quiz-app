@@ -265,6 +265,7 @@ export default function Register({ setView, setAppState, error, setError, succes
       sessionStorage.removeItem('quizapp_registration_in_progress');
 
       if (formData.role === "student") {
+        sessionStorage.setItem('quizapp_registered_email', formData.email.trim().toLowerCase());
         setView("registration-success");
       } else {
         setSuccess(t('auth.registrationSuccessDetailed') || "Registration successful! Please verify your email, then a superadmin will approve your account.");
