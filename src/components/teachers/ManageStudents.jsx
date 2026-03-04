@@ -39,12 +39,92 @@ export default function ManageStudents({ setView, appState }) {
     password: "",
   });
   const [updatingStudent, setUpdatingStudent] = useState(false);
+  const [highlightedIds, setHighlightedIds] = useState(new Set());
 
   useEffect(() => {
     if (appState.currentUser?.id) {
       fetchStudents();
     }
   }, [appState.currentUser]);
+
+  // Realtime subscription for new/updated students
+  useEffect(() => {
+    const teacherId = appState.currentUser?.id;
+    if (!teacherId) return;
+
+    const channel = supabase
+      .channel('manage-students-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'users',
+          filter: `teacher_id=eq.${teacherId}`,
+        },
+        (payload) => {
+          const newStudent = payload.new;
+          if (newStudent.role !== 'student') return;
+
+          console.log('[ManageStudents] New student registered:', newStudent.name);
+
+          // Add to state directly — no extra fetch needed
+          setStudents(prev => {
+            if (prev.some(s => s.id === newStudent.id)) return prev;
+            return [newStudent, ...prev];
+          });
+
+          // Update pending count if not approved
+          if (!newStudent.approved) {
+            setPendingStudents(prev => {
+              if (prev.some(s => s.id === newStudent.id)) return prev;
+              return [newStudent, ...prev];
+            });
+          }
+
+          // Trigger glow highlight
+          setHighlightedIds(prev => new Set(prev).add(newStudent.id));
+          setTimeout(() => {
+            setHighlightedIds(prev => {
+              const next = new Set(prev);
+              next.delete(newStudent.id);
+              return next;
+            });
+          }, 3000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `teacher_id=eq.${teacherId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          if (updated.role !== 'student') return;
+
+          // Update in-place — no refetch
+          setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+          setPendingStudents(prev => {
+            const withoutThis = prev.filter(s => s.id !== updated.id);
+            if (!updated.approved) return [...withoutThis, updated];
+            return withoutThis;
+          });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[ManageStudents] Realtime subscription active');
+        }
+      });
+
+    return () => {
+      console.log('[ManageStudents] Cleaning up realtime subscription');
+      channel.unsubscribe();
+    };
+  }, [appState.currentUser?.id]);
 
   const fetchStudents = async () => {
     if (!appState.currentUser?.id) return;
@@ -753,7 +833,7 @@ export default function ManageStudents({ setView, appState }) {
                   </tr>
                 ) : (
                   filteredStudents.map((student) => (
-                    <tr key={student.id} className="border-b hover:bg-gray-50">
+                    <tr key={student.id} className={`border-b hover:bg-gray-50 transition-all duration-700 ${highlightedIds.has(student.id) ? 'student-glow' : ''}`}>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{student.name}</div>
                       </td>
