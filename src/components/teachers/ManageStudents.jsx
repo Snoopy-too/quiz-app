@@ -42,21 +42,24 @@ export default function ManageStudents({ setView, appState }) {
   const [highlightedIds, setHighlightedIds] = useState(new Set());
   const knownStudentIdsRef = useRef(new Set());
 
-  // Helper: highlight new students with a glow, then fade after 3s
+  // Helper: highlight new students with a glow, then fade after 3s.
+  // Uses requestAnimationFrame to ensure the row is in the DOM before the animation starts.
   const highlightNewStudents = (newIds) => {
     if (newIds.length === 0) return;
-    setHighlightedIds(prev => {
-      const next = new Set(prev);
-      newIds.forEach(id => next.add(id));
-      return next;
-    });
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       setHighlightedIds(prev => {
         const next = new Set(prev);
-        newIds.forEach(id => next.delete(id));
+        newIds.forEach(id => next.add(id));
         return next;
       });
-    }, 3000);
+      setTimeout(() => {
+        setHighlightedIds(prev => {
+          const next = new Set(prev);
+          newIds.forEach(id => next.delete(id));
+          return next;
+        });
+      }, 3500);
+    });
   };
 
   useEffect(() => {
@@ -891,7 +894,7 @@ export default function ManageStudents({ setView, appState }) {
                   </tr>
                 ) : (
                   filteredStudents.map((student) => (
-                    <tr key={student.id} className={`border-b hover:bg-gray-50 transition-all duration-700 ${highlightedIds.has(student.id) ? 'student-glow' : ''}`}>
+                    <tr key={student.id} className={`border-b hover:bg-gray-50 ${highlightedIds.has(student.id) ? 'student-glow' : ''}`}>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{student.name}</div>
                       </td>
