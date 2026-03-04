@@ -147,7 +147,14 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
       if (role === "student" && (teacherInviteCode || (user && user.teacher_id))) {
         const teacherName = linkedTeacher?.name || "your teacher";
         setSuccess?.(t('auth.successConnected', { name: teacherName }) || `You're all set! You're now connected to ${teacherName}.`);
-        setView?.("student-dashboard");
+        // Student needs teacher approval — redirect to registration-success page
+        if (!updatedUser.approved) {
+          sessionStorage.setItem("quizapp_registered_email", updatedUser.email);
+          await supabase.auth.signOut();
+          setView?.("registration-success");
+        } else {
+          setView?.("student-dashboard");
+        }
       } else if (role === "teacher") {
         setSuccess?.(t('auth.welcomeTeacher') || "Welcome! Your teacher profile is ready.");
         setView?.("teacher-dashboard");
@@ -156,7 +163,13 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
         setView?.("superadmin-dashboard");
       } else {
         setSuccess?.(t('messages.profileUpdatedSuccess') || "Profile updated successfully.");
-        setView?.("student-dashboard");
+        if (!updatedUser.approved) {
+          sessionStorage.setItem("quizapp_registered_email", updatedUser.email);
+          await supabase.auth.signOut();
+          setView?.("registration-success");
+        } else {
+          setView?.("student-dashboard");
+        }
       }
     } catch (err) {
       console.error("Profile completion failed:", err);
@@ -177,9 +190,9 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
           <p className="text-sm text-gray-600">{t('auth.completeProfileBelow')}</p>
         </div>
 
-        {(localError || user?.approved === false) && (
+        {localError && (
           <div className="rounded-md border p-3 text-sm" style={{ borderColor: "#ef4444", color: "#b91c1c", background: "#fef2f2" }}>
-            {localError || t('auth.pendingApprovalMessage')}
+            {localError}
           </div>
         )}
 

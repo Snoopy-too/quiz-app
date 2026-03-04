@@ -62,11 +62,20 @@ export default function Login({
           return;
         }
 
+        // Google OAuth users who haven't completed their profile yet
+        // should be handled by App.jsx's load() which redirects to complete-profile
+        if (!profile.role) {
+          console.log('Login: Profile incomplete (no role), letting App.jsx handle redirect');
+          setLoading(false);
+          return;
+        }
+
         // Check approval/verification gates
         if (profile.role !== "superadmin") {
           if (!profile.approved) {
             console.log('Login: Account pending approval');
-            setErrorMsg("Your account is awaiting approval.");
+            setErrorMsg(t('auth.waitingForTeacherApproval') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
+            await supabase.auth.signOut();
             setLoading(false);
             return;
           }
@@ -139,7 +148,10 @@ export default function Login({
 
       // Optional gates
       if (profile?.role !== "superadmin") {
-        if (!profile?.approved) return setErrorMsg("Your account is awaiting approval.");
+        if (!profile?.approved) {
+          await supabase.auth.signOut();
+          return setErrorMsg(t('auth.waitingForTeacherApproval') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
+        }
         if (!profile?.verified) return setErrorMsg("Please verify your email to continue.");
       }
 
