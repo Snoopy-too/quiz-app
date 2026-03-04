@@ -173,7 +173,8 @@ export default function Register({ setView, setAppState, error, setError, succes
           data: {
             name: formData.name,
             role: formData.role,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`,
         }
       });
 
@@ -211,17 +212,21 @@ export default function Register({ setView, setAppState, error, setError, succes
       // 2. Create profile in users table
       console.log("=== CREATING USER PROFILE ===");
 
+      // Students are auto-verified since teacher approval is the real security gate.
+      // This avoids Supabase email rate limits blocking student registration.
+      const isStudent = formData.role === "student";
+
       const profileData = {
         id: authData.user.id, // Use auth user ID
         name: formData.name,
         email: formData.email.trim().toLowerCase(),
         role: formData.role,
-        student_id: formData.role === "student" ? formData.studentId : null,
+        student_id: isStudent ? formData.studentId : null,
         teacher_id: teacherId, // Set teacher_id for students
         teacher_invite_code: cleanedTeacherInvite, // Preserve invite code used during onboarding
         teacher_code: teacherCodeToSave, // Set teacher_code for teachers
         school_id: resolvedSchoolId, // Permanent school assignment
-        verified: false, // Email verification required via Supabase email link
+        verified: isStudent ? true : false, // Students auto-verified; teachers need email verification
         approved: false, // All new users need approval (students by teacher, teachers by admin)
       };
       console.log("Profile data to insert:", profileData);
@@ -255,15 +260,18 @@ export default function Register({ setView, setAppState, error, setError, succes
       console.log("✅ Registration complete!");
 
       if (formData.role === "student") {
-        setSuccess("Registration successful! Please verify your email, then your teacher will approve your account.");
+        setSuccess("Registration successful! Your teacher will approve your account shortly.");
+        // Students are auto-verified, go straight to login
+        setTimeout(() => {
+          setView("login");
+        }, 3000);
       } else {
         setSuccess("Registration successful! Please verify your email, then a superadmin will approve your account.");
+        // Teachers still need email verification
+        setTimeout(() => {
+          setView("verify");
+        }, 3000);
       }
-
-      // Redirect to verify page where user can resend email if needed
-      setTimeout(() => {
-        setView("verify");
-      }, 3000);
 
     } catch (err) {
       console.error("Unexpected error:", err);
