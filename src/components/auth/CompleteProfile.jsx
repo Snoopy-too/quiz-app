@@ -11,6 +11,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
   const [role, setRole] = useState(user?.role || "");
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [schools, setSchools] = useState([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState("");
 
@@ -78,6 +79,7 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
         updates.teacher_id = teacher.id;
         updates.teacher_invite_code = cleanedCode;
+        updates.student_id = studentId.trim() || null;
         updates.school_id = teacher.school_id || null; // Inherit school from teacher
         linkedTeacher = teacher;
       } else if (role === "teacher") {
@@ -199,20 +201,35 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {role !== "teacher" && (
-            <div>
-              <label htmlFor="teacher-invite" className="block text-sm font-medium text-gray-700">
-                {t('auth.enterTeacherCode')}
-              </label>
-              <input
-                id="teacher-invite"
-                type="text"
-                value={teacherInviteCode}
-                onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                placeholder={t('auth.teacherCodeExample')}
-              />
-              <p className="mt-1 text-xs text-gray-500">{t('auth.studentsMustEnterCode')}</p>
-            </div>
+            <>
+              <div>
+                <label htmlFor="student-id" className="block text-sm font-medium text-gray-700">
+                  {t('auth.studentId')}
+                </label>
+                <input
+                  id="student-id"
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  placeholder={t('auth.studentIdPlaceholder') || "e.g. 12345"}
+                />
+              </div>
+              <div>
+                <label htmlFor="teacher-invite" className="block text-sm font-medium text-gray-700">
+                  {t('auth.enterTeacherCode')}
+                </label>
+                <input
+                  id="teacher-invite"
+                  type="text"
+                  value={teacherInviteCode}
+                  onChange={(e) => setTeacherInviteCode(e.target.value.toUpperCase())}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  placeholder={t('auth.teacherCodeExample')}
+                />
+                <p className="mt-1 text-xs text-gray-500">{t('auth.studentsMustEnterCode')}</p>
+              </div>
+            </>
           )}
 
           <div>
