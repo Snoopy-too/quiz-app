@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
@@ -17,6 +17,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [questions, setQuestions] = useState([]);
   const questionsRef = useRef([]);
   const sessionRef = useRef(null);
+  const realtimeAliveRef = useRef(false);
   const currentQuestionIndexRef = useRef(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasAnswered, setHasAnswered] = useState(false);
@@ -127,36 +128,39 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     console.log('[StudentQuiz] Setting up realtime and polling (loading complete)');
     const cleanup = setupRealtimeSubscriptions();
 
-    // Add polling as a fallback mechanism for session updates
-    const pollInterval = setInterval(async () => {
-      try {
-        console.log('[StudentQuiz] Polling session, current local status:', sessionRef.current?.status);
-        const { data: sessionData, error } = await supabase
-          .from("quiz_sessions")
-          .select("*")
-          .eq("id", sessionId)
-          .single();
+    // Fallback polling — backs off to 5s when realtime is delivering updates
+    let pollTimer = null;
+    const schedulePoll = () => {
+      const interval = realtimeAliveRef.current ? 5000 : 2000;
+      pollTimer = setTimeout(async () => {
+        try {
+          const { data: sessionData, error } = await supabase
+            .from("quiz_sessions")
+            .select("*")
+            .eq("id", sessionId)
+            .single();
 
-        if (!error && sessionData) {
-          // Only update session state if something meaningful changed
-          // The synchronization effect above will handle the rest
-          setSession(prev => {
-            if (!prev || prev.status !== sessionData.status || prev.current_question_index !== sessionData.current_question_index) {
-              console.log('[StudentQuiz] Poll detected change:', prev?.status, '->', sessionData.status);
-              return sessionData;
-            }
-            return prev;
-          });
+          if (!error && sessionData) {
+            setSession(prev => {
+              if (!prev || prev.status !== sessionData.status || prev.current_question_index !== sessionData.current_question_index) {
+                console.log('[StudentQuiz] Poll detected change:', prev?.status, '->', sessionData.status);
+                return sessionData;
+              }
+              return prev;
+            });
+          }
+        } catch (err) {
+          console.error('[StudentQuiz] Error polling session:', err);
         }
-      } catch (err) {
-        console.error('[StudentQuiz] Error polling session:', err);
-      }
-    }, 2000);
+        schedulePoll();
+      }, interval);
+    };
+    schedulePoll();
 
     return () => {
       console.log('[StudentQuiz] Cleaning up realtime and polling');
       cleanup();
-      clearInterval(pollInterval);
+      clearTimeout(pollTimer);
     };
   }, [sessionId, loading]);
 
@@ -184,31 +188,22 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setSession(session);
 
       // Load quiz - avoid .single() to prevent 406 errors
-      console.log("=== LOADING QUIZ ===");
-      console.log("Session quiz_id:", session.quiz_id);
-
       const { data: quizResults, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
         .eq("id", session.quiz_id);
-
-      console.log("Quiz query results:", quizResults);
-      console.log("Quiz query error:", quizError);
 
       if (quizError) {
         console.error("Quiz query failed:", quizError);
         throw new Error(`${t('errors.errorLoadingQuiz')}: ${quizError.message}`);
       }
 
-      // Get first result from array
       const quizData = quizResults && quizResults.length > 0 ? quizResults[0] : null;
       if (!quizData) {
-        console.error("No quiz found with ID:", session.quiz_id);
-        console.error("Query returned:", quizResults);
         throw new Error(`${t('errors.quizNotFound')} (ID: ${session.quiz_id}). ${t('errors.quizMayBeDeleted')}`);
       }
 
-      console.log("✅ Quiz loaded successfully:", quizData.title);
+      console.log('[StudentQuiz] Quiz loaded:', quizData.title);
       setQuiz(quizData);
 
       // Load theme separately if quiz has a theme_id
@@ -219,15 +214,11 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           .eq("id", quizData.theme_id);
 
         if (!themeError && themeResults && themeResults.length > 0) {
-          const themeData = themeResults[0];
-          console.log("Theme data loaded:", themeData);
-          setTheme(themeData);
+          setTheme(themeResults[0]);
         } else {
-          console.log("Theme fetch error or no theme found:", themeError);
           setTheme(null);
         }
       } else {
-        console.log("No theme_id on quiz");
         setTheme(null);
       }
 
@@ -251,7 +242,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setQuestions(orderedQuestions);
 
       // Check if already a participant
-      console.log("Checking if user is already a participant...");
       const { data: existingParticipant, error: checkParticipantError } = await supabase
         .from("session_participants")
         .select("*")
@@ -260,7 +250,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         .maybeSingle();
 
       if (checkParticipantError) {
-        console.log("Error checking participant:", checkParticipantError);
+        console.error('[StudentQuiz] Error checking participant:', checkParticipantError);
       }
 
       let activeParticipant = existingParticipant;
@@ -323,7 +313,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           filter: `id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[StudentQuiz] Session update detected:', payload.new.status);
+          console.log('[StudentQuiz] Realtime update:', payload.new.status);
+          realtimeAliveRef.current = true;
           setSession(payload.new);
         }
       )
@@ -426,12 +417,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     }
   };
 
-  // Helper function to get background style
-  const getBackgroundStyle = () => {
-    console.log("Getting background style, theme:", theme);
-
+  const backgroundStyle = useMemo(() => {
     if (theme?.background_image_url) {
-      console.log("Using theme background image:", theme.background_image_url);
       return {
         backgroundImage: `url(${theme.background_image_url})`,
         backgroundSize: "cover",
@@ -439,16 +426,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         backgroundAttachment: "fixed",
       };
     }
-
     if (theme) {
-      console.log("Using theme gradient colors:", theme.primary_color, theme.secondary_color);
       return {
         background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
       };
     }
-
     if (quiz?.background_image_url) {
-      console.log("Using quiz background image:", quiz.background_image_url);
       return {
         backgroundImage: `url(${quiz.background_image_url})`,
         backgroundSize: "cover",
@@ -456,12 +439,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         backgroundAttachment: "fixed",
       };
     }
-
-    console.log("No theme or custom background found, using fallback");
     return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
-  };
-
-  const backgroundStyle = getBackgroundStyle();
+  }, [theme?.background_image_url, theme?.primary_color, theme?.secondary_color, quiz?.background_image_url]);
   const textColor = theme?.text_color || "#FFFFFF";
 
   if (loading) {
