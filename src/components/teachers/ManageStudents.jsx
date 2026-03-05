@@ -159,11 +159,12 @@ export default function ManageStudents({ setView, appState }) {
       if (realtimeWorking) return; // realtime is delivering — no need to poll
 
       try {
+        const schoolId = appState.currentUser?.school_id;
         const { count, error: countError } = await supabase
           .from('users')
           .select('id', { count: 'exact', head: true })
           .eq('role', 'student')
-          .or(`teacher_id.eq.${teacherId},teacher_id.is.null`);
+          .or(`teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`);
 
         if (countError) return;
 
@@ -175,7 +176,7 @@ export default function ManageStudents({ setView, appState }) {
             .from('users')
             .select('*')
             .eq('role', 'student')
-            .or(`teacher_id.eq.${teacherId},teacher_id.is.null`)
+            .or(`teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`)
             .order('created_at', { ascending: false });
 
           if (!fetchErr && data) {
@@ -206,17 +207,14 @@ export default function ManageStudents({ setView, appState }) {
     if (!appState.currentUser?.id) return;
 
     try {
-      // Fetch students associated with the current teacher OR unlinked students
-      // We use .or() syntax properly
+      // Fetch students associated with the current teacher OR unlinked students from the same school
+      const teacherSchoolId = appState.currentUser?.school_id;
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
         .select("*")
         .eq("role", "student")
-        .or(`teacher_id.eq.${appState.currentUser.id},teacher_id.is.null`)
+        .or(`teacher_id.eq.${appState.currentUser.id},and(teacher_id.is.null,school_id.eq.${teacherSchoolId})`)
         .order("created_at", { ascending: false });
-
-      // NOTE: We fetch all students (mine + unlinked) here.
-      // The "unlinked" filter in the UI further restricts by school_id match.
 
       if (studentsError) throw studentsError;
 
