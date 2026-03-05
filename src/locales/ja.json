@@ -605,6 +605,7 @@
     "noStudentData": "学生データがまだありません。",
     "rank": "順位",
     "student": "学生",
+    "studentId": "学生ID",
     "email": "メールアドレス",
     "score": "スコア",
     "questions": "問題数",

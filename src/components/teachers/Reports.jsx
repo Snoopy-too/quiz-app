@@ -22,6 +22,7 @@ export default function Reports({ setView, appState }) {
   const [studentPerformanceLoading, setStudentPerformanceLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [studentSortConfig, setStudentSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [quizStudentSortConfig, setQuizStudentSortConfig] = useState({ key: 'score', direction: 'desc' });
   const [reportTab, setReportTab] = useState('all'); // 'all' | 'course' | 'non-course'
 
   useEffect(() => {
@@ -248,8 +249,8 @@ export default function Reports({ setView, appState }) {
           id,
           user_id,
           score,
-          session_id,
-          users(name, email)
+          joined_at,
+          users(name, email, student_id)
         `)
         .in("session_id", sessionIds);
 
@@ -279,7 +280,7 @@ export default function Reports({ setView, appState }) {
           score,
           status,
           student_id,
-          users:student_id(name, email)
+          users:student_id(name, email, student_id)
         `)
         .eq("quiz_id", quizId)
         .eq("status", "completed");
@@ -320,6 +321,7 @@ export default function Reports({ setView, appState }) {
           userId: p.user_id,
           name: p.users?.name || "Unknown",
           email: p.users?.email || "",
+          studentIdNo: p.users?.student_id || "",
           score: p.score || 0,
           type: 'session',
           sourceId: p.session_id
@@ -329,6 +331,7 @@ export default function Reports({ setView, appState }) {
           userId: a.student_id,
           name: a.users?.name || "Unknown",
           email: a.users?.email || "",
+          studentIdNo: a.users?.student_id || "",
           score: a.score || 0,
           type: 'assignment',
           sourceId: a.id
@@ -409,14 +412,15 @@ export default function Reports({ setView, appState }) {
           id: p.id,
           studentId: p.userId,
           name: p.name,
-          email: p.email,
+          studentIdNo: p.studentIdNo,
           score: p.score,
           questionsAnswered: total,
           correctAnswers: correct,
           accuracy: total > 0 ? ((correct / total) * 100).toFixed(1) : 0,
           type: p.type // Optional: show if it was assignment or session?
         };
-      }).sort((a, b) => b.score - a.score);
+      }).sort((a, b) => b.score - a.score)
+        .map((player, idx) => ({ ...player, rank: idx + 1 }));
 
       setQuizStats({
         totalSessions,
@@ -586,6 +590,53 @@ export default function Reports({ setView, appState }) {
     if (aValue > bValue) return studentSortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
+
+  const handleQuizStudentSort = (key) => {
+    let direction = 'asc';
+    if (quizStudentSortConfig.key === key && quizStudentSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setQuizStudentSortConfig({ key, direction });
+  };
+
+  const sortedQuizPerformance = quizStats?.studentPerformance ? [...quizStats.studentPerformance].sort((a, b) => {
+    const { key, direction } = quizStudentSortConfig;
+    if (!key) return 0;
+
+    let aValue, bValue;
+    switch (key) {
+      case 'rank':
+        aValue = a.rank;
+        bValue = b.rank;
+        break;
+      case 'student':
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case 'studentId':
+        aValue = (a.studentIdNo || '').toLowerCase();
+        bValue = (b.studentIdNo || '').toLowerCase();
+        break;
+      case 'score':
+        aValue = a.score;
+        bValue = b.score;
+        break;
+      case 'questions':
+        aValue = a.correctAnswers;
+        bValue = b.correctAnswers;
+        break;
+      case 'accuracy':
+        aValue = parseFloat(a.accuracy);
+        bValue = parseFloat(b.accuracy);
+        break;
+      default:
+        return 0;
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+    return 0;
+  }) : [];
 
   if (loading && !selectedQuiz) {
     return (
@@ -1099,23 +1150,83 @@ export default function Reports({ setView, appState }) {
                         <table className="w-full">
                           <thead className="bg-gray-100 border-b">
                             <tr>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.rank")}</th>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.student")}</th>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.email")}</th>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.score")}</th>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.questions")}</th>
-                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.accuracyHeader")}</th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('rank')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.rank")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'rank' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('student')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.student")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'student' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('studentId')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.studentId")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'studentId' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('score')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.score")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'score' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('questions')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.questions")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'questions' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('accuracy')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("reports.accuracyHeader")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'accuracy' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-                            {quizStats.studentPerformance.map((student, idx) => (
+                            {sortedQuizPerformance.map((student) => (
                               <tr key={student.id} className="border-b hover:bg-gray-50">
                                 <td className="px-6 py-4">
-                                  <span className={`text-lg font-bold ${idx === 0 ? 'text-yellow-600' :
-                                    idx === 1 ? 'text-gray-400' :
-                                      idx === 2 ? 'text-orange-600' : 'text-gray-600'
+                                  <span className={`text-lg font-bold ${student.rank === 1 ? 'text-yellow-600' :
+                                    student.rank === 2 ? 'text-gray-400' :
+                                      student.rank === 3 ? 'text-orange-600' : 'text-gray-600'
                                     }`}>
-                                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                    {student.rank === 1 ? '🥇' : student.rank === 2 ? '🥈' : student.rank === 3 ? '🥉' : `#${student.rank}`}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 font-medium">
@@ -1126,7 +1237,7 @@ export default function Reports({ setView, appState }) {
                                     {student.name}
                                   </button>
                                 </td>
-                                <td className="px-6 py-4 text-gray-600">{student.email}</td>
+                                <td className="px-6 py-4 text-gray-600">{student.studentIdNo || t("manageStudents.notApplicable")}</td>
                                 <td className="px-6 py-4">
                                   <span className="text-lg font-bold text-green-600">{student.score}</span>
                                 </td>
