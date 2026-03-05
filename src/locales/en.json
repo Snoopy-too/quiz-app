@@ -732,7 +732,7 @@
     "createStudentNoUser": "Unable to create the account. Please try again.",
     "createStudentGenericError": "Failed to create the student account. Please try again.",
     "confirmUnlinkTitle": "Unlink Student",
-    "confirmUnlinkMessage": "Are you sure you want to unlink this student? They will no longer be associated with your class.",
+    "confirmUnlinkMessage": "Are you sure you want to unlink {{name}}? They will no longer be associated with your class.",
     "linkStudentSuccess": "Student linked to your class successfully!",
     "unlinkStudentSuccess": "Student unlinked from your class successfully.",
     "editStudent": "Edit Student",

@@ -666,7 +666,7 @@
     "statusPending": "承認待ち",
     "statusUnverified": "未確認",
     "confirmUnlinkTitle": "学生のリンクを解除",
-    "confirmUnlinkMessage": "この学生のリンクを解除してもよろしいですか？彼らはあなたのクラスに関連付けられなくなります。",
+    "confirmUnlinkMessage": "{{name}}のリンクを解除してもよろしいですか？彼らはあなたのクラスに関連付けられなくなります。",
     "linkStudentSuccess": "学生があなたのクラスに正常にリンクされました！",
     "unlinkStudentSuccess": "学生があなたのクラスから正常にリンク解除されました。",
     "actionView": "表示",
