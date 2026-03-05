@@ -128,7 +128,7 @@ export default function QuizAssignmentsModal({
                         <button
                             onClick={fetchAssignments}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title={t("common.refresh")}
+                            title={t("common.refresh", "Refresh")}
                         >
                             <RefreshCw size={20} />
                         </button>

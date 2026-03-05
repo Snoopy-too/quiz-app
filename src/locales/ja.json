@@ -44,7 +44,8 @@
     "score": "スコア",
     "ok": "OK",
     "viewMore": "もっと見る",
-    "viewLess": "閉じる"
+    "viewLess": "閉じる",
+    "refresh": "更新"
   },
   "nav": {
     "dashboard": "ダッシュボード",

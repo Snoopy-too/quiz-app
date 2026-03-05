@@ -160,6 +160,7 @@ export default function ManageStudents({ setView, appState }) {
 
       try {
         const schoolId = appState.currentUser?.school_id;
+        if (!schoolId) return;
         const { count, error: countError } = await supabase
           .from('users')
           .select('id', { count: 'exact', head: true })
@@ -204,11 +205,11 @@ export default function ManageStudents({ setView, appState }) {
   }, [appState.currentUser?.id]);
 
   const fetchStudents = async () => {
-    if (!appState.currentUser?.id) return;
+    if (!appState.currentUser?.id || !appState.currentUser?.school_id) return;
 
     try {
       // Fetch students associated with the current teacher OR unlinked students from the same school
-      const teacherSchoolId = appState.currentUser?.school_id;
+      const teacherSchoolId = appState.currentUser.school_id;
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
         .select("*")

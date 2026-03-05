@@ -1077,7 +1077,7 @@ export default function TeacherControl({ sessionId, setView }) {
                     <button
                       onClick={loadParticipants}
                       className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Refresh participant count"
+                      title={t("common.refresh", "Refresh")}
                     >
                       <RefreshCw size={24} />
                     </button>
@@ -1183,9 +1183,8 @@ export default function TeacherControl({ sessionId, setView }) {
         <nav className="bg-white shadow-md p-4 flex justify-between items-center">
           <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              isThinkingTime ? "bg-yellow-100 animate-pulse" :
-              !showAnswers ? "bg-purple-100 animate-pulse" : "bg-blue-50"
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isThinkingTime ? "bg-yellow-100 animate-pulse" :
+                !showAnswers ? "bg-purple-100 animate-pulse" : "bg-blue-50"
               }`}>
               {isThinkingTime ? (
                 <>
