@@ -244,18 +244,18 @@ export default function ManageStudents({ setView, appState }) {
     }
   };
 
-  const handleUnlink = async (studentId) => {
+  const handleUnlink = async (student) => {
     setConfirmModal({
       isOpen: true,
       title: t("manageStudents.confirmUnlinkTitle"),
-      message: t("manageStudents.confirmUnlinkMessage"),
+      message: t("manageStudents.confirmUnlinkMessage", { name: student.name }),
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { error } = await supabase
             .from("users")
             .update({ teacher_id: null })
-            .eq("id", studentId);
+            .eq("id", student.id);
 
           if (error) throw error;
           setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.unlinkStudentSuccess"), type: "success" });
@@ -963,7 +963,7 @@ export default function ManageStudents({ setView, appState }) {
                                 </button>
                               )}
                               <button
-                                onClick={() => handleUnlink(student.id)}
+                                onClick={() => handleUnlink(student)}
                                 className="text-gray-600 hover:text-gray-700 font-medium"
                               >
                                 {t("manageStudents.actionUnlink")}
