@@ -446,18 +446,19 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
   const handleShuffleQuestions = async () => {
     if (questions.length < 2) return;
+    const shuffled = [...questions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setQuestions(shuffled);
     try {
-      const shuffled = [...questions];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
       const updates = shuffled.map((q, idx) => ({ id: q.id, order_index: idx }));
       for (const update of updates) {
         await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
       }
-      await fetchQuizAndQuestions();
     } catch (err) {
+      await fetchQuizAndQuestions();
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorReorderingQuestions') + ": " + err.message, type: "error" });
     }
   };
