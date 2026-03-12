@@ -28,7 +28,8 @@
       "Bash(npm test:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(npx vite:*)"
     ],
     "deny": [],
     "ask": []

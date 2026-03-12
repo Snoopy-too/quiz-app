@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { Plus, Edit2, Trash2, Play, Copy, Folder, FolderPlus, ChevronRight, ChevronDown, MoreVertical, FolderOpen, Search, Filter, CheckSquare, Square, Move, Archive, Eye, PanelLeftClose, PanelLeftOpen, X, Calendar, Users } from "lucide-react";
@@ -31,6 +31,8 @@ export default function ManageQuizzes({ setView, appState }) {
   const [sortBy, setSortBy] = useState("created_at");
   const [filterCategory, setFilterCategory] = useState(null);
   const [mobileFolderPanelOpen, setMobileFolderPanelOpen] = useState(false);
+  const [highlightedQuizId, setHighlightedQuizId] = useState(null);
+  const quizGridRef = useRef(null);
 
   // Alert/Confirm modals
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -588,6 +590,26 @@ export default function ManageQuizzes({ setView, appState }) {
     });
   };
 
+  // Handle clicking a quiz in the folder sidebar
+  const handleSidebarQuizClick = useCallback((quiz, folderId) => {
+    // Set the active folder so the quiz's card is visible in the grid
+    setActiveFolder(folderId);
+    setHighlightedQuizId(quiz.id);
+
+    // Wait for the grid to re-render with the correct folder, then scroll
+    setTimeout(() => {
+      const cardEl = document.querySelector(`[data-quiz-id="${quiz.id}"]`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+
+    // Clear highlight after a few seconds
+    setTimeout(() => {
+      setHighlightedQuizId(null);
+    }, 3000);
+  }, []);
+
   // Recursive folder renderer
   const renderFolder = (folder, depth = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
@@ -707,14 +729,24 @@ export default function ManageQuizzes({ setView, appState }) {
                     ? `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color || theme.primary_color})`
                     : "linear-gradient(135deg, #7C3AED, #2563EB)";
 
+                  const isHighlighted = highlightedQuizId === quiz.id;
+
                   return (
                     <div
                       key={quiz.id}
-                      onClick={() => setActiveFolder(folder.id)}
-                      className="py-1.5 px-3 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer transition-colors flex items-center gap-2"
+                      onClick={() => handleSidebarQuizClick(quiz, folder.id)}
+                      className={`py-1.5 px-3 text-sm rounded cursor-pointer transition-colors flex items-center gap-2 ${
+                        isHighlighted
+                          ? "bg-blue-100 text-blue-800 font-medium"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
                     >
                       <div
-                        className="w-3 h-3 rounded-full border border-white/60 shadow"
+                        className={`w-3 h-3 rounded-full shadow transition-all ${
+                          isHighlighted
+                            ? "ring-2 ring-blue-400 ring-offset-1"
+                            : "border border-white/60"
+                        }`}
                         style={{
                           backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
                           backgroundSize: "cover",
@@ -806,15 +838,22 @@ export default function ManageQuizzes({ setView, appState }) {
 
   const renderQuizCard = (quiz) => {
     const isSelected = selectedQuizzes.has(quiz.id);
+    const isHighlighted = highlightedQuizId === quiz.id;
     const themeMeta = getThemeMeta(quiz);
     const badgeLabel = themeMeta.label;
 
     return (
       <div
         key={quiz.id}
+        data-quiz-id={quiz.id}
         draggable
         onDragStart={(e) => handleDragStart(e, quiz, "quiz")}
-        className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${isSelected ? "border-cyan-400 ring-2 ring-blue-100" : "border-transparent"
+        className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${
+          isHighlighted
+            ? "border-blue-500 ring-2 ring-blue-300 shadow-lg shadow-blue-100"
+            : isSelected
+              ? "border-cyan-400 ring-2 ring-blue-100"
+              : "border-transparent"
           } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
       >
         {/* Theme Preview */}
