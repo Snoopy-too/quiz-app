@@ -206,22 +206,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       console.log('[StudentQuiz] Quiz loaded:', quizData.title);
       setQuiz(quizData);
 
-      // Load theme separately if quiz has a theme_id
-      if (quizData.theme_id) {
-        const { data: themeResults, error: themeError } = await supabase
-          .from("themes")
-          .select("*")
-          .eq("id", quizData.theme_id);
-
-        if (!themeError && themeResults && themeResults.length > 0) {
-          setTheme(themeResults[0]);
-        } else {
-          setTheme(null);
-        }
-      } else {
-        setTheme(null);
-      }
-
       // Load questions
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
@@ -274,6 +258,22 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         if (participantError) throw participantError;
         setParticipant(newParticipant);
         activeParticipant = newParticipant;
+      }
+
+      // Load theme after participant exists (RLS requires participant row)
+      if (quizData.theme_id) {
+        const { data: themeResults, error: themeError } = await supabase
+          .from("themes")
+          .select("*")
+          .eq("id", quizData.theme_id);
+
+        if (!themeError && themeResults && themeResults.length > 0) {
+          setTheme(themeResults[0]);
+        } else {
+          setTheme(null);
+        }
+      } else {
+        setTheme(null);
       }
 
       // Initialize question index ref

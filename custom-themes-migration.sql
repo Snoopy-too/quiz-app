@@ -24,6 +24,7 @@ DROP POLICY IF EXISTS "Teachers can delete their own themes" ON themes;
 -- 1. Global themes (created_by IS NULL)
 -- 2. Their own custom themes (created_by = auth.uid())
 -- 3. Themes used by public quizzes (so public quizzes display correctly for all users)
+-- 4. Themes used by quizzes in active sessions the user is participating in
 CREATE POLICY "Anyone can view themes"
 ON themes FOR SELECT
 USING (
@@ -33,6 +34,13 @@ USING (
     SELECT 1 FROM quizzes
     WHERE quizzes.theme_id = themes.id
     AND quizzes.is_public = true
+  )
+  OR EXISTS (
+    SELECT 1 FROM quizzes
+    JOIN quiz_sessions ON quiz_sessions.quiz_id = quizzes.id
+    JOIN session_participants ON session_participants.session_id = quiz_sessions.id
+    WHERE quizzes.theme_id = themes.id
+    AND session_participants.user_id = auth.uid()
   )
 );
 
