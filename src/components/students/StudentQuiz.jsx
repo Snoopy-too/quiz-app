@@ -385,7 +385,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       setWasCorrect(isCorrect);
 
       // Calculate points based on time remaining
-      const timeBonus = Math.floor((timeRemaining / currentQuestion.time_limit) * 100);
+      const timeBonus = Math.floor((timeRemaining / currentQuestion.time_limit) * currentQuestion.points);
       const points = isCorrect ? currentQuestion.points + timeBonus : 0;
 
       // Submit answer
