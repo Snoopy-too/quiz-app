@@ -623,14 +623,14 @@ export default function ManageQuizzes({ setView, appState }) {
           {isExpanded ? (
             <FolderOpen
               size={22}
-              className="text-amber-500 flex-shrink-0 transition-transform group-hover:scale-110"
+              className={`${isActive ? "text-blue-700" : "text-amber-500"} flex-shrink-0 transition-transform group-hover:scale-110`}
               fill="currentColor"
               fillOpacity={0.2}
             />
           ) : (
             <Folder
               size={22}
-              className="text-amber-500 flex-shrink-0 transition-transform group-hover:scale-110"
+              className={`${isActive ? "text-blue-700" : "text-amber-500"} flex-shrink-0 transition-transform group-hover:scale-110`}
               fill="currentColor"
               fillOpacity={0.2}
             />
