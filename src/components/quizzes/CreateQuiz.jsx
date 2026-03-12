@@ -18,6 +18,7 @@ import {
   HelpCircle,
   FileSpreadsheet,
   ImageIcon,
+  Shuffle,
 } from "lucide-react";
 import { parseKahootCSV } from "../../utils/csvQuizParser";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
@@ -377,6 +378,17 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
       return reordered;
     });
     setDraggedQuestionIndex(null);
+  };
+
+  const handleShuffleQuestions = () => {
+    setQuestions((prev) => {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    });
   };
 
   const handleCSVUpload = (e) => {
@@ -891,6 +903,16 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         onChange={handleCSVUpload}
                         className="hidden"
                       />
+                      {questions.length >= 2 && (
+                        <button
+                          onClick={handleShuffleQuestions}
+                          className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
+                          title={t('quiz.shuffleQuestions')}
+                        >
+                          <Shuffle size={16} />
+                          {t('quiz.shuffleQuestions')}
+                        </button>
+                      )}
                       <button
                         onClick={() => csvInputRef.current?.click()}
                         className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"

@@ -207,7 +207,8 @@
     "revealingAnswersIn": "Revealing answers in...",
     "getReady": "Get ready!",
     "revealing": "Revealing",
-    "importCSV": "Import CSV"
+    "importCSV": "Import CSV",
+    "shuffleQuestions": "Shuffle"
   },
   "folder": {
     "folder": "Folder",

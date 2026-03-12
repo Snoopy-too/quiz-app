@@ -17,6 +17,7 @@ import {
   Settings,
   HelpCircle,
   ImageIcon,
+  Shuffle,
 } from "lucide-react";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
@@ -438,6 +439,24 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
       await fetchQuizAndQuestions();
       setDraggedQuestion(null);
+    } catch (err) {
+      setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorReorderingQuestions') + ": " + err.message, type: "error" });
+    }
+  };
+
+  const handleShuffleQuestions = async () => {
+    if (questions.length < 2) return;
+    try {
+      const shuffled = [...questions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const updates = shuffled.map((q, idx) => ({ id: q.id, order_index: idx }));
+      for (const update of updates) {
+        await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
+      }
+      await fetchQuizAndQuestions();
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorReorderingQuestions') + ": " + err.message, type: "error" });
     }
@@ -895,13 +914,25 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
                       </p>
                     </div>
-                    <button
-                      onClick={handleAddQuestion}
-                      className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
-                    >
-                      <Plus size={16} />
-                      {t('quiz.addQuestion')}
-                    </button>
+                    <div className="flex gap-2">
+                      {questions.length >= 2 && (
+                        <button
+                          onClick={handleShuffleQuestions}
+                          className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
+                          title={t('quiz.shuffleQuestions')}
+                        >
+                          <Shuffle size={16} />
+                          {t('quiz.shuffleQuestions')}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleAddQuestion}
+                        className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Plus size={16} />
+                        {t('quiz.addQuestion')}
+                      </button>
+                    </div>
                   </div>
 
                   {questions.length === 0 ? (
