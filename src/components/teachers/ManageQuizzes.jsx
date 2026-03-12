@@ -988,12 +988,12 @@ export default function ManageQuizzes({ setView, appState }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Vertical Navigation */}
       <VerticalNav currentView="manage-quizzes" setView={setView} appState={appState} />
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
+      <div className="flex-1 md:ml-64 pt-16 md:pt-0 flex flex-col h-screen overflow-hidden">
         {/* Top Navigation */}
         <nav className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4">
@@ -1111,7 +1111,7 @@ export default function ManageQuizzes({ setView, appState }) {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex h-[calc(100vh-140px)]">
+        <div className="flex flex-1 overflow-hidden">
           {loading && (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-gray-600">{t('common.loading')}</p>
@@ -1214,7 +1214,7 @@ export default function ManageQuizzes({ setView, appState }) {
               )}
 
               {/* Left Sidebar: Folder Tree - Hidden on mobile */}
-              <div className="hidden md:block w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto">
+              <div className="hidden md:block w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto overflow-x-hidden">
                 <div className="p-4">
                   <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">{t('folder.folders')}</h3>
                   <div className="space-y-0.5">
