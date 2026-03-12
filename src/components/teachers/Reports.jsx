@@ -674,8 +674,8 @@ export default function Reports({ setView, appState }) {
         </nav>
 
         <div className="container mx-auto p-6">
-          {/* Student Performance Section */}
-          <div className="mb-8">
+          {/* Student Performance Section - only show on main list view */}
+          {!selectedQuiz && <div className="mb-8">
             <h2 className="text-2xl font-bold mb-6">{t("reports.studentPerformanceGlobal")}</h2>
             {studentPerformanceLoading ? (
               <div className="bg-white rounded-xl shadow-md text-center py-12">
@@ -786,7 +786,7 @@ export default function Reports({ setView, appState }) {
                 </table>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Quiz Selection */}
           {!selectedQuiz ? (
