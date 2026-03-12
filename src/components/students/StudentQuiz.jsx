@@ -577,7 +577,18 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
             {/* Answer Options - shown after 4 second delay */}
             {showAnswers ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+              <div className="relative rounded-xl overflow-hidden">
+                {(theme?.background_image_url || quiz?.background_image_url) && (
+                  <div
+                    className="absolute inset-0 opacity-15"
+                    style={{
+                      backgroundImage: `url(${theme?.background_image_url || quiz?.background_image_url})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                )}
+                <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                 {currentQuestion.options?.map((opt, idx) => {
                   // Skip empty options (no text and no image)
                   if (!opt.text && !opt.image_url) return null;
@@ -607,6 +618,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     </button>
                   );
                 })}
+                </div>
               </div>
             ) : (
               <div className="flex justify-center py-8">
