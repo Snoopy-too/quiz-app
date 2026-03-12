@@ -620,7 +620,21 @@ export default function ManageQuizzes({ setView, appState }) {
               <span className="w-4" />
             )}
           </button>
-          {isExpanded ? <FolderOpen size={18} className={isActive ? "text-blue-700" : "text-yellow-600"} /> : <Folder size={18} className={isActive ? "text-blue-700" : "text-yellow-600"} />}
+          {isExpanded ? (
+            <FolderOpen
+              size={22}
+              className={`${isActive ? "text-blue-600" : "text-amber-500"} transition-transform group-hover:scale-110`}
+              fill="currentColor"
+              fillOpacity={0.2}
+            />
+          ) : (
+            <Folder
+              size={22}
+              className={`${isActive ? "text-blue-600" : "text-amber-500"} transition-transform group-hover:scale-110`}
+              fill="currentColor"
+              fillOpacity={0.2}
+            />
+          )}
 
           {editingFolder === folder.id ? (
             <input
@@ -1118,7 +1132,12 @@ export default function ManageQuizzes({ setView, appState }) {
                           className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                             }`}
                         >
-                          <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
+                          <Archive
+                            size={22}
+                            className={`${activeFolder === null ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
+                            fill="currentColor"
+                            fillOpacity={0.1}
+                          />
                           <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                             }`}>
@@ -1132,7 +1151,12 @@ export default function ManageQuizzes({ setView, appState }) {
                           className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                             }`}
                         >
-                          <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
+                          <FolderOpen
+                            size={22}
+                            className={`${activeFolder === "unfiled" ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
+                            fill="currentColor"
+                            fillOpacity={0.1}
+                          />
                           <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                             }`}>
@@ -1161,7 +1185,12 @@ export default function ManageQuizzes({ setView, appState }) {
                       className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                         }`}
                     >
-                      <Archive size={18} className={activeFolder === null ? "text-blue-700" : "text-gray-600"} />
+                      <Archive
+                        size={22}
+                        className={`${activeFolder === null ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
+                        fill="currentColor"
+                        fillOpacity={0.1}
+                      />
                       <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                         }`}>
@@ -1177,7 +1206,12 @@ export default function ManageQuizzes({ setView, appState }) {
                       className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
                         }`}
                     >
-                      <FolderOpen size={18} className={activeFolder === "unfiled" ? "text-blue-700" : "text-gray-600"} />
+                      <FolderOpen
+                        size={22}
+                        className={`${activeFolder === "unfiled" ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
+                        fill="currentColor"
+                        fillOpacity={0.1}
+                      />
                       <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
                         }`}>
@@ -1301,7 +1335,12 @@ export default function ManageQuizzes({ setView, appState }) {
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
                 >
-                  <FolderOpen size={18} className="text-gray-600 group-hover:text-blue-700" />
+                  <FolderOpen
+                    size={22}
+                    className="text-gray-500 group-hover:text-blue-600 transition-transform group-hover:scale-110"
+                    fill="currentColor"
+                    fillOpacity={0.1}
+                  />
                   <span className="text-sm group-hover:text-blue-800 font-medium">{t('folder.unfiledQuizzes')}</span>
                 </button>
 
@@ -1330,7 +1369,12 @@ export default function ManageQuizzes({ setView, appState }) {
                       className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition flex items-center gap-3 group"
                       style={{ paddingLeft: `${16 + depth * 20}px` }}
                     >
-                      <Folder size={18} className="text-yellow-600 group-hover:text-blue-700" />
+                      <Folder
+                        size={22}
+                        className="text-amber-500 group-hover:text-blue-600 transition-transform group-hover:scale-110"
+                        fill="currentColor"
+                        fillOpacity={0.2}
+                      />
                       <span className="text-sm group-hover:text-blue-800">{folder.name}</span>
                     </button>
                   );
