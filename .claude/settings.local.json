@@ -29,7 +29,8 @@
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(tasklist:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(find /c/xampp/htdocs/quiz-app/src -type f \\\\\\(-name *.php -o -name *.js \\\\\\))"
     ],
     "deny": [],
     "ask": []

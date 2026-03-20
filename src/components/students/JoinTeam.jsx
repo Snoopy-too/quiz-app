@@ -44,17 +44,17 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
         return;
       }
 
-      // Check if user is already in the session with this team
+      // Check if user is already in the session (e.g. created a team then backed out)
       const { data: existingParticipant } = await supabase
         .from("session_participants")
         .select("id")
         .eq("session_id", session.id)
         .eq("user_id", appState.currentUser.id)
-        .single();
+        .maybeSingle();
 
       if (existingParticipant) {
-        setError(t('student.alreadyInSession'));
-        setLoading(false);
+        // Already in session — rejoin directly instead of blocking
+        setView("student-quiz", session.id);
         return;
       }
 

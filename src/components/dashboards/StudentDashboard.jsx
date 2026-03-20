@@ -59,53 +59,64 @@ export default function StudentDashboard({ appState, setAppState, setView, error
       // 1. Check localStorage for saved session
       const savedSession = getActiveSession();
 
-      if (!savedSession?.sessionId) {
-        setCheckingSession(false);
-        return;
-      }
+      if (savedSession?.sessionId) {
+        // 2. Verify session is still active in database
+        const { data: dbSession, error: sessionError } = await supabase
+          .from("quiz_sessions")
+          .select("id, status, pin, quiz_id, quizzes(title)")
+          .eq("id", savedSession.sessionId)
+          .maybeSingle();
 
-      // 2. Verify session is still active in database
-      const { data: dbSession, error: sessionError } = await supabase
-        .from("quiz_sessions")
-        .select("id, status, pin, quiz_id, quizzes(title)")
-        .eq("id", savedSession.sessionId)
-        .maybeSingle();
+        if (!sessionError && dbSession && !["completed", "cancelled"].includes(dbSession.status)) {
+          // 3. Check if student is still a participant
+          const { data: participant } = await supabase
+            .from("session_participants")
+            .select("id, score")
+            .eq("session_id", savedSession.sessionId)
+            .eq("user_id", appState.currentUser.id)
+            .maybeSingle();
 
-      if (sessionError) {
-        console.error('[StudentDashboard] Error checking session:', sessionError);
+          if (participant) {
+            console.log('[StudentDashboard] Active session found via localStorage:', dbSession);
+            setActiveSession({
+              ...dbSession,
+              participantScore: participant.score
+            });
+            setCheckingSession(false);
+            return;
+          }
+        }
+
+        // localStorage session is stale — clear it
         clearActiveSession();
-        setCheckingSession(false);
-        return;
       }
 
-      // 3. Check if session is still active (not completed or cancelled)
-      if (!dbSession || ["completed", "cancelled"].includes(dbSession.status)) {
-        clearActiveSession();
-        setCheckingSession(false);
-        return;
-      }
-
-      // 4. Check if student is still a participant
-      const { data: participant, error: participantError } = await supabase
+      // 4. DB fallback: check if student has any active session_participants entry
+      // This catches cases where the student joined (e.g. created a team) but
+      // never made it to StudentQuiz (so localStorage was never set)
+      const { data: activeParticipants } = await supabase
         .from("session_participants")
-        .select("id, score")
-        .eq("session_id", savedSession.sessionId)
+        .select("session_id, score, quiz_sessions(id, status, pin, quiz_id, quizzes(title))")
         .eq("user_id", appState.currentUser.id)
-        .maybeSingle();
+        .order("joined_at", { ascending: false })
+        .limit(5);
 
-      if (participantError || !participant) {
-        console.log('[StudentDashboard] Student not a participant, clearing session');
-        clearActiveSession();
-        setCheckingSession(false);
-        return;
+      if (activeParticipants) {
+        const active = activeParticipants.find(
+          (p) => p.quiz_sessions && !["completed", "cancelled"].includes(p.quiz_sessions.status)
+        );
+
+        if (active) {
+          console.log('[StudentDashboard] Active session found via DB fallback:', active.quiz_sessions);
+          setActiveSession({
+            ...active.quiz_sessions,
+            participantScore: active.score
+          });
+          setCheckingSession(false);
+          return;
+        }
       }
 
-      // Session is still active - show rejoin banner
-      console.log('[StudentDashboard] Active session found:', dbSession);
-      setActiveSession({
-        ...dbSession,
-        participantScore: participant.score
-      });
       setCheckingSession(false);
     } catch (err) {
       console.error('[StudentDashboard] Error checking for active session:', err);

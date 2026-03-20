@@ -108,6 +108,20 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         return;
       }
 
+      // Check if student is already a participant in this session (e.g. created a team then backed out)
+      const { data: existingParticipant } = await supabase
+        .from("session_participants")
+        .select("id")
+        .eq("session_id", foundSession.id)
+        .eq("user_id", appState.currentUser.id)
+        .maybeSingle();
+
+      if (existingParticipant) {
+        // Already in session — rejoin directly
+        setView("student-quiz", foundSession.id);
+        return;
+      }
+
       setSession(foundSession);
       setShowTeamOptions(true); // Show Create/Join options after PIN verification
     } catch (err) {
