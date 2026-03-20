@@ -67,7 +67,8 @@ export default function StudentDashboard({ appState, setAppState, setView, error
           .eq("id", savedSession.sessionId)
           .maybeSingle();
 
-        if (!sessionError && dbSession && !["completed", "cancelled"].includes(dbSession.status)) {
+        const activeStatuses = ["waiting", "active", "question_active"];
+        if (!sessionError && dbSession && activeStatuses.includes(dbSession.status)) {
           // 3. Check if student is still a participant
           const { data: participant } = await supabase
             .from("session_participants")
@@ -102,8 +103,9 @@ export default function StudentDashboard({ appState, setAppState, setView, error
         .limit(5);
 
       if (activeParticipants) {
+        const activeStatuses = ["waiting", "active", "question_active"];
         const active = activeParticipants.find(
-          (p) => p.quiz_sessions && !["completed", "cancelled"].includes(p.quiz_sessions.status)
+          (p) => p.quiz_sessions && activeStatuses.includes(p.quiz_sessions.status)
         );
 
         if (active) {
