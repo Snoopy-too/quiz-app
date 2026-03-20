@@ -80,6 +80,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     } else if (session.status === "completed") {
       console.log('[StudentQuiz] Transitioning to COMPLETED');
       clearActiveSession();
+    } else if (session.status === "cancelled") {
+      console.log('[StudentQuiz] Transitioning to CANCELLED');
+      clearActiveSession();
+      setShowCountdown(false);
     }
   }, [session?.status, session?.current_question_index, session?.id, questions, loading]);
 
@@ -470,6 +474,65 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     );
   }
 
+  // Terminal states checked FIRST — these must take priority over any local state
+  // (e.g. showCountdown) or intermediate status renders
+
+  // Quiz cancelled
+  if (session.status === "cancelled") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+          <div className="text-6xl mb-6">🚫</div>
+          <h2 className="text-3xl font-bold mb-4">{t('session.quizCancelled')}</h2>
+          <p className="text-gray-600 mb-8">
+            {t('session.quizCancelledByTeacher')}
+          </p>
+          <button
+            onClick={() => {
+              clearActiveSession();
+              setView("student-dashboard");
+            }}
+            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
+          >
+            {t('student.backToDashboard')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz completed
+  if (session.status === "completed") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+          <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
+          <h2 className="text-4xl font-bold mb-6">{t('student.quizComplete')}</h2>
+
+          <div className="bg-blue-50 rounded-xl p-8 mb-6">
+            <p className="text-gray-600 mb-2">{t('student.finalScore')}</p>
+            <p className="text-5xl font-bold text-blue-700">
+              {participant?.score || 0}
+            </p>
+            <p className="text-gray-600 mt-2">{t('quiz.points')}</p>
+          </div>
+
+          <p className="text-gray-600 mb-6">{t('student.greatJob')}</p>
+
+          <button
+            onClick={() => {
+              clearActiveSession();
+              setView("student-dashboard");
+            }}
+            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
+          >
+            {t('student.backToDashboard')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Show countdown screen
   if (showCountdown) {
     return (
@@ -735,62 +798,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </div>
 
           <p className="text-gray-600 mt-6">{t('student.waitingForNextQuestion')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Quiz cancelled
-  if (session.status === "cancelled") {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
-          <div className="text-6xl mb-6">🚫</div>
-          <h2 className="text-3xl font-bold mb-4">{t('session.quizCancelled')}</h2>
-          <p className="text-gray-600 mb-8">
-            {t('session.quizCancelledByTeacher')}
-          </p>
-          <button
-            onClick={() => {
-              clearActiveSession();
-              setView("student-dashboard");
-            }}
-            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
-          >
-            {t('student.backToDashboard')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Quiz completed
-  if (session.status === "completed") {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
-          <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
-          <h2 className="text-4xl font-bold mb-6">{t('student.quizComplete')}</h2>
-
-          <div className="bg-blue-50 rounded-xl p-8 mb-6">
-            <p className="text-gray-600 mb-2">{t('student.finalScore')}</p>
-            <p className="text-5xl font-bold text-blue-700">
-              {participant?.score || 0}
-            </p>
-            <p className="text-gray-600 mt-2">{t('quiz.points')}</p>
-          </div>
-
-          <p className="text-gray-600 mb-6">{t('student.greatJob')}</p>
-
-          <button
-            onClick={() => {
-              clearActiveSession();
-              setView("student-dashboard");
-            }}
-            className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold"
-          >
-            {t('student.backToDashboard')}
-          </button>
         </div>
       </div>
     );
