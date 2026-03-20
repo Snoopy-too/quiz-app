@@ -36,6 +36,7 @@ export default function TeacherControl({ sessionId, setView }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [allowSharedDevice, setAllowSharedDevice] = useState(false);
 
   // Ref to hold current question for real-time subscription
   const currentQuestionRef = useRef(null);
@@ -449,9 +450,14 @@ export default function TeacherControl({ sessionId, setView }) {
     try {
       console.log('[TeacherControl] Selecting mode:', mode, 'for session:', sessionId);
 
+      const updateData = { mode: mode };
+      if (mode === "team") {
+        updateData.allow_shared_device = allowSharedDevice;
+      }
+
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .update({ mode: mode })
+        .update(updateData)
         .eq("id", sessionId)
         .select();
 
@@ -939,8 +945,7 @@ export default function TeacherControl({ sessionId, setView }) {
 
                 {/* Team Mode */}
                 <div
-                  onClick={() => selectMode("team")}
-                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                  className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition group bg-white"
                 >
                   <div className="text-6xl mb-4">👥</div>
                   <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
@@ -952,6 +957,27 @@ export default function TeacherControl({ sessionId, setView }) {
                     <li>✓ Custom team names</li>
                     <li>✓ Combined scores</li>
                   </ul>
+
+                  {/* Shared Device Toggle */}
+                  <label
+                    className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 cursor-pointer text-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allowSharedDevice}
+                      onChange={(e) => setAllowSharedDevice(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">Allow shared device teams</span>
+                  </label>
+
+                  <button
+                    onClick={() => selectMode("team")}
+                    className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold transition"
+                  >
+                    Start Team Mode
+                  </button>
                 </div>
 
                 {/* Assign Quiz Mode */}

@@ -480,18 +480,24 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
             </button>
             <button
               type="button"
-              onClick={() => setIsSharedDevice(true)}
+              onClick={() => session?.allow_shared_device && setIsSharedDevice(true)}
+              disabled={!session?.allow_shared_device}
               className={`p-4 border-2 rounded-xl text-left transition-all ${
-                isSharedDevice
-                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                  : 'border-gray-200 hover:border-gray-300'
+                !session?.allow_shared_device
+                  ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                  : isSharedDevice
+                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                    : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Monitor size={24} className={isSharedDevice ? 'text-blue-600' : 'text-gray-400'} />
+                <Monitor size={24} className={isSharedDevice && session?.allow_shared_device ? 'text-blue-600' : 'text-gray-400'} />
               </div>
               <div className="font-bold text-sm">{t('student.sharedDevice')}</div>
               <div className="text-xs text-gray-500">{t('student.sharedDeviceDesc')}</div>
+              {!session?.allow_shared_device && (
+                <div className="text-xs text-red-400 mt-1">{t('student.sharedDeviceDisabled', 'Not enabled by teacher')}</div>
+              )}
             </button>
           </div>
         </div>
