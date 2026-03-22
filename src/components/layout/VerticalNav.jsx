@@ -93,7 +93,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
         {/* Logo/Brand */}
         <div className="p-4 flex items-center justify-center border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
           <img
-            src="http://pierenglishschool.com/quizapp/images/logo.png"
+            src="https://pierenglishschool.com/quizapp/images/logo.png"
             alt="QuizMaster Logo"
             className="max-w-full h-auto"
             style={{ maxHeight: '112px', width: 'auto' }}
