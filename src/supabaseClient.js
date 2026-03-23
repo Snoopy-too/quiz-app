@@ -17,4 +17,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 5,
+    },
+    heartbeatIntervalMs: 15000,
+    reconnectAfterMs: (tries) => Math.min(1000 * 2 ** tries, 30000),
+  },
 });

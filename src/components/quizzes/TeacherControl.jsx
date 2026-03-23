@@ -44,35 +44,38 @@ export default function TeacherControl({ sessionId, setView }) {
   const currentQuestionRef = useRef(null);
   // Ref to hold current session for polling (avoids stale closure)
   const sessionRef = useRef(null);
+  // Debounce timers for realtime event handlers
+  const loadParticipantsTimerRef = useRef(null);
+  const loadLiveAnswersTimerRef = useRef(null);
 
   useEffect(() => {
     if (sessionId) {
       loadSession();
       const cleanup = setupRealtimeSubscriptions();
 
-      // Add polling as a fallback mechanism for participant updates
-      // Poll every 3 seconds while in waiting status
+      // Fallback polling for participant and answer updates
       const pollInterval = setInterval(() => {
         // Use ref to get latest session state (avoids stale closure)
         const currentSession = sessionRef.current;
         if (currentSession?.status === 'waiting') {
-          console.log('[TeacherControl] Polling for participant updates (fallback)');
           loadParticipants(currentSession);
         }
 
         // Poll for live answers while question is active
-        if (currentSession?.status === 'question_active' && currentQuestion) {
-          console.log('[TeacherControl] Polling for live answers (fallback)');
-          loadLiveAnswers(currentQuestion.id);
+        const activeQuestion = currentQuestionRef.current;
+        if (currentSession?.status === 'question_active' && activeQuestion) {
+          loadLiveAnswers(activeQuestion.id);
         }
-      }, 3000);
+      }, 5000);
 
       return () => {
         cleanup();
         clearInterval(pollInterval);
+        clearTimeout(loadParticipantsTimerRef.current);
+        clearTimeout(loadLiveAnswersTimerRef.current);
       };
     }
-  }, [sessionId, session?.status, currentQuestion?.id]);
+  }, [sessionId]);
 
   // Keep ref in sync with currentQuestion state
   useEffect(() => {
@@ -265,45 +268,41 @@ export default function TeacherControl({ sessionId, setView }) {
       }
     }
 
-    console.log('[TeacherControl] Loaded participants data:', data);
-    console.log('[TeacherControl] Number of participants:', data?.length || 0);
+    console.log('[TeacherControl] Loaded participants:', data?.length || 0);
 
-    // Fetch team members for team entries
-    const participantsWithTeams = await Promise.all(
-      (data || []).map(async (p) => {
-        // Check if is_team_entry exists and is true
-        if (p.is_team_entry === true && p.team_id) {
-          try {
-            // Fetch team members
-            const { data: members } = await supabase
-              .from("team_members")
-              .select("student_id, users(name)")
-              .eq("team_id", p.team_id);
+    // Batch-fetch all team members in a single query instead of N+1
+    const teamEntries = (data || []).filter(p => p.is_team_entry === true && p.team_id);
+    let teamMembersMap = {};
 
-            return {
-              ...p,
-              teamMembers: members || []
-            };
-          } catch (err) {
-            console.error('[TeacherControl] Error fetching team members:', err);
-            return p;
-          }
+    if (teamEntries.length > 0) {
+      const teamIds = [...new Set(teamEntries.map(p => p.team_id))];
+      const { data: allMembers } = await supabase
+        .from("team_members")
+        .select("team_id, student_id, users(name)")
+        .in("team_id", teamIds);
+
+      if (allMembers) {
+        for (const m of allMembers) {
+          if (!teamMembersMap[m.team_id]) teamMembersMap[m.team_id] = [];
+          teamMembersMap[m.team_id].push(m);
         }
-        return p;
-      })
-    );
+      }
+    }
+
+    const participantsWithTeams = (data || []).map(p => {
+      if (p.is_team_entry === true && p.team_id && teamMembersMap[p.team_id]) {
+        return { ...p, teamMembers: teamMembersMap[p.team_id] };
+      }
+      return p;
+    });
 
     setParticipants(participantsWithTeams);
-    console.log('[TeacherControl] Set participants state with', participantsWithTeams.length, 'participants');
 
     // Group by teams if in team mode
     if (currentSession?.mode === "team") {
       const teamMap = {};
-      console.log('[TeacherControl] Processing team mode grouping, participants:', participantsWithTeams?.length);
 
       for (const p of (participantsWithTeams || [])) {
-        console.log('[TeacherControl] Participant:', p.id, 'is_team_entry:', p.is_team_entry, 'team_id:', p.team_id, 'teams:', p.teams);
-
         // Only include team entries
         if (p.is_team_entry === true && p.team_id) {
           let teamName = "Unknown Team";
@@ -311,10 +310,8 @@ export default function TeacherControl({ sessionId, setView }) {
           // Try to get team name from joined data
           if (p.teams) {
             teamName = p.teams.name || p.teams.team_name || teamName;
-            console.log('[TeacherControl] Team name from join:', teamName);
           } else {
             // Fallback: fetch team name directly if JOIN failed
-            console.log('[TeacherControl] Teams JOIN failed, fetching directly for team_id:', p.team_id);
             try {
               const { data: teamData } = await supabase
                 .from('teams')
@@ -323,7 +320,6 @@ export default function TeacherControl({ sessionId, setView }) {
                 .single();
               if (teamData) {
                 teamName = teamData.name || teamData.team_name || teamName;
-                console.log('[TeacherControl] Team name from direct fetch:', teamName);
               }
             } catch (err) {
               console.error('[TeacherControl] Error fetching team name:', err);
@@ -344,17 +340,11 @@ export default function TeacherControl({ sessionId, setView }) {
       }));
 
       setTeams(groupedTeams);
-      console.log('[TeacherControl] Teams grouped:', groupedTeams.length, 'teams:', groupedTeams.map(t => t.name));
     }
   };
 
   const loadLiveAnswers = async (questionId) => {
-    if (!questionId) {
-      console.log('[TeacherControl] loadLiveAnswers called with no questionId');
-      return;
-    }
-
-    console.log('[TeacherControl] Loading live answers for question:', questionId);
+    if (!questionId) return;
 
     const { data, error } = await supabase
       .from("quiz_answers")
@@ -363,7 +353,6 @@ export default function TeacherControl({ sessionId, setView }) {
       .eq("question_id", questionId);
 
     if (!error) {
-      console.log('[TeacherControl] Loaded live answers:', data?.length || 0, 'answers');
       setLiveAnswers(data || []);
     } else {
       console.error('[TeacherControl] Error loading live answers:', error);
@@ -371,7 +360,6 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const setupRealtimeSubscriptions = () => {
-    console.log('[TeacherControl] Setting up realtime subscriptions for session:', sessionId);
 
     // Subscribe to new participants
     const participantChannel = supabase
@@ -385,18 +373,13 @@ export default function TeacherControl({ sessionId, setView }) {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[TeacherControl] Participant change detected:', payload);
-          console.log('[TeacherControl] Event type:', payload.eventType);
-          console.log('[TeacherControl] New data:', payload.new);
-          console.log('[TeacherControl] Old data:', payload.old);
-          loadParticipants();
+          console.log('[TeacherControl] Participant change:', payload.eventType);
+          clearTimeout(loadParticipantsTimerRef.current);
+          loadParticipantsTimerRef.current = setTimeout(() => loadParticipants(), 500);
         }
       )
       .subscribe((status) => {
-        console.log('[TeacherControl] Participant subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[TeacherControl] Successfully subscribed to participant changes');
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('[TeacherControl] Error subscribing to participant channel');
         }
       });
@@ -413,36 +396,23 @@ export default function TeacherControl({ sessionId, setView }) {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[TeacherControl] New answer detected:', payload);
-          console.log('[TeacherControl] Answer details:', {
-            participant_id: payload.new.participant_id,
-            question_id: payload.new.question_id,
-            is_correct: payload.new.is_correct
-          });
-          loadParticipants();
-          // Reload live answers if this answer is for the current question
-          // Use ref to avoid stale closure
+          console.log('[TeacherControl] New answer for question:', payload.new.question_id);
+          clearTimeout(loadParticipantsTimerRef.current);
+          loadParticipantsTimerRef.current = setTimeout(() => loadParticipants(), 500);
           const activeQuestion = currentQuestionRef.current;
-          console.log('[TeacherControl] Current active question:', activeQuestion?.id);
           if (activeQuestion && payload.new.question_id === activeQuestion.id) {
-            console.log('[TeacherControl] Answer is for current question - reloading live answers');
-            loadLiveAnswers(activeQuestion.id);
-          } else {
-            console.log('[TeacherControl] Answer is NOT for current question - ignoring');
+            clearTimeout(loadLiveAnswersTimerRef.current);
+            loadLiveAnswersTimerRef.current = setTimeout(() => loadLiveAnswers(activeQuestion.id), 300);
           }
         }
       )
       .subscribe((status) => {
-        console.log('[TeacherControl] Answer subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[TeacherControl] Successfully subscribed to answer changes');
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('[TeacherControl] Error subscribing to answer channel');
         }
       });
 
     return () => {
-      console.log('[TeacherControl] Cleaning up realtime subscriptions');
       participantChannel.unsubscribe();
       answerChannel.unsubscribe();
     };

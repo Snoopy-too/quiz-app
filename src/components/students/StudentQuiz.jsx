@@ -19,6 +19,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const sessionRef = useRef(null);
   const realtimeAliveRef = useRef(false);
   const currentQuestionIndexRef = useRef(null);
+  const pollTimerRef = useRef(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -129,14 +130,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   useEffect(() => {
     if (!sessionId || loading) return;
 
-    console.log('[StudentQuiz] Setting up realtime and polling (loading complete)');
     const cleanup = setupRealtimeSubscriptions();
 
-    // Fallback polling — backs off to 5s when realtime is delivering updates
-    let pollTimer = null;
+    // Fallback polling — backs off to 8s when realtime is delivering updates
     const schedulePoll = () => {
-      const interval = realtimeAliveRef.current ? 5000 : 2000;
-      pollTimer = setTimeout(async () => {
+      const interval = realtimeAliveRef.current ? 8000 : 3000;
+      pollTimerRef.current = setTimeout(async () => {
         try {
           const { data: sessionData, error } = await supabase
             .from("quiz_sessions")
@@ -147,7 +146,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           if (!error && sessionData) {
             setSession(prev => {
               if (!prev || prev.status !== sessionData.status || prev.current_question_index !== sessionData.current_question_index) {
-                console.log('[StudentQuiz] Poll detected change:', prev?.status, '->', sessionData.status);
                 return sessionData;
               }
               return prev;
@@ -162,9 +160,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     schedulePoll();
 
     return () => {
-      console.log('[StudentQuiz] Cleaning up realtime and polling');
       cleanup();
-      clearTimeout(pollTimer);
+      clearTimeout(pollTimerRef.current);
     };
   }, [sessionId, loading]);
 
@@ -303,9 +300,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   };
 
   const setupRealtimeSubscriptions = () => {
-    console.log('[StudentQuiz] Setting up realtime subscriptions for session:', sessionId);
-
-    // Subscribe to session updates
     const sessionChannel = supabase
       .channel(`student-session-${sessionId}`)
       .on(
@@ -317,22 +311,17 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           filter: `id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log('[StudentQuiz] Realtime update:', payload.new.status);
           realtimeAliveRef.current = true;
           setSession(payload.new);
         }
       )
       .subscribe((status) => {
-        console.log('[StudentQuiz] Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[StudentQuiz] Successfully subscribed to session updates');
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('[StudentQuiz] Error subscribing to session channel');
         }
       });
 
     return () => {
-      console.log('[StudentQuiz] Cleaning up realtime subscriptions');
       sessionChannel.unsubscribe();
     };
   };
