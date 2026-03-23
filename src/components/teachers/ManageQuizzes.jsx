@@ -19,6 +19,7 @@ export default function ManageQuizzes({ setView, appState }) {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedParentFolder, setSelectedParentFolder] = useState(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null);
   const [folderContextMenu, setFolderContextMenu] = useState(null);
   const [moveQuizModal, setMoveQuizModal] = useState(null);
@@ -132,8 +133,9 @@ export default function ManageQuizzes({ setView, appState }) {
   };
 
   const createFolder = async () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim() || creatingFolder) return;
 
+    setCreatingFolder(true);
     try {
       const { data: user } = await supabase.auth.getUser();
       const { error: insertError } = await supabase
@@ -159,6 +161,8 @@ export default function ManageQuizzes({ setView, appState }) {
         message: t('errors.errorCreatingFolder') + ": " + err.message,
         type: "error"
       });
+    } finally {
+      setCreatingFolder(false);
     }
   };
 
@@ -1328,7 +1332,7 @@ export default function ManageQuizzes({ setView, appState }) {
                 placeholder={t('folder.folderName')}
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && createFolder()}
+                onKeyDown={(e) => e.key === "Enter" && !creatingFolder && createFolder()}
                 className="w-full px-4 py-2 border rounded-lg mb-4"
                 autoFocus
               />
@@ -1345,9 +1349,10 @@ export default function ManageQuizzes({ setView, appState }) {
                 </button>
                 <button
                   onClick={createFolder}
-                  className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                  disabled={creatingFolder}
+                  className={`px-4 py-2 text-white rounded-lg ${creatingFolder ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800'}`}
                 >
-                  {t('common.create')}
+                  {creatingFolder ? t('common.creating') || 'Creating...' : t('common.create')}
                 </button>
               </div>
             </div>
