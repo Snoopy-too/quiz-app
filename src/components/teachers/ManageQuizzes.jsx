@@ -195,7 +195,6 @@ export default function ManageQuizzes({ setView, appState }) {
       title: t('folder.deleteFolder'),
       message: t('manager.deleteFolderConfirm'),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { error: deleteError } = await supabase
             .from("quiz_folders")
@@ -204,10 +203,12 @@ export default function ManageQuizzes({ setView, appState }) {
 
           if (deleteError) throw deleteError;
 
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchFolders();
           await fetchQuizzes();
           setFolderContextMenu(null);
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({
             isOpen: true,
             title: t('common.error'),
@@ -317,7 +318,6 @@ export default function ManageQuizzes({ setView, appState }) {
       title: t('quiz.deleteQuiz'),
       message: t('manager.deleteQuizConfirm'),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { error: deleteError } = await supabase
             .from("quizzes")
@@ -325,8 +325,10 @@ export default function ManageQuizzes({ setView, appState }) {
             .eq("id", quizId);
 
           if (deleteError) throw deleteError;
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchQuizzes();
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({
             isOpen: true,
             title: t('common.error'),
@@ -570,7 +572,6 @@ export default function ManageQuizzes({ setView, appState }) {
       title: t('quiz.deleteQuiz'),
       message: t('manager.deleteQuizzesConfirm', { count: selectedQuizzes.size }),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const quizIds = Array.from(selectedQuizzes);
           const { error } = await supabase
@@ -580,9 +581,11 @@ export default function ManageQuizzes({ setView, appState }) {
 
           if (error) throw error;
 
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchQuizzes();
           clearSelection();
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({
             isOpen: true,
             title: t('common.error'),

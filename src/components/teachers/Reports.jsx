@@ -472,7 +472,6 @@ export default function Reports({ setView, appState }) {
       title: t("reports.deleteQuizTitle"),
       message: t("reports.deleteQuizMessage", { title: quiz.title }),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { error } = await supabase
             .from("quizzes")
@@ -480,9 +479,11 @@ export default function Reports({ setView, appState }) {
             .eq("id", quiz.id);
 
           if (error) throw error;
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchTeacherQuizzes();
           setOpenMenuId(null);
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({ isOpen: true, title: t("reports.errorTitle"), message: t("reports.errorDeletingQuiz") + err.message, type: "error" });
         }
       }

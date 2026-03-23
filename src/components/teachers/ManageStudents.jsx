@@ -254,7 +254,6 @@ export default function ManageStudents({ setView, appState }) {
       title: t("manageStudents.confirmUnlinkTitle"),
       message: t("manageStudents.confirmUnlinkMessage", { name: student.name }),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { error } = await supabase
             .from("users")
@@ -262,9 +261,11 @@ export default function ManageStudents({ setView, appState }) {
             .eq("id", student.id);
 
           if (error) throw error;
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.unlinkStudentSuccess"), type: "success" });
           await fetchStudents();
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
         }
       }
@@ -323,7 +324,6 @@ export default function ManageStudents({ setView, appState }) {
       title: t("manageStudents.rejectStudentTitle"),
       message: t("manageStudents.rejectStudentMessage"),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           const { data, error } = await supabase
             .from("users")
@@ -335,8 +335,10 @@ export default function ManageStudents({ setView, appState }) {
           if (!data || data.length === 0) {
             throw new Error(t("manageStudents.permissionDenied"));
           }
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchStudents();
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: t("manageStudents.errorRejectingStudent") + err.message, type: "error" });
         }
       }
@@ -349,7 +351,6 @@ export default function ManageStudents({ setView, appState }) {
       title: t("manageStudents.deleteStudentTitle"),
       message: t("manageStudents.deleteStudentMessage"),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           // Use RPC to delete from both public and auth tables
           // We removed the fallback because using standard delete() creates orphaned auth users.
@@ -362,9 +363,11 @@ export default function ManageStudents({ setView, appState }) {
             console.error("RPC Delete Error:", error);
             throw error;
           }
+          setConfirmModal({ ...confirmModal, isOpen: false });
           await fetchStudents();
           setShowDetails(false);
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: t("manageStudents.errorDeletingStudent") + err.message, type: "error" });
         }
       }

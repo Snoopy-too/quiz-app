@@ -37,6 +37,8 @@ export default function TeacherControl({ sessionId, setView }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [allowSharedDevice, setAllowSharedDevice] = useState(false);
+  const [startingQuiz, setStartingQuiz] = useState(false);
+  const [endingQuiz, setEndingQuiz] = useState(false);
 
   // Ref to hold current question for real-time subscription
   const currentQuestionRef = useRef(null);
@@ -491,6 +493,8 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const startQuiz = async () => {
+    if (startingQuiz) return;
+    setStartingQuiz(true);
     try {
       console.log('[startQuiz] Starting quiz, sessionId:', sessionId);
       console.log('[startQuiz] Current session state:', session);
@@ -553,6 +557,8 @@ export default function TeacherControl({ sessionId, setView }) {
     } catch (err) {
       console.error('[startQuiz] Unexpected error:', err);
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('errors.errorStartingQuiz') + ': ' + err.message, type: "error" });
+    } finally {
+      setStartingQuiz(false);
     }
   };
 
@@ -693,6 +699,8 @@ export default function TeacherControl({ sessionId, setView }) {
   };
 
   const endQuiz = async (status = "completed") => {
+    if (endingQuiz) return;
+    setEndingQuiz(true);
     try {
       await supabase
         .from("quiz_sessions")
@@ -779,6 +787,8 @@ export default function TeacherControl({ sessionId, setView }) {
       setSession({ ...session, status: status });
     } catch (err) {
       setAlertModal({ isOpen: true, title: "Error", message: "Error ending quiz: " + err.message, type: "error" });
+    } finally {
+      setEndingQuiz(false);
     }
   };
 
@@ -1150,11 +1160,11 @@ export default function TeacherControl({ sessionId, setView }) {
 
               <button
                 onClick={startQuiz}
-                disabled={isTeamMode ? teams.length === 0 : participants.length === 0}
+                disabled={startingQuiz || (isTeamMode ? teams.length === 0 : participants.length === 0)}
                 className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
               >
                 <Play size={32} />
-                Start Quiz
+                {startingQuiz ? 'Starting...' : 'Start Quiz'}
               </button>
               {((isTeamMode && teams.length === 0) || (!isTeamMode && participants.length === 0)) && (
                 <p className="text-gray-500 mt-4">
@@ -1477,10 +1487,11 @@ export default function TeacherControl({ sessionId, setView }) {
                 ) : (
                   <button
                     onClick={() => endQuiz()}
-                    className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3"
+                    disabled={endingQuiz}
+                    className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Trophy size={24} />
-                    Show Final Results
+                    {endingQuiz ? 'Finishing...' : 'Show Final Results'}
                   </button>
                 )}
               </div>

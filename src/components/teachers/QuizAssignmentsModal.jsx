@@ -60,7 +60,6 @@ export default function QuizAssignmentsModal({
             title: t("assignQuiz.unassignTitle", "Unassign Quiz"),
             message: t("assignQuiz.unassignConfirm", { name: studentName, defaultValue: "Are you sure you want to unassign this quiz from {{name}}? This will delete their progress." }),
             onConfirm: async () => {
-                setConfirmModal({ ...confirmModal, isOpen: false });
                 try {
                     // First delete answers if any
                     const { error: ansError } = await supabase
@@ -78,6 +77,7 @@ export default function QuizAssignmentsModal({
 
                     if (deleteError) throw deleteError;
 
+                    setConfirmModal({ ...confirmModal, isOpen: false });
                     // Refresh list
                     fetchAssignments();
                     setAlertModal({
@@ -87,6 +87,7 @@ export default function QuizAssignmentsModal({
                         type: "success"
                     });
                 } catch (err) {
+                    setConfirmModal({ ...confirmModal, isOpen: false });
                     setAlertModal({
                         isOpen: true,
                         title: t("common.error"),

@@ -149,8 +149,8 @@ export default function PublicQuizzes({ setView, appState }) {
       title: t('publicQuizzes.importQuiz'),
       message: t('publicQuizzes.importQuizConfirm'),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         await importQuiz(quizId);
+        setConfirmModal({ ...confirmModal, isOpen: false });
       }
     });
   };

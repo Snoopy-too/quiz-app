@@ -187,7 +187,6 @@ export default function StudentReport({ setView, studentId, appState }) {
       title: t('studentReport.deleteResultTitle'),
       message: t('studentReport.deleteResultMessage', { title: quiz.title, date: quiz.date }),
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
         try {
           console.log('[StudentReport] Deleting/Resetting result:', quiz);
 
@@ -244,6 +243,7 @@ export default function StudentReport({ setView, studentId, appState }) {
             }
           }
 
+          setConfirmModal({ ...confirmModal, isOpen: false });
           setAlertModal({
             isOpen: true,
             title: t('common.success'),
@@ -254,6 +254,7 @@ export default function StudentReport({ setView, studentId, appState }) {
           // Refresh the data
           fetchStudentData();
         } catch (err) {
+          setConfirmModal({ ...confirmModal, isOpen: false });
           console.error('[StudentReport] Delete error:', err);
           setAlertModal({
             isOpen: true,
