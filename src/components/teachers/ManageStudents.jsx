@@ -205,7 +205,10 @@ export default function ManageStudents({ setView, appState }) {
   }, [appState.currentUser?.id]);
 
   const fetchStudents = async () => {
-    if (!appState.currentUser?.id || !appState.currentUser?.school_id) return;
+    if (!appState.currentUser?.id || !appState.currentUser?.school_id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       // Fetch students associated with the current teacher OR unlinked students from the same school
