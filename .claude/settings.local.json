@@ -35,7 +35,8 @@
       "Bash(/tmp/audit_findings.txt:*)",
       "Read(//tmp/**)",
       "Bash(npx vitest:*)",
-      "Bash(wc -l src/components/quizzes/TeacherControl.jsx src/hooks/useTeacherSession.js src/components/quizzes/teacherControl/*.jsx)"
+      "Bash(wc -l src/components/quizzes/TeacherControl.jsx src/hooks/useTeacherSession.js src/components/quizzes/teacherControl/*.jsx)",
+      "Bash(wc -l src/components/teachers/ManageQuizzes.jsx src/hooks/useManageQuizzes.js src/components/teachers/manageQuizzes/*.jsx)"
     ],
     "deny": [],
     "ask": []
