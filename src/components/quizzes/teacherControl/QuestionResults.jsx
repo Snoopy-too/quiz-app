@@ -3,6 +3,7 @@ import { SkipForward, Trophy, X } from "lucide-react";
 import MediaDisplay from "./MediaDisplay";
 import AnswerOptionsGrid from "./AnswerOptionsGrid";
 import Leaderboard from "./Leaderboard";
+import { buildAnswerShuffleMap } from "../../../utils/answerShuffle";
 
 export default function QuestionResults({
   quiz,
@@ -17,15 +18,38 @@ export default function QuestionResults({
   endingQuiz,
   closeSession,
 }) {
-  const answerCounts = {};
+  // Build answer counts keyed by ORIGINAL option index (as stored in the DB)
+  const originalAnswerCounts = {};
   currentQuestion.options?.forEach((_, idx) => {
-    answerCounts[idx] = 0;
+    originalAnswerCounts[idx] = 0;
   });
   questionResults.forEach((answer) => {
     if (answer.selected_option_index !== null) {
-      answerCounts[answer.selected_option_index]++;
+      originalAnswerCounts[answer.selected_option_index] =
+        (originalAnswerCounts[answer.selected_option_index] || 0) + 1;
     }
   });
+
+  // When answers were shuffled, display options in the shuffled order and
+  // remap counts so each tile shows the count for the answer it actually displays.
+  let displayOptions = currentQuestion.options;
+  let answerCounts = originalAnswerCounts; // default: 1-to-1 mapping
+
+  if (session?.randomize_answers && currentQuestion?.options) {
+    const { shuffledOptions, originalToShuffled } = buildAnswerShuffleMap(
+      currentQuestion.options,
+      session.id,
+      currentQuestion.id
+    );
+    displayOptions = shuffledOptions;
+
+    // Remap: answerCounts[displayIdx] = count of students who picked that display slot
+    answerCounts = {};
+    currentQuestion.options.forEach((_, originalIdx) => {
+      const displayIdx = originalToShuffled[originalIdx];
+      answerCounts[displayIdx] = originalAnswerCounts[originalIdx] || 0;
+    });
+  }
 
   return (
     <>
@@ -50,7 +74,7 @@ export default function QuestionResults({
             <MediaDisplay question={currentQuestion} className="max-w-md mx-auto rounded-lg shadow-lg mb-6" />
 
             <div className="mb-8">
-              <AnswerOptionsGrid options={currentQuestion.options} mode="results" answerCounts={answerCounts} />
+              <AnswerOptionsGrid options={displayOptions} mode="results" answerCounts={answerCounts} />
             </div>
 
             <div className="flex justify-center">

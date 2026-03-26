@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Clock, BrainCircuit, Users, X } from "lucide-react";
 import MediaDisplay from "./MediaDisplay";
 import AnswerOptionsGrid from "./AnswerOptionsGrid";
+import { buildAnswerShuffleMap } from "../../../utils/answerShuffle";
 
 export default function ActiveQuestion({
   quiz,
@@ -19,6 +20,19 @@ export default function ActiveQuestion({
   closeSession,
 }) {
   const { t } = useTranslation();
+
+  // Mirror what students see: apply the same deterministic shuffle when randomize_answers is on
+  const displayOptions = React.useMemo(() => {
+    if (session?.randomize_answers && currentQuestion?.options) {
+      const { shuffledOptions } = buildAnswerShuffleMap(
+        currentQuestion.options,
+        session.id,
+        currentQuestion.id
+      );
+      return shuffledOptions;
+    }
+    return currentQuestion?.options;
+  }, [session?.randomize_answers, session?.id, currentQuestion?.id, currentQuestion?.options]);
 
   return (
     <>
@@ -119,7 +133,7 @@ export default function ActiveQuestion({
                 `}</style>
               </div>
             ) : (
-              <AnswerOptionsGrid options={currentQuestion.options} mode="display" />
+              <AnswerOptionsGrid options={displayOptions} mode="display" />
             )}
           </div>
 
