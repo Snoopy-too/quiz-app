@@ -33,7 +33,9 @@
       "Bash(find /c/xampp/htdocs/quiz-app/src -type f \\\\\\(-name *.php -o -name *.js \\\\\\))",
       "Bash(find /c/xampp/htdocs/quiz-app -type f \\\\\\(-name *student* -o -name *Student* \\\\\\))",
       "Bash(/tmp/audit_findings.txt:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npx vitest:*)",
+      "Bash(wc -l src/components/quizzes/TeacherControl.jsx src/hooks/useTeacherSession.js src/components/quizzes/teacherControl/*.jsx)"
     ],
     "deny": [],
     "ask": []
