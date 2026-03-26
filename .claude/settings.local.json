@@ -36,7 +36,8 @@
       "Read(//tmp/**)",
       "Bash(npx vitest:*)",
       "Bash(wc -l src/components/quizzes/TeacherControl.jsx src/hooks/useTeacherSession.js src/components/quizzes/teacherControl/*.jsx)",
-      "Bash(wc -l src/components/teachers/ManageQuizzes.jsx src/hooks/useManageQuizzes.js src/components/teachers/manageQuizzes/*.jsx)"
+      "Bash(wc -l src/components/teachers/ManageQuizzes.jsx src/hooks/useManageQuizzes.js src/components/teachers/manageQuizzes/*.jsx)",
+      "Bash(wc -l src/components/teachers/ManageStudents.jsx src/hooks/useManageStudents.js src/components/teachers/manageStudents/*.jsx)"
     ],
     "deny": [],
     "ask": []
