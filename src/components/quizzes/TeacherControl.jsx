@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock, RefreshCw, BrainCircuit } from "lucide-react";
+import { Users, Play, SkipForward, Trophy, X, Heart, Spade, Diamond, Club, Clock, RefreshCw, BrainCircuit, Shuffle } from "lucide-react";
 import PodiumAnimation from "../animations/PodiumAnimation";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -37,6 +37,8 @@ export default function TeacherControl({ sessionId, setView }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [allowSharedDevice, setAllowSharedDevice] = useState(false);
+  const [randomizeQuestions, setRandomizeQuestions] = useState(false);
+  const [randomizeAnswers, setRandomizeAnswers] = useState(false);
   const [startingQuiz, setStartingQuiz] = useState(false);
   const [endingQuiz, setEndingQuiz] = useState(false);
 
@@ -427,6 +429,19 @@ export default function TeacherControl({ sessionId, setView }) {
         updateData.allow_shared_device = allowSharedDevice;
       }
 
+      // Apply randomization settings
+      if (randomizeQuestions) {
+        const shuffled = shuffleArray(questions);
+        const newOrder = shuffled.map(q => q.id);
+        updateData.question_order = newOrder;
+        setShuffledQuestions(shuffled);
+        setQuestionOrder(newOrder);
+      }
+
+      if (randomizeAnswers) {
+        updateData.randomize_answers = true;
+      }
+
       const { data, error } = await supabase
         .from("quiz_sessions")
         .update(updateData)
@@ -451,7 +466,12 @@ export default function TeacherControl({ sessionId, setView }) {
       setShowModeSelection(false);
 
       // Create updated session object and set it
-      const updatedSession = { ...session, mode };
+      const updatedSession = {
+        ...session,
+        mode,
+        ...(randomizeQuestions && { question_order: updateData.question_order }),
+        ...(randomizeAnswers && { randomize_answers: true }),
+      };
       setSession(updatedSession);
 
       // Immediately reload participants with the new mode
@@ -975,6 +995,43 @@ export default function TeacherControl({ sessionId, setView }) {
                     <li>✓ {t("teacherControl.setDeadline", "Set deadline")}</li>
                     <li>✓ {t("teacherControl.emailNotifications", "Email notifications")}</li>
                   </ul>
+                </div>
+              </div>
+
+              {/* Randomization Options */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shuffle size={20} className="text-gray-600" />
+                  <h3 className="text-lg font-semibold text-gray-700">Randomization Options</h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
+                  Prevent students from memorizing answer positions or question order across repeated attempts.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 transition rounded-lg p-4 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={randomizeQuestions}
+                      onChange={(e) => setRandomizeQuestions(e.target.checked)}
+                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-800">Randomize question order</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Questions appear in a different order each session</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 transition rounded-lg p-4 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={randomizeAnswers}
+                      onChange={(e) => setRandomizeAnswers(e.target.checked)}
+                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-800">Randomize answer positions</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Answer choices are shuffled for each question</p>
+                    </div>
+                  </label>
                 </div>
               </div>
             </div>

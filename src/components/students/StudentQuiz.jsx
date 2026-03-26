@@ -7,6 +7,38 @@ import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
 import { clearActiveSession } from "../../utils/sessionPersistence";
 
+// Deterministic seeded shuffle using a simple hash
+function seededShuffle(array, seed) {
+  const shuffled = [...array];
+  // Simple string hash to number
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  // Seeded pseudo-random using the hash
+  const random = () => {
+    hash = (hash * 1664525 + 1013904223) | 0;
+    return (hash >>> 0) / 4294967296;
+  };
+  // Fisher-Yates shuffle with seeded random
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Build a shuffle mapping for answer options of a question
+// Returns { shuffledOptions, shuffledToOriginal } where shuffledToOriginal[shuffledIdx] = originalIdx
+function buildAnswerShuffleMap(options, sessionId, questionId) {
+  const seed = `${sessionId}-${questionId}-answers`;
+  const indices = options.map((_, i) => i);
+  const shuffledIndices = seededShuffle(indices, seed);
+  const shuffledOptions = shuffledIndices.map(i => options[i]);
+  // shuffledToOriginal: for each position in the shuffled array, what was the original index
+  return { shuffledOptions, shuffledToOriginal: shuffledIndices };
+}
+
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const { t } = useTranslation();
   const [session, setSession] = useState(null);
@@ -106,7 +138,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         if (existingAnswer) {
           console.log('[StudentQuiz] Reconnecting: Restoring previous answer:', existingAnswer);
           setHasAnswered(true);
-          setSelectedOption(existingAnswer.selected_option_index);
+
+          // If answers are randomized, convert original index to shuffled display index
+          let displayIndex = existingAnswer.selected_option_index;
+          if (session?.randomize_answers && currentQuestion) {
+            const { shuffledToOriginal } = buildAnswerShuffleMap(currentQuestion.options, sessionId, currentQuestion.id);
+            displayIndex = shuffledToOriginal.indexOf(existingAnswer.selected_option_index);
+          }
+          setSelectedOption(displayIndex);
           setWasCorrect(existingAnswer.is_correct);
           // If we've already answered, skip the visual reveal delays
           setShowAnswers(true);
@@ -374,7 +413,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     setHasAnswered(true);
 
     try {
-      const isCorrect = currentQuestion.options[optionIndex].is_correct;
+      // If answers are randomized, map the shuffled index back to the original
+      let originalIndex = optionIndex;
+      if (session?.randomize_answers) {
+        const { shuffledToOriginal } = buildAnswerShuffleMap(currentQuestion.options, sessionId, currentQuestion.id);
+        originalIndex = shuffledToOriginal[optionIndex];
+      }
+
+      const isCorrect = currentQuestion.options[originalIndex].is_correct;
       setWasCorrect(isCorrect);
 
       // Calculate points based on time remaining
@@ -387,7 +433,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           session_id: sessionId,
           participant_id: participant.id,
           question_id: currentQuestion.id,
-          selected_option_index: optionIndex,
+          selected_option_index: originalIndex,
           is_correct: isCorrect,
           points_earned: points,
           time_taken: currentQuestion.time_limit - timeRemaining,
@@ -569,6 +615,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       { bg: "bg-green-500", hover: "hover:bg-green-600", ring: "ring-green-400", icon: Club },
     ];
 
+    // If randomize_answers is enabled, shuffle the options for display
+    const shouldShuffleAnswers = session?.randomize_answers;
+    const { shuffledOptions: displayOptions } = shouldShuffleAnswers
+      ? buildAnswerShuffleMap(currentQuestion.options, sessionId, currentQuestion.id)
+      : { shuffledOptions: currentQuestion.options };
+
     return (
       <div className="min-h-screen" style={backgroundStyle}>
         <div className="container mx-auto p-4">
@@ -641,7 +693,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                   />
                 )}
                 <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                {currentQuestion.options?.map((opt, idx) => {
+                {displayOptions?.map((opt, idx) => {
                   // Skip empty options (no text and no image)
                   if (!opt.text && !opt.image_url) return null;
 
