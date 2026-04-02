@@ -67,6 +67,7 @@
     "confirmPassword": "パスワード確認",
     "forgotPassword": "パスワードをお忘れですか？",
     "rememberMe": "ログイン状態を保持",
+    "createAccount": "アカウントを作成して始めましょう",
     "alreadyHaveAccount": "アカウントをお持ちの方",
     "dontHaveAccount": "アカウントをお持ちでない方",
     "loginAsTeacher": "教師としてログイン",
