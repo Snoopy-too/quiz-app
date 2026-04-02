@@ -53,7 +53,7 @@ export default function useTeacherSession(sessionId) {
       const pollInterval = setInterval(() => {
         // Use ref to get latest session state (avoids stale closure)
         const currentSession = sessionRef.current;
-        if (currentSession?.status === 'waiting') {
+        if (currentSession?.status === 'waiting' || currentSession?.status === 'question_active' || currentSession?.status === 'showing_results') {
           loadParticipants(currentSession);
         }
 
@@ -229,8 +229,8 @@ export default function useTeacherSession(sessionId) {
   };
 
   const loadParticipants = async (sessionObj = null) => {
-    // Use passed session object or fall back to state
-    const currentSession = sessionObj || session;
+    // Use passed session object, then ref (avoids stale closure), then state
+    const currentSession = sessionObj || sessionRef.current || session;
     console.log('[TeacherControl] Loading participants for session:', sessionId, 'mode:', currentSession?.mode);
     let { data, error } = await supabase
       .from("session_participants")
