@@ -36,6 +36,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [correctAnswers, setCorrectAnswers] = useState(null);
 
   useEffect(() => {
     if (sessionId && appState.currentUser?.id) {
@@ -84,6 +85,16 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     } else if (session.status === "completed") {
       console.log('[StudentQuiz] Transitioning to COMPLETED');
       clearActiveSession();
+      // Fetch correct answer count from DB (robust against refreshes/reconnections)
+      if (participant?.id) {
+        supabase
+          .from("quiz_answers")
+          .select("id", { count: "exact" })
+          .eq("session_id", session.id)
+          .eq("participant_id", participant.id)
+          .eq("is_correct", true)
+          .then(({ count }) => setCorrectAnswers(count ?? 0));
+      }
     } else if (session.status === "cancelled") {
       console.log('[StudentQuiz] Transitioning to CANCELLED');
       clearActiveSession();
@@ -523,6 +534,15 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             <p className="text-gray-600 mt-2">{t('quiz.points')}</p>
           </div>
 
+          {correctAnswers !== null && (
+            <div className="bg-green-50 rounded-xl p-6 mb-6">
+              <p className="text-2xl font-bold text-green-700">
+                {correctAnswers} / {questions.length}
+              </p>
+              <p className="text-gray-600 mt-1">{t('student.questionsCorrect')}</p>
+            </div>
+          )}
+
           <p className="text-gray-600 mb-6">{t('student.greatJob')}</p>
 
           <button
@@ -572,6 +592,18 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </p>
           <div className="animate-pulse text-6xl mb-4">⏳</div>
           <p className="text-lg font-semibold" style={{ color: theme?.primary_color || "#7C3AED" }}>{quiz.title}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Question active — show loading spinner while currentQuestion is being set
+  if (session.status === "question_active" && !currentQuestion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('student.getReadyQuizStarting')}</p>
         </div>
       </div>
     );
@@ -763,6 +795,18 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     );
   }
 
+  // Showing results — show loading spinner while currentQuestion is being set
+  if (session.status === "showing_results" && !currentQuestion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('student.waitingForResults')}</p>
+        </div>
+      </div>
+    );
+  }
+
   // Showing results
   if (session.status === "showing_results" && currentQuestion) {
     return (
@@ -809,7 +853,11 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             </p>
           </div>
 
-          <p className="text-gray-600 mt-6">{t('student.waitingForNextQuestion')}</p>
+          <p className="text-gray-600 mt-6">
+            {session.current_question_index >= questions.length - 1
+              ? t('student.waitingForResults')
+              : t('student.waitingForNextQuestion')}
+          </p>
         </div>
       </div>
     );
