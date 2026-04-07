@@ -5,6 +5,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
+    "creating": "Creating...",
     "back": "Back",
     "backToList": "Back to List",
     "backToDashboard": "Back to Dashboard",

@@ -5,6 +5,7 @@
     "delete": "削除",
     "edit": "編集",
     "create": "作成",
+    "creating": "作成中...",
     "back": "戻る",
     "backToList": "リストに戻る",
     "backToDashboard": "ダッシュボードに戻る",
