@@ -248,19 +248,28 @@ export default function useManageStudents(appState) {
     }
   };
 
-  const handleLink = async (studentId) => {
-    try {
-      const { error } = await supabase
-        .from("users")
-        .update({ teacher_id: appState.currentUser.id })
-        .eq("id", studentId);
+  const handleLink = (student) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t("manageStudents.confirmLinkTitle"),
+      message: t("manageStudents.confirmLinkMessage", { name: student.name }),
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from("users")
+            .update({ teacher_id: appState.currentUser.id })
+            .eq("id", student.id);
 
-      if (error) throw error;
-      setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.linkStudentSuccess"), type: "success" });
-      await fetchStudents();
-    } catch (err) {
-      setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
-    }
+          if (error) throw error;
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.linkStudentSuccess"), type: "success" });
+          await fetchStudents();
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
+        }
+      }
+    });
   };
 
   const handleUnlink = async (student) => {

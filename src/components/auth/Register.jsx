@@ -80,6 +80,11 @@ export default function Register({ setView, setAppState, error, setError, succes
 
       // For students: validate teacher code
       if (formData.role === "student") {
+        if (!formData.studentId.trim()) {
+          setError(t('errors.studentIdRequired') || "Student number is required.");
+          return;
+        }
+
         if (!formData.teacherCode.trim()) {
           setError(t('errors.teacherCodeRequired') || "Teacher code is required for students.");
           return;

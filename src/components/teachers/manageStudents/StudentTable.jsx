@@ -153,7 +153,7 @@ export default function StudentTable({
 
                     {student.teacher_id === null && (
                       <button
-                        onClick={() => handleLink(student.id)}
+                        onClick={() => handleLink(student)}
                         className="text-green-600 hover:text-green-700 font-medium"
                       >
                         {t("manageStudents.actionLink")}
