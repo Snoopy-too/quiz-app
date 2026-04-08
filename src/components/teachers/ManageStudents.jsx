@@ -76,7 +76,10 @@ export default function ManageStudents({ setView, appState }) {
             </p>
           </div>
 
-          <StatsCards students={ms.students} pendingStudents={ms.pendingStudents} />
+          <StatsCards
+            students={ms.filterStatus === 'unlinked' ? ms.unlinkedStudents : ms.myStudents}
+            pendingStudents={ms.pendingStudents}
+          />
 
           <SearchFilter
             searchTerm={ms.searchTerm}

@@ -693,8 +693,14 @@ export default function useManageStudents(appState) {
       return 0;
     });
 
+  const myStudents = students.filter(s => s.teacher_id === appState.currentUser?.id);
+  const unlinkedStudents = students.filter(s =>
+    s.teacher_id === null &&
+    s.school_id === appState.currentUser?.school_id
+  );
+
   return {
-    students, pendingStudents, searchTerm, setSearchTerm,
+    students, myStudents, unlinkedStudents, pendingStudents, searchTerm, setSearchTerm,
     filterStatus, setFilterStatus, loading, error,
     selectedStudent, setSelectedStudent, showDetails, setShowDetails,
     alertModal, setAlertModal, confirmModal, setConfirmModal,
