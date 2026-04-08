@@ -37,6 +37,7 @@ export default function useManageStudents(appState) {
   });
   const [updatingStudent, setUpdatingStudent] = useState(false);
   const [highlightedIds, setHighlightedIds] = useState(new Set());
+  const [quizCounts, setQuizCounts] = useState({});
   const knownStudentIdsRef = useRef(new Set());
 
   // Helper: highlight new students with a glow, then fade after 3s.
@@ -223,6 +224,23 @@ export default function useManageStudents(appState) {
       knownStudentIdsRef.current = new Set((studentsData || []).map(s => s.id));
       // Pending count is based on MY students only to avoid noise
       setPendingStudents(studentsData?.filter(s => s.teacher_id === appState.currentUser.id && !s.approved) || []);
+
+      // Fetch quiz participation counts for all loaded students in one query
+      const studentIds = (studentsData || []).map(s => s.id);
+      if (studentIds.length > 0) {
+        const { data: participations } = await supabase
+          .from("session_participants")
+          .select("user_id")
+          .in("user_id", studentIds);
+
+        if (participations) {
+          const counts = {};
+          participations.forEach(p => {
+            counts[p.user_id] = (counts[p.user_id] || 0) + 1;
+          });
+          setQuizCounts(counts);
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -684,6 +702,10 @@ export default function useManageStudents(appState) {
           valueA = new Date(a.created_at).getTime();
           valueB = new Date(b.created_at).getTime();
           break;
+        case "quizzesTaken":
+          valueA = quizCounts[a.id] || 0;
+          valueB = quizCounts[b.id] || 0;
+          break;
         default:
           return 0;
       }
@@ -700,7 +722,7 @@ export default function useManageStudents(appState) {
   );
 
   return {
-    students, myStudents, unlinkedStudents, pendingStudents, searchTerm, setSearchTerm,
+    students, myStudents, unlinkedStudents, pendingStudents, quizCounts, searchTerm, setSearchTerm,
     filterStatus, setFilterStatus, loading, error,
     selectedStudent, setSelectedStudent, showDetails, setShowDetails,
     alertModal, setAlertModal, confirmModal, setConfirmModal,

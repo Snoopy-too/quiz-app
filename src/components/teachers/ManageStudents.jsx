@@ -101,6 +101,8 @@ export default function ManageStudents({ setView, appState }) {
             handleDelete={ms.handleDelete}
             handleLink={ms.handleLink}
             currentUserId={appState.currentUser.id}
+            quizCounts={ms.quizCounts}
+            filterStatus={ms.filterStatus}
           />
         </div>
       </div>

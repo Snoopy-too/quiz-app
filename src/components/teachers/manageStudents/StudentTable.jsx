@@ -15,6 +15,8 @@ export default function StudentTable({
   handleDelete,
   handleLink,
   currentUserId,
+  quizCounts = {},
+  filterStatus,
 }) {
   const { t } = useTranslation();
 
@@ -52,13 +54,24 @@ export default function StudentTable({
                 {sortColumn === "joined" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
               </div>
             </th>
+            {filterStatus !== "unlinked" && (
+              <th
+                onClick={() => handleSort("quizzesTaken")}
+                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition"
+              >
+                <div className="flex items-center gap-2">
+                  {t("manageStudents.tableHeaderQuizzesTaken")}
+                  {sortColumn === "quizzesTaken" && (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                </div>
+              </th>
+            )}
             <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("manageStudents.tableHeaderActions")}</th>
           </tr>
         </thead>
         <tbody>
           {filteredStudents.length === 0 ? (
             <tr>
-              <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+              <td colSpan={filterStatus !== "unlinked" ? 7 : 6} className="px-6 py-8 text-center text-gray-500">
                 {t("manageStudents.noStudentsFound")}
               </td>
             </tr>
@@ -91,6 +104,11 @@ export default function StudentTable({
                 <td className="px-6 py-4 text-gray-600">
                   {new Date(student.created_at).toLocaleDateString()}
                 </td>
+                {filterStatus !== "unlinked" && (
+                  <td className="px-6 py-4 text-gray-600 text-center">
+                    {quizCounts[student.id] || 0}
+                  </td>
+                )}
                 <td className="px-6 py-4">
                   <div className="flex gap-2">
                     <button

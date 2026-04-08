@@ -665,6 +665,7 @@
     "tableHeaderStudentId": "Student ID",
     "tableHeaderStatus": "Status",
     "tableHeaderJoined": "Joined",
+    "tableHeaderQuizzesTaken": "Quizzes Taken",
     "tableHeaderActions": "Actions",
     "noStudentsFound": "No students found",
     "statusApproved": "Approved",

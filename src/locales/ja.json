@@ -666,6 +666,7 @@
     "tableHeaderStudentId": "学生ID",
     "tableHeaderStatus": "ステータス",
     "tableHeaderJoined": "登録日",
+    "tableHeaderQuizzesTaken": "受講クイズ数",
     "tableHeaderActions": "操作",
     "noStudentsFound": "学生が見つかりません",
     "statusApproved": "承認済み",
