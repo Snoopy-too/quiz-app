@@ -66,6 +66,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
         { id: "manage-students", label: t('teacher.students'), icon: Users },
         { id: "reports", label: t('nav.reports'), icon: BarChart3 },
         { id: "public-quizzes", label: t('nav.publicQuizzes'), icon: Globe },
+        { id: "global-quizzes", label: t('nav.globalQuizzes'), icon: Globe },
       ];
     } else if (userRole === "student") {
       return [

@@ -56,6 +56,7 @@
     "categories": "Categories",
     "reports": "Reports",
     "publicQuizzes": "Public Quizzes",
+    "globalQuizzes": "Global Quizzes",
     "settings": "Settings",
     "logout": "Logout",
     "home": "Home"
@@ -517,7 +518,8 @@
     "import": "Import"
   },
   "publicQuizzes": {
-    "description": "Discover and import quizzes shared by other teachers",
+    "description": "Discover and import quizzes shared by other teachers in your school.",
+    "globalDescription": "Discover and import quizzes shared by teachers globally from all schools.",
     "searchPlaceholder": "Search quizzes or creators...",
     "sortByCreator": "Sort: Creator",
     "noPublicQuizzes": "No Public Quizzes Yet",

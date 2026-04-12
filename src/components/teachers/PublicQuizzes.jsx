@@ -6,7 +6,7 @@ import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 
-export default function PublicQuizzes({ setView, appState }) {
+export default function PublicQuizzes({ setView, appState, viewType = "public" }) {
   const { t } = useTranslation();
   const [publicQuizzes, setPublicQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +28,13 @@ export default function PublicQuizzes({ setView, appState }) {
 
   useEffect(() => {
     const init = async () => {
+      setLoading(true);
       const themesMap = await fetchThemes();
       await fetchImportedQuizzes();
       await fetchPublicQuizzes(themesMap);
     };
     init();
-  }, []);
+  }, [viewType, appState.currentUser?.school_id]);
 
   // Fetch quizzes that the current user has imported (have source_quiz_id)
   const fetchImportedQuizzes = async () => {
@@ -119,17 +120,17 @@ export default function PublicQuizzes({ setView, appState }) {
       // Add question count and theme details, then filter by same school or global
       const quizzesWithCount = (data || [])
         .filter((quiz) => {
-          // If global, visible to all
-          if (quiz.is_global) return true;
-          
-          // If the current teacher has a school_id assigned,
-          // only show quizzes from creators at the same school.
-          if (currentSchoolId) {
-            return quiz.users?.school_id === currentSchoolId;
+          if (viewType === "global") {
+            return quiz.is_global === true;
+          } else {
+            // viewType === "public"
+            // If the current teacher has a school_id assigned, show quizzes from creators at the same school.
+            if (currentSchoolId) {
+              return quiz.users?.school_id === currentSchoolId;
+            }
+            // If teacher has no school yet, (only their own quizzes, if any)
+            return quiz.created_by === user.user.id;
           }
-          // If teacher has no school yet, show nothing from other schools
-          // (only their own quizzes, if any)
-          return quiz.created_by === user.user.id;
         })
         .map((quiz) => ({
           ...quiz,
@@ -591,7 +592,7 @@ export default function PublicQuizzes({ setView, appState }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Vertical Navigation */}
-      <VerticalNav currentView="public-quizzes" setView={setView} appState={appState} />
+      <VerticalNav currentView={viewType === "global" ? "global-quizzes" : "public-quizzes"} setView={setView} appState={appState} />
 
       {/* Main Content */}
       <div className="flex-1 ml-64">
@@ -601,8 +602,12 @@ export default function PublicQuizzes({ setView, appState }) {
             <div className="flex items-center gap-3">
               <Globe size={28} className="text-blue-700" />
               <div>
-                <h1 className="text-2xl font-bold text-blue-700">{t('nav.publicQuizzes')}</h1>
-                <p className="text-sm text-gray-600">{t('publicQuizzes.description')}</p>
+                <h1 className="text-2xl font-bold text-blue-700">
+                  {viewType === "global" ? t('nav.globalQuizzes') : t('nav.publicQuizzes')}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {viewType === "global" ? t('publicQuizzes.globalDescription') : t('publicQuizzes.description')}
+                </p>
               </div>
             </div>
           </div>

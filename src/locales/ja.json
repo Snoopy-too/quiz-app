@@ -56,6 +56,7 @@
     "categories": "カテゴリー",
     "reports": "レポート",
     "publicQuizzes": "公開クイズ",
+    "globalQuizzes": "グローバルクイズ",
     "settings": "設定",
     "logout": "ログアウト",
     "home": "ホーム"
@@ -518,7 +519,8 @@
     "import": "インポート"
   },
   "publicQuizzes": {
-    "description": "他の教師が共有したクイズを発見してインポート",
+    "description": "同じ学校の教師が共有したクイズを見つけてインポートします。",
+    "globalDescription": "世界中の学校の教師が共有しているクイズを見つけてインポートします。",
     "searchPlaceholder": "クイズまたは作成者を検索...",
     "sortByCreator": "並び替え: 作成者",
     "noPublicQuizzes": "公開クイズがまだありません",
