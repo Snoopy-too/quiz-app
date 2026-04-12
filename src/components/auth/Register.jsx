@@ -131,6 +131,19 @@ export default function Register({ setView, setAppState, error, setError, succes
 
         console.log("Teacher found! ID:", teacher.id, "Name:", teacher.name, "School:", teacher.school_id);
         teacherId = teacher.id;
+
+        // Check if student ID already successfully registered for this teacher
+        const { data: existingStudent, error: studentCheckError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("student_id", formData.studentId.trim())
+          .eq("teacher_id", teacher.id)
+          .maybeSingle();
+
+        if (existingStudent) {
+          setError(t('errors.studentAlreadyRegistered') || "You have already successfully registered. Please wait for your teacher to approve your account.");
+          return;
+        }
       }
 
       // For teachers: validate school selection and generate unique teacher code

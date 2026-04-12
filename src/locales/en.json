@@ -490,7 +490,8 @@
     "unableToGenerateTeacherCodeLater": "Unable to generate a teacher code. Please try again later.",
     "profileUpdateFailed": "Profile update failed. Please try again.",
     "googleSignInFailed": "Google sign-in failed",
-    "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again."
+    "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again.",
+    "studentAlreadyRegistered": "You have already successfully registered. Please wait for your teacher to approve your account."
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",

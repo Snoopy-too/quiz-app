@@ -75,7 +75,7 @@ export default function Login({
         if (profile.role !== "superadmin") {
           if (!profile.approved) {
             console.log('Login: Account pending approval');
-            setErrorMsg(t('auth.waitingForTeacherApproval') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
+            setErrorMsg(t('auth.teacherWillApprove') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
             await supabase.auth.signOut();
             setLoading(false);
             return;
@@ -151,7 +151,7 @@ export default function Login({
       if (profile?.role !== "superadmin") {
         if (!profile?.approved) {
           await supabase.auth.signOut();
-          return setErrorMsg(t('auth.waitingForTeacherApproval') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
+          return setErrorMsg(t('auth.teacherWillApprove') || "Your account is awaiting teacher approval. Please wait for your teacher to approve your account.");
         }
         if (!profile?.verified) return setErrorMsg("Please verify your email to continue.");
       }
