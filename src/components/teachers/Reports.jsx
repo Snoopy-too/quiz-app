@@ -567,6 +567,10 @@ export default function Reports({ setView, appState }) {
         aValue = a.name.toLowerCase();
         bValue = b.name.toLowerCase();
         break;
+      case 'studentId':
+        aValue = (a.studentIdNo || '').toLowerCase();
+        bValue = (b.studentIdNo || '').toLowerCase();
+        break;
       case 'quizzesParticipated':
         aValue = a.quizzesParticipated;
         bValue = b.quizzesParticipated;
@@ -704,6 +708,17 @@ export default function Reports({ setView, appState }) {
                       </th>
                       <th
                         className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                        onClick={() => handleStudentSort('studentId')}
+                      >
+                        <div className="flex items-center gap-1">
+                          {t("reports.studentId")}
+                          <span className="text-gray-400">
+                            {studentSortConfig.key === 'studentId' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                          </span>
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
                         onClick={() => handleStudentSort('quizzesParticipated')}
                       >
                         <div className="flex items-center gap-1">
@@ -759,6 +774,7 @@ export default function Reports({ setView, appState }) {
                             {student.name}
                           </button>
                         </td>
+                        <td className="px-6 py-4 text-gray-600 font-mono text-sm">{student.studentIdNo || '-'}</td>
                         <td className="px-6 py-4 text-gray-600">{student.quizzesParticipated}</td>
                         <td className="px-6 py-4">
                           <span className={`font-semibold ${student.averageAccuracy > 80 ? 'text-green-600' :
