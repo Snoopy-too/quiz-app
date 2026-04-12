@@ -25,6 +25,7 @@ import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
 import VerticalNav from "../layout/VerticalNav";
 import ThemeSelector from "./ThemeSelector";
 import AlertModal from "../common/AlertModal";
+import ConfirmModal from "../common/ConfirmModal";
 
 const generateTempId = () => `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -70,8 +71,10 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [saving, setSaving] = useState(false);
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [isGlobal, setIsGlobal] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   // CSV Import ref
   const csvInputRef = useRef(null);
@@ -489,6 +492,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             randomize_answers: false,
             is_template: isTemplate,
             is_public: isPublic,
+            is_global: isGlobal,
             is_course_material: isCourseMaterial,
           },
         ])
@@ -866,10 +870,38 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         <input
                           type="checkbox"
                           checked={isPublic}
-                          onChange={(e) => setIsPublic(e.target.checked)}
+                          onChange={(e) => {
+                            setIsPublic(e.target.checked);
+                            if (!e.target.checked) setIsGlobal(false);
+                          }}
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isPublic')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isGlobal}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfirmModal({
+                                isOpen: true,
+                                title: t('quiz.globalQuizWarningTitle'),
+                                message: t('quiz.globalQuizWarning'),
+                                onConfirm: () => {
+                                  setIsGlobal(true);
+                                  setIsPublic(true);
+                                  setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+                                }
+                              });
+                            } else {
+                              setIsGlobal(false);
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isGlobal')}</span>
                       </label>
 
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -1225,6 +1257,15 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
         message={alertModal.message}
         type={alertModal.type}
         onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmStyle="primary"
       />
     </div>
   );

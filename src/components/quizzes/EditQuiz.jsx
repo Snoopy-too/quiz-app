@@ -58,6 +58,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [folderId, setFolderId] = useState("");
   const [isTemplate, setIsTemplate] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [isGlobal, setIsGlobal] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -97,7 +98,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     try {
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public, is_course_material")
+        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public, is_global, is_course_material")
         .eq("id", quizId)
         .single();
 
@@ -109,6 +110,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       setFolderId(quizData.folder_id || "");
       setIsTemplate(Boolean(quizData.is_template));
       setIsPublic(Boolean(quizData.is_public));
+      setIsGlobal(Boolean(quizData.is_global));
       setIsCourseMaterial(quizData.is_course_material !== false);
 
       const { data: questionsData, error: questionsError } = await supabase
@@ -489,6 +491,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         randomize_answers: false,
         is_template: isTemplate,
         is_public: isPublic,
+        is_global: isGlobal,
         is_course_material: isCourseMaterial,
       };
 
@@ -886,10 +889,38 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         <input
                           type="checkbox"
                           checked={isPublic}
-                          onChange={(e) => setIsPublic(e.target.checked)}
+                          onChange={(e) => {
+                            setIsPublic(e.target.checked);
+                            if (!e.target.checked) setIsGlobal(false);
+                          }}
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isPublic')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isGlobal}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfirmModal({
+                                isOpen: true,
+                                title: t('quiz.globalQuizWarningTitle'),
+                                message: t('quiz.globalQuizWarning'),
+                                onConfirm: () => {
+                                  setIsGlobal(true);
+                                  setIsPublic(true);
+                                  setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+                                }
+                              });
+                            } else {
+                              setIsGlobal(false);
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isGlobal')}</span>
                       </label>
 
                       <label className="flex items-center gap-2 cursor-pointer">

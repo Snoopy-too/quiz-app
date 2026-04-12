@@ -103,6 +103,8 @@ export default function PublicQuizzes({ setView, appState }) {
           created_at,
           updated_at,
           created_by,
+          is_public,
+          is_global,
           users!quizzes_created_by_fkey(name, email, avatar_url, school_id),
           questions(id)
         `)
@@ -114,9 +116,12 @@ export default function PublicQuizzes({ setView, appState }) {
       // Get the current teacher's school_id
       const currentSchoolId = appState.currentUser?.school_id;
 
-      // Add question count and theme details, then filter by same school
+      // Add question count and theme details, then filter by same school or global
       const quizzesWithCount = (data || [])
         .filter((quiz) => {
+          // If global, visible to all
+          if (quiz.is_global) return true;
+          
           // If the current teacher has a school_id assigned,
           // only show quizzes from creators at the same school.
           if (currentSchoolId) {
