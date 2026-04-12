@@ -29,6 +29,12 @@ export default function Register({ setView, setAppState, error, setError, succes
     fetchSchools();
   }, []);
 
+  // Clear messages when language changes
+  useEffect(() => {
+    setError("");
+    setSuccess("");
+  }, [i18n.language, setError, setSuccess]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
