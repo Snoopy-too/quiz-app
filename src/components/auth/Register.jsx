@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 
 export default function Register({ setView, setAppState, error, setError, success, setSuccess }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
