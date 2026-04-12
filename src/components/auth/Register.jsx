@@ -135,13 +135,14 @@ export default function Register({ setView, setAppState, error, setError, succes
         // Check if student ID already successfully registered for this teacher
         const { data: existingStudents, error: studentCheckError } = await supabase
           .from("users")
-          .select("id")
+          .select("id, email")
           .eq("student_id", formData.studentId.trim())
           .eq("teacher_id", teacher.id)
           .limit(1);
 
         if (existingStudents && existingStudents.length > 0) {
-          setError(t('errors.studentAlreadyRegistered') || "You have already successfully registered. Please wait for your teacher to approve your account.");
+          const matchedEmail = existingStudents[0].email;
+          setError(t('errors.studentAlreadyRegistered', { email: matchedEmail }) || `You have already successfully registered with the email ${matchedEmail}. Please wait for your teacher to approve your account.`);
           return;
         }
       }

@@ -491,7 +491,7 @@
     "profileUpdateFailed": "Profile update failed. Please try again.",
     "googleSignInFailed": "Google sign-in failed",
     "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again.",
-    "studentAlreadyRegistered": "You have already successfully registered. Please wait for your teacher to approve your account."
+    "studentAlreadyRegistered": "You have already successfully registered with the email {{email}}. Please wait for your teacher to approve your account."
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",

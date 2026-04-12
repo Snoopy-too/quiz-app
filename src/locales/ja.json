@@ -492,7 +492,7 @@
     "googleSignInFailed": "Googleサインインに失敗しました",
     "failedToInitiateGoogleSignIn": "Googleサインインの開始に失敗しました。もう一度お試しください。",
     "registrationSuccessDetailed": "登録が完了しました！メールを確認してアカウントを有効にしてください。その後、スーパー管理者がアカウントを承認します。",
-    "studentAlreadyRegistered": "すでに正常に登録されています。先生がアカウントを承認するまでお待ちください。"
+    "studentAlreadyRegistered": "すでに {{email}} というメールアドレスで正常に登録されています。先生がアカウントを承認するまでお待ちください。"
   },
   "messages": {
     "quizDuplicatedSuccess": "クイズが正常に複製されました！",
