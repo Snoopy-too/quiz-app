@@ -133,14 +133,14 @@ export default function Register({ setView, setAppState, error, setError, succes
         teacherId = teacher.id;
 
         // Check if student ID already successfully registered for this teacher
-        const { data: existingStudent, error: studentCheckError } = await supabase
+        const { data: existingStudents, error: studentCheckError } = await supabase
           .from("users")
           .select("id")
           .eq("student_id", formData.studentId.trim())
           .eq("teacher_id", teacher.id)
-          .maybeSingle();
+          .limit(1);
 
-        if (existingStudent) {
+        if (existingStudents && existingStudents.length > 0) {
           setError(t('errors.studentAlreadyRegistered') || "You have already successfully registered. Please wait for your teacher to approve your account.");
           return;
         }
@@ -239,7 +239,7 @@ export default function Register({ setView, setAppState, error, setError, succes
         name: formData.name,
         email: formData.email.trim().toLowerCase(),
         role: formData.role,
-        student_id: isStudent ? formData.studentId : null,
+        student_id: isStudent ? formData.studentId.trim() : null,
         teacher_id: teacherId, // Set teacher_id for students
         teacher_invite_code: cleanedTeacherInvite, // Preserve invite code used during onboarding
         teacher_code: teacherCodeToSave, // Set teacher_code for teachers
