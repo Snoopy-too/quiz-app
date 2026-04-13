@@ -35,6 +35,18 @@ export default function useTeacherSession(sessionId) {
   const [randomizeAnswers, setRandomizeAnswers] = useState(false);
   const [startingQuiz, setStartingQuiz] = useState(false);
   const [endingQuiz, setEndingQuiz] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [allStudentsAnswered, setAllStudentsAnswered] = useState(false);
+
+  // Helper with timeout for supabase network calls
+  const withTimeout = (promise, ms = 8000) => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Network request timed out. Please check your internet connection.')), ms)
+      )
+    ]);
+  };
 
   // Ref to hold current question for real-time subscription
   const currentQuestionRef = useRef(null);
@@ -563,17 +575,24 @@ export default function useTeacherSession(sessionId) {
       return;
     }
 
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+
     try {
       const question = questionsToUse[questionIndex];
 
-      // Update database with current question
-      await supabase
-        .from("quiz_sessions")
-        .update({
-          current_question_index: questionIndex,
-          status: "question_active",
-        })
-        .eq("id", sessionId);
+      // Update database with current question with a timeout
+      const { error: updateError } = await withTimeout(
+        supabase
+          .from("quiz_sessions")
+          .update({
+            current_question_index: questionIndex,
+            status: "question_active",
+          })
+          .eq("id", sessionId)
+      );
+
+      if (updateError) throw updateError;
 
       // Clear any existing auto-advance timer
       if (autoAdvanceTimer) {
@@ -633,6 +652,8 @@ export default function useTeacherSession(sessionId) {
       }
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorShowingQuestion') + ': ' + err.message, type: "error" });
+    } finally {
+      setIsTransitioning(false);
     }
   };
 

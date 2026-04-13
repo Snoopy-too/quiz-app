@@ -17,6 +17,7 @@ export default function QuestionResults({
   endQuiz,
   endingQuiz,
   closeSession,
+  isTransitioning,
 }) {
   // Build answer counts keyed by ORIGINAL option index (as stored in the DB)
   const originalAnswerCounts = {};
@@ -81,10 +82,11 @@ export default function QuestionResults({
               {session.current_question_index < questions.length - 1 ? (
                 <button
                   onClick={nextQuestion}
-                  className="bg-blue-600 text-white px-12 py-4 rounded-xl hover:bg-blue-700 text-xl font-bold flex items-center gap-3"
+                  disabled={isTransitioning}
+                  className="bg-blue-600 text-white px-12 py-4 rounded-xl hover:bg-blue-700 text-xl font-bold flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next Question
-                  <SkipForward size={24} />
+                  {isTransitioning ? 'Loading Q' + (session.current_question_index + 2) + '...' : 'Next Question'}
+                  {!isTransitioning && <SkipForward size={24} />}
                 </button>
               ) : (
                 <button

@@ -78,6 +78,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         console.error('[StudentQuiz] Question not found at index:', session.current_question_index);
       }
     } else if (session.status === "showing_results") {
+      const questionData = questions[session.current_question_index];
+      if (questionData && (!currentQuestion || currentQuestion.id !== questionData.id)) {
+        setCurrentQuestion(questionData);
+      }
       if (!showCorrectAnswer) {
         console.log('[StudentQuiz] Transitioning to SHOWING_RESULTS');
         setShowCorrectAnswer(true);
