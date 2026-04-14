@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle, Send, Loader2, Heart, Spade, Diamond, Club, Calendar } from "lucide-react";
@@ -20,6 +20,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { questionId: { optionIndex, isCorrect, timeTaken } }
+  const submittingRef = useRef({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -284,6 +285,9 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
     if (timeLeft === 0 && !answers[questionId]) return;
     // Block if options are hidden
     if (!showOptions) return;
+    // Prevent spam-tapping: block re-entry before React state updates
+    if (submittingRef.current[questionId]) return;
+    submittingRef.current[questionId] = true;
 
     const question = questions.find(q => q.id === questionId);
     if (!question) return;

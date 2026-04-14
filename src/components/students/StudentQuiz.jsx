@@ -23,6 +23,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const realtimeAliveRef = useRef(false);
   const currentQuestionIndexRef = useRef(null);
   const pollTimerRef = useRef(null);
+  const submittingRef = useRef(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -68,6 +69,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           setCurrentQuestion(questionData);
           setTimeRemaining(questionData.time_limit);
           setHasAnswered(false);
+          submittingRef.current = false;
           setSelectedOption(null);
           setShowCorrectAnswer(false);
           setWasCorrect(false);
@@ -394,6 +396,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   const submitAnswer = async (optionIndex) => {
     if (hasAnswered || !currentQuestion || !participant) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     setSelectedOption(optionIndex);
     setHasAnswered(true);
