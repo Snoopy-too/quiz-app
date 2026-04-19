@@ -158,12 +158,15 @@ export default function useManageStudents(appState) {
 
       try {
         const schoolId = appState.currentUser?.school_id;
-        if (!schoolId) return;
+        const orFilter = schoolId
+          ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`
+          : `teacher_id.eq.${teacherId}`;
+
         const { count, error: countError } = await supabase
           .from('users')
           .select('id', { count: 'exact', head: true })
           .eq('role', 'student')
-          .or(`teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`);
+          .or(orFilter);
 
         if (countError) return;
 
@@ -175,7 +178,7 @@ export default function useManageStudents(appState) {
             .from('users')
             .select('*')
             .eq('role', 'student')
-            .or(`teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`)
+            .or(orFilter)
             .order('created_at', { ascending: false });
 
           if (!fetchErr && data) {
@@ -203,19 +206,25 @@ export default function useManageStudents(appState) {
   }, [appState.currentUser?.id]);
 
   const fetchStudents = async () => {
-    if (!appState.currentUser?.id || !appState.currentUser?.school_id) {
+    if (!appState.currentUser?.id) {
       setLoading(false);
       return;
     }
 
     try {
-      // Fetch students associated with the current teacher OR unlinked students from the same school
+      // Fetch students associated with the current teacher.
+      // If teacher has a school_id, also include unlinked students from the same school.
+      const teacherId = appState.currentUser.id;
       const teacherSchoolId = appState.currentUser.school_id;
+      const orFilter = teacherSchoolId
+        ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${teacherSchoolId})`
+        : `teacher_id.eq.${teacherId}`;
+
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
         .select("*")
         .eq("role", "student")
-        .or(`teacher_id.eq.${appState.currentUser.id},and(teacher_id.is.null,school_id.eq.${teacherSchoolId})`)
+        .or(orFilter)
         .order("created_at", { ascending: false });
 
       if (studentsError) throw studentsError;
