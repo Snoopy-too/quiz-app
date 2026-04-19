@@ -23,7 +23,6 @@ export default function useTeacherSession(sessionId) {
   const [isThinkingTime, setIsThinkingTime] = useState(false);
   const [countdownValue, setCountdownValue] = useState(5);
   const [questionTimeRemaining, setQuestionTimeRemaining] = useState(0);
-  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState(null);
   const [allStudentsAnswered, setAllStudentsAnswered] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
@@ -36,7 +35,6 @@ export default function useTeacherSession(sessionId) {
   const [startingQuiz, setStartingQuiz] = useState(false);
   const [endingQuiz, setEndingQuiz] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [allStudentsAnswered, setAllStudentsAnswered] = useState(false);
 
   // Helper with timeout for supabase network calls
   const withTimeout = (promise, ms = 8000) => {
@@ -55,6 +53,11 @@ export default function useTeacherSession(sessionId) {
   // Debounce timers for realtime event handlers
   const loadParticipantsTimerRef = useRef(null);
   const loadLiveAnswersTimerRef = useRef(null);
+  // Quiz-flow timers that must be cleared on unmount so stale callbacks
+  // don't write to Supabase after the teacher navigates away.
+  const autoAdvanceTimerRef = useRef(null);
+  const startQuizTimerRef = useRef(null);
+  const thinkingTimerRef = useRef(null);
 
   useEffect(() => {
     if (sessionId) {
@@ -81,6 +84,9 @@ export default function useTeacherSession(sessionId) {
         clearInterval(pollInterval);
         clearTimeout(loadParticipantsTimerRef.current);
         clearTimeout(loadLiveAnswersTimerRef.current);
+        clearTimeout(autoAdvanceTimerRef.current);
+        clearTimeout(startQuizTimerRef.current);
+        clearTimeout(thinkingTimerRef.current);
       };
     }
   }, [sessionId]);
@@ -141,18 +147,16 @@ export default function useTeacherSession(sessionId) {
 
       setAllStudentsAnswered(allAnswered);
 
-      if (allAnswered && autoAdvanceTimer) {
+      if (allAnswered && autoAdvanceTimerRef.current) {
         // All students have answered - cancel the auto-advance timer
         console.log('[TeacherControl] All students answered! Auto-advancing to results in 2 seconds...');
-        clearTimeout(autoAdvanceTimer);
+        clearTimeout(autoAdvanceTimerRef.current);
 
         // Auto-advance to results after 2 seconds so everyone can see they've all answered
-        const earlyAdvanceTimer = setTimeout(() => {
+        autoAdvanceTimerRef.current = setTimeout(() => {
           console.log('[TeacherControl] Auto-advancing to results now');
           showQuestionResults(session.current_question_index);
         }, 2000);
-
-        setAutoAdvanceTimer(earlyAdvanceTimer);
       }
     }
   }, [liveAnswers, participants, session?.status]);
@@ -547,7 +551,8 @@ export default function useTeacherSession(sessionId) {
       setCountdownValue(5); // Reset countdown to 5
 
       // Wait 5 seconds before showing first question
-      setTimeout(() => {
+      clearTimeout(startQuizTimerRef.current);
+      startQuizTimerRef.current = setTimeout(() => {
         showQuestion(0);
       }, 5000);
     } catch (err) {
@@ -595,8 +600,9 @@ export default function useTeacherSession(sessionId) {
       if (updateError) throw updateError;
 
       // Clear any existing auto-advance timer
-      if (autoAdvanceTimer) {
-        clearTimeout(autoAdvanceTimer);
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
       }
 
       setCurrentQuestion(question);
@@ -613,10 +619,10 @@ export default function useTeacherSession(sessionId) {
         setQuestionTimeRemaining(question.time_limit);
 
         // Auto-advance after time limit + 4 seconds for answer reveal
-        const timer = setTimeout(() => {
+        clearTimeout(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = setTimeout(() => {
           showQuestionResults(questionIndex);
         }, (question.time_limit + 4) * 1000);
-        setAutoAdvanceTimer(timer);
       };
 
       if (session.mode === 'team') {
@@ -635,7 +641,8 @@ export default function useTeacherSession(sessionId) {
         await loadLiveAnswers(question.id);
 
         // Wait 5 seconds then start actual timer (4-second answer reveal happens via effect)
-        setTimeout(() => {
+        clearTimeout(thinkingTimerRef.current);
+        thinkingTimerRef.current = setTimeout(() => {
           startActualTimer();
         }, 5000);
       } else {
@@ -664,9 +671,9 @@ export default function useTeacherSession(sessionId) {
 
   const proceedToResults = () => {
     // Cancel auto-advance timer
-    if (autoAdvanceTimer) {
-      clearTimeout(autoAdvanceTimer);
-      setAutoAdvanceTimer(null);
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
     }
     showQuestionResults(session.current_question_index);
   };

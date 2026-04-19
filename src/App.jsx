@@ -36,6 +36,9 @@ import AssignedQuizTaking from "./components/students/AssignedQuizTaking";
 // Settings
 import Settings from "./components/settings/Settings";
 
+// Common
+import ErrorBoundary from "./components/common/ErrorBoundary";
+
 export default function QuizApp() {
   // Clear any corrupted sessionStorage data on app load
   useEffect(() => {
@@ -657,11 +660,13 @@ export default function QuizApp() {
 
   if (view === "student-quiz")
     return (
-      <StudentQuiz
-        sessionId={selectedSessionId}
-        appState={appState}
-        setView={setView}
-      />
+      <ErrorBoundary>
+        <StudentQuiz
+          sessionId={selectedSessionId}
+          appState={appState}
+          setView={setView}
+        />
+      </ErrorBoundary>
     );
 
   if (view === "assigned-quizzes")
@@ -732,7 +737,11 @@ export default function QuizApp() {
     );
 
   if (view === "teacher-control")
-    return <TeacherControl sessionId={selectedSessionId} setView={setView} />;
+    return (
+      <ErrorBoundary>
+        <TeacherControl sessionId={selectedSessionId} setView={setView} />
+      </ErrorBoundary>
+    );
 
   if (view === "manage-quizzes")
     return (

@@ -432,16 +432,29 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       if (answerError) throw answerError;
 
-      // Update participant score
-      const { error: updateError } = await supabase
-        .from("session_participants")
-        .update({ score: participant.score + points })
-        .eq("id", participant.id);
+      // Atomic score increment (prevents read-modify-write races on reconnect).
+      // Falls back to the legacy update if the RPC is not yet deployed.
+      const { data: newScore, error: rpcError } = await supabase.rpc(
+        'increment_participant_score',
+        { p_participant_id: participant.id, p_delta: points }
+      );
 
-      if (updateError) throw updateError;
-
-      setParticipant({ ...participant, score: participant.score + points });
+      if (rpcError) {
+        console.warn('[StudentQuiz] increment RPC failed, falling back to update:', rpcError.message);
+        const { error: updateError } = await supabase
+          .from("session_participants")
+          .update({ score: participant.score + points })
+          .eq("id", participant.id);
+        if (updateError) throw updateError;
+        setParticipant({ ...participant, score: participant.score + points });
+      } else {
+        setParticipant({ ...participant, score: typeof newScore === 'number' ? newScore : participant.score + points });
+      }
     } catch (err) {
+      // Submit failed — let the student retry
+      setHasAnswered(false);
+      submittingRef.current = false;
+      setSelectedOption(null);
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('errors.errorSubmittingAnswer') + ": " + err.message, type: "error" });
     }
   };
@@ -472,6 +485,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   }, [theme?.background_image_url, theme?.primary_color, theme?.secondary_color, quiz?.background_image_url]);
   const textColor = theme?.text_color || "#FFFFFF";
 
+  const renderContent = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
@@ -891,7 +905,13 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+  };
 
+  return (
+    <>
+      {renderContent()}
       <AlertModal
         isOpen={alertModal.isOpen}
         title={alertModal.title}
@@ -907,6 +927,6 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
         confirmStyle="danger"
       />
-    </div>
+    </>
   );
 }
