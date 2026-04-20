@@ -71,8 +71,17 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
       const session = sessions[0];
       console.log('Found session:', session);
 
-      if (session.status === "completed") {
+      if (session.status === "completed" || session.status === "cancelled") {
         setError(t('errors.quizAlreadyEnded'));
+        setLoading(false);
+        return;
+      }
+
+      // Block late joiners once the quiz has moved past the waiting lobby.
+      // Late joins increase participant count mid-question, which can flip
+      // allStudentsAnswered back to false and trigger the stale-timer crash.
+      if (session.status !== "waiting") {
+        setError(t('errors.quizAlreadyStarted'));
         setLoading(false);
         return;
       }

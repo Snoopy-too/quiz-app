@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import useTeacherSession from "../../hooks/useTeacherSession";
 import BackgroundWrapper from "./teacherControl/BackgroundWrapper";
 import ModeSelection from "./teacherControl/ModeSelection";
@@ -9,12 +10,13 @@ import QuestionResults from "./teacherControl/QuestionResults";
 import QuizCompleted from "./teacherControl/QuizCompleted";
 
 export default function TeacherControl({ sessionId, setView }) {
+  const { t } = useTranslation();
   const tc = useTeacherSession(sessionId);
 
   if (tc.loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading session...</p>
+        <p className="text-xl text-gray-600">{t('common.loading', 'Loading session...')}</p>
       </div>
     );
   }
@@ -24,12 +26,20 @@ export default function TeacherControl({ sessionId, setView }) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-red-600 mb-4">Error: {tc.error}</p>
-          <button
-            onClick={() => setView("manage-quizzes")}
-            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
-          >
-            Back to Quizzes
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => tc.reloadSession()}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700"
+            >
+              {t('teacherControl.reloadSession', 'Reload Session')}
+            </button>
+            <button
+              onClick={() => setView("manage-quizzes")}
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
+            >
+              Back to Quizzes
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -79,3 +89,4 @@ export default function TeacherControl({ sessionId, setView }) {
     </BackgroundWrapper>
   );
 }
+

@@ -64,8 +64,8 @@ export default function useTeacherSession(sessionId) {
       loadSession();
       const cleanup = setupRealtimeSubscriptions();
 
-      // Fallback polling for participant and answer updates
-      const pollInterval = setInterval(() => {
+      // Fallback polling for participant and answer updates + session state healing
+      const pollInterval = setInterval(async () => {
         // Use ref to get latest session state (avoids stale closure)
         const currentSession = sessionRef.current;
         if (currentSession?.status === 'waiting' || currentSession?.status === 'question_active' || currentSession?.status === 'showing_results') {
@@ -76,6 +76,28 @@ export default function useTeacherSession(sessionId) {
         const activeQuestion = currentQuestionRef.current;
         if (currentSession?.status === 'question_active' && activeQuestion) {
           loadLiveAnswers(activeQuestion.id);
+        }
+
+        // Defense-in-depth: heal local session state from DB if it diverges.
+        // This ensures that even if a stale closure or other bug corrupts local
+        // state, the teacher re-syncs within a few seconds.
+        if (currentSession && currentSession.status !== 'completed' && currentSession.status !== 'cancelled') {
+          try {
+            const { data } = await supabase
+              .from('quiz_sessions')
+              .select('current_question_index, status')
+              .eq('id', sessionId)
+              .single();
+            if (data && (data.current_question_index !== currentSession.current_question_index || data.status !== currentSession.status)) {
+              console.warn('[TeacherControl] Healing local state from DB', {
+                local: { cqi: currentSession.current_question_index, status: currentSession.status },
+                db: data,
+              });
+              setSession(prev => prev ? { ...prev, current_question_index: data.current_question_index, status: data.status } : prev);
+            }
+          } catch (err) {
+            console.warn('[TeacherControl] Session heal poll failed:', err.message);
+          }
         }
       }, 5000);
 
@@ -145,6 +167,15 @@ export default function useTeacherSession(sessionId) {
         liveAnswers.some((a) => a.participant_id === p.id)
       ).length === participants.length;
 
+      // Fix 5: Detect transition from all-answered back to not-all-answered
+      // (e.g., a late joiner increased participant count mid-question).
+      // Cancel the pending 2s early-advance timer so results aren't shown prematurely.
+      if (!allAnswered && allStudentsAnswered && autoAdvanceTimerRef.current) {
+        console.warn('[TeacherControl] allAnswered flipped to false — cancelling early advance timer');
+        clearTimeout(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = null;
+      }
+
       setAllStudentsAnswered(allAnswered);
 
       if (allAnswered && autoAdvanceTimerRef.current) {
@@ -155,7 +186,9 @@ export default function useTeacherSession(sessionId) {
         // Auto-advance to results after 2 seconds so everyone can see they've all answered
         autoAdvanceTimerRef.current = setTimeout(() => {
           console.log('[TeacherControl] Auto-advancing to results now');
-          showQuestionResults(session.current_question_index);
+          // Use ref to avoid stale closure — the critical fix for the Q2-stuck bug
+          const cqi = sessionRef.current?.current_question_index ?? 0;
+          showQuestionResults(cqi);
         }, 2000);
       }
     }
@@ -424,9 +457,39 @@ export default function useTeacherSession(sessionId) {
         }
       });
 
+    // Subscribe to quiz_sessions updates — defense-in-depth to heal local state
+    // if it diverges from DB (mirrors the student-side pattern in StudentQuiz.jsx).
+    const sessionChannel = supabase
+      .channel(`session-${sessionId}-state`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "quiz_sessions",
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          console.log('[TeacherControl] Session state updated via realtime:', payload.new?.status, 'cqi:', payload.new?.current_question_index);
+          if (payload.new) {
+            setSession(prev => prev ? {
+              ...prev,
+              current_question_index: payload.new.current_question_index,
+              status: payload.new.status,
+            } : prev);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[TeacherControl] Error subscribing to session state channel');
+        }
+      });
+
     return () => {
       participantChannel.unsubscribe();
       answerChannel.unsubscribe();
+      sessionChannel.unsubscribe();
     };
   };
 
@@ -475,14 +538,15 @@ export default function useTeacherSession(sessionId) {
       setSelectedMode(mode);
       setShowModeSelection(false);
 
-      // Create updated session object and set it
-      const updatedSession = {
-        ...session,
+      // Create updated session object (functional updater avoids stale closure)
+      const updatedFields = {
         mode,
         ...(randomizeQuestions && { question_order: updateData.question_order }),
         ...(randomizeAnswers && { randomize_answers: true }),
       };
-      setSession(updatedSession);
+      setSession(prev => prev ? { ...prev, ...updatedFields } : prev);
+      // Keep a local reference for the immediate loadParticipants call below
+      const updatedSession = { ...session, ...updatedFields };
 
       // Immediately reload participants with the new mode
       await loadParticipants(updatedSession);
@@ -547,7 +611,7 @@ export default function useTeacherSession(sessionId) {
       }
 
       console.log('[startQuiz] Quiz started successfully');
-      setSession({ ...session, status: "active", question_order: questionOrder });
+      setSession(prev => prev ? { ...prev, status: "active", question_order: questionOrder } : prev);
       setCountdownValue(5); // Reset countdown to 5
 
       // Wait 5 seconds before showing first question
@@ -577,6 +641,13 @@ export default function useTeacherSession(sessionId) {
 
     if (questionIndex >= questionsToUse.length) {
       await endQuiz();
+      return;
+    }
+
+    // Guard: don't re-enter the same question if it's already active (prevents stuck-loop)
+    const guardSession = sessionRef.current;
+    if (guardSession?.status === 'question_active' && guardSession?.current_question_index === questionIndex) {
+      console.warn('[TeacherControl] showQuestion re-entry blocked — question already active', { questionIndex });
       return;
     }
 
@@ -630,12 +701,12 @@ export default function useTeacherSession(sessionId) {
         setIsThinkingTime(true);
         setQuestionTimeRemaining(5);
 
-        // Update session state immediately
-        setSession({
-          ...session,
+        // Update session state immediately (functional updater avoids stale closure)
+        setSession(prev => prev ? {
+          ...prev,
           current_question_index: questionIndex,
           status: "question_active",
-        });
+        } : prev);
 
         // Load answers
         await loadLiveAnswers(question.id);
@@ -648,11 +719,11 @@ export default function useTeacherSession(sessionId) {
       } else {
         // Classic Mode: Start with 4-second answer reveal delay (handled by effect)
         setIsThinkingTime(false);
-        setSession({
-          ...session,
+        setSession(prev => prev ? {
+          ...prev,
           current_question_index: questionIndex,
           status: "question_active",
-        });
+        } : prev);
 
         await loadLiveAnswers(question.id);
         startActualTimer();
@@ -675,11 +746,25 @@ export default function useTeacherSession(sessionId) {
       clearTimeout(autoAdvanceTimerRef.current);
       autoAdvanceTimerRef.current = null;
     }
-    showQuestionResults(session.current_question_index);
+    // Use ref to avoid stale closure
+    const cqi = sessionRef.current?.current_question_index ?? session?.current_question_index ?? 0;
+    showQuestionResults(cqi);
   };
 
   const showQuestionResults = async (questionIndex) => {
     try {
+      // Guard: bail out if this call corresponds to a stale timer firing after
+      // the teacher already advanced past this question (the core crash fix).
+      const currentSession = sessionRef.current;
+      if (!currentSession) return;
+      if (currentSession.current_question_index !== questionIndex) {
+        console.warn('[TeacherControl] Stale showQuestionResults ignored', {
+          timerIndex: questionIndex,
+          sessionIndex: currentSession.current_question_index,
+        });
+        return;
+      }
+
       const questionsToUse = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
 
       // Get all answers for this question
@@ -699,15 +784,27 @@ export default function useTeacherSession(sessionId) {
 
       setQuestionResults(answers || []);
       setShowResults(true);
-      setSession({ ...session, status: "showing_results" });
+      setSession(prev => prev ? { ...prev, status: "showing_results" } : prev);
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorLoadingResults') + ': ' + err.message, type: "error" });
     }
   };
 
-  const nextQuestion = () => {
-    const nextIndex = session.current_question_index + 1;
-    showQuestion(nextIndex);
+  const nextQuestion = async () => {
+    // Re-read current_question_index from DB to avoid stale-closure drift
+    try {
+      const { data } = await supabase
+        .from('quiz_sessions')
+        .select('current_question_index')
+        .eq('id', sessionId)
+        .single();
+      const cqi = data?.current_question_index ?? sessionRef.current?.current_question_index ?? 0;
+      showQuestion(cqi + 1);
+    } catch (err) {
+      // Fallback to ref if DB read fails
+      const cqi = sessionRef.current?.current_question_index ?? 0;
+      showQuestion(cqi + 1);
+    }
   };
 
   const endQuiz = async (status = "completed") => {
@@ -796,7 +893,7 @@ export default function useTeacherSession(sessionId) {
         }
       }
 
-      setSession({ ...session, status: status });
+      setSession(prev => prev ? { ...prev, status: status } : prev);
     } catch (err) {
       setAlertModal({ isOpen: true, title: "Error", message: "Error ending quiz: " + err.message, type: "error" });
     } finally {
@@ -861,6 +958,13 @@ export default function useTeacherSession(sessionId) {
 
   const backgroundConfig = useMemo(getBackgroundConfig, [theme, quiz]);
 
+  // Reload session from DB — recovery mechanism when local state is corrupt
+  const reloadSession = async () => {
+    setLoading(true);
+    setError(null);
+    await loadSession();
+  };
+
   return {
     // Session state
     session, quiz, questions, shuffledQuestions, participants, teams,
@@ -878,6 +982,6 @@ export default function useTeacherSession(sessionId) {
 
     // Actions
     selectMode, startQuiz, showQuestion, handleShowResults,
-    nextQuestion, endQuiz, closeSession, loadParticipants,
+    nextQuestion, endQuiz, closeSession, loadParticipants, reloadSession,
   };
 }

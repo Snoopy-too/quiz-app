@@ -463,6 +463,7 @@
     "permissionDeniedEnsureApproved": "Permission denied. Please ensure you're logged in and approved by your teacher.",
     "invalidPinQuizNotFound": "Invalid PIN - Quiz not found. Please check the PIN and try again.",
     "quizAlreadyEnded": "This quiz has already ended",
+    "quizAlreadyStarted": "This quiz has already started. Please wait for the next quiz.",
     "databaseMigrationIncomplete": "Database migration incomplete: Please contact your administrator.",
     "failedToJoinQuiz": "Failed to join quiz",
     "errorJoiningQuiz": "Error joining quiz",

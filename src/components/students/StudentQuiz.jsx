@@ -417,7 +417,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       const timeBonus = Math.floor((timeRemaining / currentQuestion.time_limit) * currentQuestion.points);
       const points = isCorrect ? currentQuestion.points + timeBonus : 0;
 
-      // Submit answer
+      // Submit answer.
+      // NOTE: is_correct and points_earned are now validated/overridden server-side
+      // by the trg_validate_answer trigger, but we still send client-computed values
+      // for backward compatibility if the migration hasn't been run yet.
       const { error: answerError } = await supabase.from("quiz_answers").insert([
         {
           session_id: sessionId,
@@ -432,20 +435,19 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       if (answerError) throw answerError;
 
-      // Atomic score increment (prevents read-modify-write races on reconnect).
-      // Falls back to the legacy update if the RPC is not yet deployed.
+      // Atomic score increment via SECURITY DEFINER RPC (validates caller,
+      // session status, and delta bounds server-side).
       const { data: newScore, error: rpcError } = await supabase.rpc(
         'increment_participant_score',
         { p_participant_id: participant.id, p_delta: points }
       );
 
       if (rpcError) {
-        console.warn('[StudentQuiz] increment RPC failed, falling back to update:', rpcError.message);
-        const { error: updateError } = await supabase
-          .from("session_participants")
-          .update({ score: participant.score + points })
-          .eq("id", participant.id);
-        if (updateError) throw updateError;
+        // The RPC is SECURITY DEFINER so it should always succeed if deployed.
+        // Direct .update() fallback is intentionally removed — it's blocked by
+        // the guard trigger (fix 7) to prevent client-side score manipulation.
+        console.error('[StudentQuiz] increment RPC failed:', rpcError.message);
+        // Still update local state optimistically so the UI doesn't look broken
         setParticipant({ ...participant, score: participant.score + points });
       } else {
         setParticipant({ ...participant, score: typeof newScore === 'number' ? newScore : participant.score + points });
