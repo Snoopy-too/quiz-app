@@ -77,10 +77,19 @@ export default function JoinClassicQuiz({ appState, setView, error, setError, on
         return;
       }
 
+      // Check if student is already a participant (for reconnection)
+      const { data: existingParticipant } = await supabase
+        .from("session_participants")
+        .select("id")
+        .eq("session_id", session.id)
+        .eq("user_id", appState.currentUser.id)
+        .maybeSingle();
+
       // Block late joiners once the quiz has moved past the waiting lobby.
       // Late joins increase participant count mid-question, which can flip
       // allStudentsAnswered back to false and trigger the stale-timer crash.
-      if (session.status !== "waiting") {
+      // EXCEPTION: Allow rejoining if the student is already a participant
+      if (session.status !== "waiting" && !existingParticipant) {
         setError(t('errors.quizAlreadyStarted'));
         setLoading(false);
         return;

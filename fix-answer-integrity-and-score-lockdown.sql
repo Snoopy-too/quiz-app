@@ -74,12 +74,12 @@ BEGIN
   END IF;
 
   -- 4. Validate the question is the currently active one.
-  --    Use question_order array if it exists, otherwise fall back to order_index.
+  --    question_order is uuid[] (native Postgres array, 1-indexed).
+  --    current_question_index is 0-indexed (comes from JS), so add 1.
   IF v_session.question_order IS NOT NULL
-     AND jsonb_typeof(v_session.question_order) = 'array'
-     AND jsonb_array_length(v_session.question_order) > v_session.current_question_index
+     AND array_length(v_session.question_order, 1) > v_session.current_question_index
   THEN
-    v_expected_question_id := (v_session.question_order ->> v_session.current_question_index)::UUID;
+    v_expected_question_id := v_session.question_order[v_session.current_question_index + 1];
   ELSE
     SELECT q.id INTO v_expected_question_id
       FROM questions q
