@@ -373,12 +373,12 @@ export default function ManageQuizzes({ setView, appState }) {
             quizId={mq.assignQuizModal.id}
             quizTitle={mq.assignQuizModal.title}
             teacherId={appState.currentUser.id}
-            onAssignmentCreated={() => {
+            onAssignmentCreated={(assignments) => {
               // Success handler
               mq.setAlertModal({
                 isOpen: true,
                 title: t("common.success", "Success"),
-                message: t("assignQuiz.successMessage", "Quiz assigned successfully!"),
+                message: t("assignQuiz.successMessage", { count: Array.isArray(assignments) ? assignments.length : 0, defaultValue: "Quiz has been assigned to {{count}} student(s). They will receive email notifications." }),
                 type: "success"
               });
               // Refresh counts
