@@ -356,7 +356,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
         setConfirmModal({
           isOpen: true,
           title: t("assignedQuiz.unansweredQuestions", "Unanswered Questions"),
-          message: t("assignedQuiz.unansweredWarning", "You have {count} unanswered questions. Are you sure you want to submit?").replace("{count}", unansweredCount),
+          message: t("assignedQuiz.unansweredWarning", { count: unansweredCount, defaultValue: "You have {{count}} unanswered questions. Are you sure you want to submit?" }),
           onConfirm: () => {
             setConfirmModal({ ...confirmModal, isOpen: false });
             submitQuiz();

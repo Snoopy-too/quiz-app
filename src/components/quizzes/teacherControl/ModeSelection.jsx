@@ -162,7 +162,7 @@ export default function ModeSelection({
           setAlertModal({
             isOpen: true,
             title: t("assignQuiz.successTitle", "Quiz Assigned"),
-            message: t("assignQuiz.successMessage", "Quiz has been assigned to {count} student(s). They will receive email notifications.").replace("{count}", assignments.length),
+            message: t("assignQuiz.successMessage", { count: assignments.length, defaultValue: "Quiz has been assigned to {{count}} student(s). They will receive email notifications." }),
             type: "success"
           });
           // Close the session and return to manage quizzes after a delay
