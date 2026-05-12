@@ -204,7 +204,8 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
           answersMap[a.question_id] = {
             optionIndex: a.selected_option_index,
             isCorrect: a.is_correct,
-            timeTaken: a.time_taken
+            timeTaken: a.time_taken,
+            pointsEarned: a.points_earned
           };
         });
         setAnswers(answersMap);
@@ -372,8 +373,19 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const submitQuiz = async () => {
     setSubmitting(true);
     try {
-      // Calculate final score
-      const totalScore = Object.values(answers).reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
+      // Calculate final score.
+      // Defensive: if pointsEarned is missing (e.g. from a legacy resume), derive
+      // it from isCorrect and the question's base points so the score is never 0
+      // for correctly answered questions.
+      const totalScore = Object.entries(answers).reduce((sum, [qId, a]) => {
+        if (typeof a.pointsEarned === 'number') return sum + a.pointsEarned;
+        // Fallback: look up the question's base points
+        if (a.isCorrect) {
+          const q = questions.find(q => q.id === qId);
+          return sum + (q?.points || 100);
+        }
+        return sum;
+      }, 0);
       const correctAnswers = Object.values(answers).filter(a => a.isCorrect).length;
       const totalTime = Math.floor((Date.now() - startTime.getTime()) / 1000);
 
