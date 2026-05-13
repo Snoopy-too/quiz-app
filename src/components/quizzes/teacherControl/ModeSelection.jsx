@@ -10,6 +10,8 @@ export default function ModeSelection({
   closeSession,
   allowSharedDevice,
   setAllowSharedDevice,
+  teamScoringMode,
+  setTeamScoringMode,
   randomizeQuestions,
   setRandomizeQuestions,
   randomizeAnswers,
@@ -85,6 +87,40 @@ export default function ModeSelection({
                   />
                   <span className="text-sm text-gray-600">Allow shared device teams</span>
                 </label>
+
+                {/* Team Scoring Mode Selector */}
+                <div
+                  className="mt-4 pt-4 border-t border-gray-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-sm font-medium text-gray-700 mb-2 text-left">Team Scoring</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTeamScoringMode('combined')}
+                      className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg border-2 transition ${
+                        teamScoringMode === 'combined'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      Combined
+                      <span className="block text-[10px] font-normal mt-0.5 opacity-70">Sum of all scores</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTeamScoringMode('average')}
+                      className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg border-2 transition ${
+                        teamScoringMode === 'average'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      Average
+                      <span className="block text-[10px] font-normal mt-0.5 opacity-70">Fair for unequal teams</span>
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   onClick={() => selectMode("team")}

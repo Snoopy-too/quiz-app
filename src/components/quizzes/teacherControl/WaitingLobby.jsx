@@ -24,6 +24,11 @@ export default function WaitingLobby({
             }`}>
             {isTeamMode ? "Team Mode" : "Classic Mode"}
           </span>
+          {isTeamMode && session.team_scoring_mode && (
+            <span className="px-3 py-2 rounded-lg font-medium text-sm bg-gray-100 text-gray-700">
+              {session.team_scoring_mode === 'average' ? '📊 Avg Scoring' : '➕ Combined Scoring'}
+            </span>
+          )}
           <button
             onClick={closeSession}
             className="text-red-600 hover:text-red-700"

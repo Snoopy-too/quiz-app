@@ -70,13 +70,23 @@ export default function QuizCompleted({
                           }`}>
                           {team.name.substring(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-xl font-semibold">
-                          {team.name}
-                        </span>
+                        <div>
+                          <span className="text-xl font-semibold">
+                            {team.name}
+                          </span>
+                          {team.memberCount != null && (
+                            <span className="ml-2 text-xs text-gray-400">({team.memberCount} {team.memberCount === 1 ? 'member' : 'members'})</span>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-blue-700">
-                        {team.score} pts
-                      </span>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold text-blue-700">
+                          {team.score} pts
+                        </span>
+                        {team.scoringMode === 'average' && (
+                          <span className="block text-[10px] text-gray-400 font-medium">avg</span>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (

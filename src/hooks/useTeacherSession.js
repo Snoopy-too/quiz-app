@@ -30,6 +30,7 @@ export default function useTeacherSession(sessionId) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [allowSharedDevice, setAllowSharedDevice] = useState(false);
+  const [teamScoringMode, setTeamScoringMode] = useState('combined');
   const [randomizeQuestions, setRandomizeQuestions] = useState(false);
   const [randomizeAnswers, setRandomizeAnswers] = useState(false);
   const [startingQuiz, setStartingQuiz] = useState(false);
@@ -378,11 +379,24 @@ export default function useTeacherSession(sessionId) {
         }
       }
 
-      const groupedTeams = Object.entries(teamMap).map(([name, members]) => ({
-        name,
-        members,
-        score: members.reduce((sum, m) => sum + (m.score || 0), 0)
-      }));
+      // Determine scoring mode from session state (ref for freshest value)
+      const scoringMode = (sessionObj || sessionRef.current || session)?.team_scoring_mode || 'combined';
+
+      const groupedTeams = Object.entries(teamMap).map(([name, members]) => {
+        const totalScore = members.reduce((sum, m) => sum + (m.score || 0), 0);
+        const memberCount = members.length;
+        const displayScore = scoringMode === 'average' && memberCount > 0
+          ? Math.round(totalScore / memberCount)
+          : totalScore;
+        return {
+          name,
+          members,
+          score: displayScore,
+          totalScore,      // raw combined score (useful for debugging / reports)
+          memberCount,     // so UI can show "(3 members)" context
+          scoringMode,     // so components know which label to use
+        };
+      });
 
       setTeams(groupedTeams);
     }
@@ -500,6 +514,7 @@ export default function useTeacherSession(sessionId) {
       const updateData = { mode: mode };
       if (mode === "team") {
         updateData.allow_shared_device = allowSharedDevice;
+        updateData.team_scoring_mode = teamScoringMode;
       }
 
       // Apply randomization settings
@@ -973,12 +988,12 @@ export default function useTeacherSession(sessionId) {
     isThinkingTime, countdownValue, questionTimeRemaining,
     allStudentsAnswered, showAnswers, answerRevealCountdown,
     alertModal, confirmModal, showAssignModal,
-    allowSharedDevice, randomizeQuestions, randomizeAnswers,
+    allowSharedDevice, teamScoringMode, randomizeQuestions, randomizeAnswers,
     startingQuiz, endingQuiz, backgroundConfig,
 
     // Setters needed by UI
     setAlertModal, setConfirmModal, setShowAssignModal,
-    setAllowSharedDevice, setRandomizeQuestions, setRandomizeAnswers,
+    setAllowSharedDevice, setTeamScoringMode, setRandomizeQuestions, setRandomizeAnswers,
 
     // Actions
     selectMode, startQuiz, showQuestion, handleShowResults,

@@ -19,9 +19,19 @@ export default function Leaderboard({ participants, teams, mode, limit }) {
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200">
                     {team.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <span className="text-lg font-semibold text-gray-800">{team.name}</span>
+                  <div>
+                    <span className="text-lg font-semibold text-gray-800">{team.name}</span>
+                    {team.memberCount != null && (
+                      <span className="ml-2 text-xs text-gray-400">({team.memberCount} {team.memberCount === 1 ? 'member' : 'members'})</span>
+                    )}
+                  </div>
                 </div>
-                <span className="text-xl font-bold text-blue-700">{team.score} pts</span>
+                <div className="text-right">
+                  <span className="text-xl font-bold text-blue-700">{team.score} pts</span>
+                  {team.scoringMode === 'average' && (
+                    <span className="block text-[10px] text-gray-400 font-medium">avg</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
