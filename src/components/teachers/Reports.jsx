@@ -38,7 +38,7 @@ export default function Reports({ setView, appState }) {
       // 1. Get teacher's students
       const { data: students, error: studentsError } = await supabase
         .from('users')
-        .select('id, name')
+        .select('id, name, student_id')
         .eq('teacher_id', user.id)
         .eq('role', 'student');
 
@@ -140,6 +140,7 @@ export default function Reports({ setView, appState }) {
         return {
           student_id: student.id,
           name: student.name,
+          studentIdNo: student.student_id,
           quizzesParticipated,
           averageAccuracy: averageAccuracy.toFixed(1),
           courseAccuracy: courseAccuracy.toFixed(1),
