@@ -1239,14 +1239,22 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
               )}
             </div>
           </div>
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end gap-2">
             <button
-              onClick={handleSaveQuiz}
+              onClick={() => handleSaveQuiz(false)}
               disabled={saving}
               className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 disabled:opacity-50 flex items-center gap-2"
             >
               <Save size={20} />
               {saving ? t('common.loading') : t('common.save')}
+            </button>
+            <button
+              onClick={() => handleSaveQuiz(true)}
+              disabled={saving}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              <Save size={20} />
+              Save & Exit
             </button>
           </div>
         </div>
