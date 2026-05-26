@@ -632,7 +632,9 @@
     "nonCourseQuizzes": "Non-Course",
     "type": "Type",
     "courseAccuracy": "Course Accuracy",
-    "nonCourseAccuracy": "Non-Course Accuracy"
+    "nonCourseAccuracy": "Non-Course Accuracy",
+    "showStudentPerformance": "Click to expand",
+    "hideStudentPerformance": "Click to collapse"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",

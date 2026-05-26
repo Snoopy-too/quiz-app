@@ -633,7 +633,9 @@
     "nonCourseQuizzes": "コース外",
     "type": "タイプ",
     "courseAccuracy": "コース正解率",
-    "nonCourseAccuracy": "コース外正解率"
+    "nonCourseAccuracy": "コース外正解率",
+    "showStudentPerformance": "クリックで展開",
+    "hideStudentPerformance": "クリックで折りたたむ"
   },
   "studentReport": {
     "totalQuizzes": "総クイズ数",
