@@ -1039,8 +1039,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
                                     setQuestions(newQuestions);
                                     await Promise.all(updates);
-                                    setSuccess("Time limits updated!");
-                                    setTimeout(() => setSuccess(null), 3000);
+                                    setAlertModal({
+                                      isOpen: true,
+                                      title: t('common.success'),
+                                      message: t('messages.changesSaved') || "Time limits updated!",
+                                      type: "success"
+                                    });
                                   } catch (err) {
                                     setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
                                   } finally {
@@ -1086,8 +1090,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
                                     setQuestions(newQuestions);
                                     await Promise.all(updates);
-                                    setSuccess("Points updated!");
-                                    setTimeout(() => setSuccess(null), 3000);
+                                    setAlertModal({
+                                      isOpen: true,
+                                      title: t('common.success'),
+                                      message: t('messages.changesSaved') || "Points updated!",
+                                      type: "success"
+                                    });
                                   } catch (err) {
                                     setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
                                   } finally {
