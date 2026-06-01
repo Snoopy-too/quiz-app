@@ -1021,24 +1021,23 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                   if (selectedQuestions.size === 0) return;
                                   setSaving(true);
                                   try {
-                                    const updates = [];
                                     const newQuestions = [...questions];
 
-                                    selectedQuestions.forEach(index => {
+                                    for (const index of selectedQuestions) {
                                       const q = newQuestions[index];
-                                      if (!q) return;
+                                      if (!q) continue;
 
                                       // Local update
                                       newQuestions[index] = { ...q, time_limit: bulkTimeLimit };
 
                                       // DB Update if ID exists (it should in Edit mode)
                                       if (q.id) {
-                                        updates.push(supabase.from("questions").update({ time_limit: bulkTimeLimit }).eq("id", q.id));
+                                        const { error } = await supabase.from("questions").update({ time_limit: bulkTimeLimit }).eq("id", q.id);
+                                        if (error) throw error;
                                       }
-                                    });
+                                    }
 
                                     setQuestions(newQuestions);
-                                    await Promise.all(updates);
                                     setAlertModal({
                                       isOpen: true,
                                       title: t('common.success'),
@@ -1046,7 +1045,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                       type: "success"
                                     });
                                   } catch (err) {
-                                    setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
+                                    setAlertModal({ isOpen: true, title: t('common.error'), message: err.message || "Failed to update questions.", type: "error" });
                                   } finally {
                                     setSaving(false);
                                   }
@@ -1072,24 +1071,23 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                   if (selectedQuestions.size === 0) return;
                                   setSaving(true);
                                   try {
-                                    const updates = [];
                                     const newQuestions = [...questions];
 
-                                    selectedQuestions.forEach(index => {
+                                    for (const index of selectedQuestions) {
                                       const q = newQuestions[index];
-                                      if (!q) return;
+                                      if (!q) continue;
 
                                       // Local update
                                       newQuestions[index] = { ...q, points: bulkPoints };
 
                                       // DB Update if ID exists
                                       if (q.id) {
-                                        updates.push(supabase.from("questions").update({ points: bulkPoints }).eq("id", q.id));
+                                        const { error } = await supabase.from("questions").update({ points: bulkPoints }).eq("id", q.id);
+                                        if (error) throw error;
                                       }
-                                    });
+                                    }
 
                                     setQuestions(newQuestions);
-                                    await Promise.all(updates);
                                     setAlertModal({
                                       isOpen: true,
                                       title: t('common.success'),
@@ -1097,7 +1095,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                       type: "success"
                                     });
                                   } catch (err) {
-                                    setAlertModal({ isOpen: true, title: t('common.error'), message: "Failed to update questions.", type: "error" });
+                                    setAlertModal({ isOpen: true, title: t('common.error'), message: err.message || "Failed to update questions.", type: "error" });
                                   } finally {
                                     setSaving(false);
                                   }
