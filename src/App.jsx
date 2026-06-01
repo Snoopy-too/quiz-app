@@ -214,6 +214,7 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_view');
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
+        sessionStorage.removeItem('quizapp_activeFolder');
         setAppState((s) => ({ ...s, currentUser: null }));
         setView("login");
         return;
@@ -229,6 +230,7 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_view');
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
+        sessionStorage.removeItem('quizapp_activeFolder');
         setView("login");
         return;
       }
@@ -240,6 +242,7 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_view');
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
+        sessionStorage.removeItem('quizapp_activeFolder');
         setView("login");
         return;
       }
@@ -352,6 +355,7 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_view');
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
+        sessionStorage.removeItem('quizapp_activeFolder');
         // Clear the logout flag once we're fully signed out
         sessionStorage.removeItem('quizapp_logout_initiated');
         setView("login");

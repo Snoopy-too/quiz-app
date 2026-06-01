@@ -32,6 +32,7 @@ export default function VerticalNav({ currentView, setView, appState }) {
       sessionStorage.removeItem('quizapp_view');
       sessionStorage.removeItem('quizapp_selectedQuizId');
       sessionStorage.removeItem('quizapp_selectedSessionId');
+      sessionStorage.removeItem('quizapp_activeFolder');
 
       // Use global scope to sign out from all tabs/windows
       await supabase.auth.signOut({ scope: 'global' });

@@ -20,7 +20,17 @@ export default function useManageQuizzes(appState) {
   const [assignQuizModal, setAssignQuizModal] = useState(null);
   const [viewAssignmentsModal, setViewAssignmentsModal] = useState(null);
   const [draggedItem, setDraggedItem] = useState(null);
-  const [activeFolder, setActiveFolder] = useState(null);
+  const [activeFolder, setActiveFolder] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("quizapp_activeFolder");
+      if (saved && saved !== "undefined" && saved !== "null") {
+        return saved;
+      }
+    } catch (err) {
+      console.error("[Session Persistence] Error reading activeFolder from sessionStorage:", err);
+    }
+    return null;
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuizzes, setSelectedQuizzes] = useState(new Set());
   const [sortBy, setSortBy] = useState("created_at");
@@ -32,6 +42,19 @@ export default function useManageQuizzes(appState) {
   // Alert/Confirm modals
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+
+  // Sync activeFolder state to sessionStorage
+  useEffect(() => {
+    try {
+      if (activeFolder !== null && activeFolder !== undefined) {
+        sessionStorage.setItem("quizapp_activeFolder", activeFolder);
+      } else {
+        sessionStorage.removeItem("quizapp_activeFolder");
+      }
+    } catch (err) {
+      console.error("[Session Persistence] Error saving activeFolder to sessionStorage:", err);
+    }
+  }, [activeFolder]);
 
   useEffect(() => {
     const init = async () => {
