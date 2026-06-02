@@ -556,6 +556,8 @@ export default function useTeacherSession(sessionId) {
       // Create updated session object (functional updater avoids stale closure)
       const updatedFields = {
         mode,
+        team_scoring_mode: teamScoringMode,
+        allow_shared_device: allowSharedDevice,
         ...(randomizeQuestions && { question_order: updateData.question_order }),
         ...(randomizeAnswers && { randomize_answers: true }),
       };
