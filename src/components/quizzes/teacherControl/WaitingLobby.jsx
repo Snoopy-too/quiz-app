@@ -49,17 +49,22 @@ export default function WaitingLobby({
 
             {isTeamMode ? (
               <>
-                <div className="flex items-center justify-center gap-3 mb-8">
-                  <Users className="text-blue-600" size={32} />
-                  <p className="text-3xl font-bold">{teams.length}</p>
-                  <p className="text-xl text-gray-600">teams joined</p>
-                  <button
-                    onClick={loadParticipants}
-                    className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Refresh team count"
-                  >
-                    <RefreshCw size={24} />
-                  </button>
+                <div className="flex flex-col items-center gap-2 mb-8">
+                  <div className="flex items-center justify-center gap-3">
+                    <Users className="text-blue-600" size={32} />
+                    <p className="text-3xl font-bold">{teams.length}</p>
+                    <p className="text-xl text-gray-600">teams joined</p>
+                    <button
+                      onClick={loadParticipants}
+                      className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Refresh participant count"
+                    >
+                      <RefreshCw size={24} />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    👤 {teams.reduce((sum, team) => sum + (team.members?.length || 0), 0)} total participants
+                  </p>
                 </div>
 
                 {teams.length > 0 && (
