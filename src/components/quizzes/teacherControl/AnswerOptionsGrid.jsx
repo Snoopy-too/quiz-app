@@ -12,6 +12,8 @@ export default function AnswerOptionsGrid({ options, mode = "display", answerCou
   return (
     <div className="grid grid-cols-2 gap-4">
       {options?.map((opt, idx) => {
+        if (!opt.text && !opt.image_url) return null;
+
         const style = ANSWER_STYLES[idx];
         const IconComponent = style.icon;
 

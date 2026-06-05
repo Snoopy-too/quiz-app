@@ -784,14 +784,16 @@ function QuestionItem({ question, index }) {
 
             {/* Options Grid */}
             <div className="flex-1 grid grid-cols-1 gap-2 self-start w-full">
-              {Array.isArray(options) && options.map((opt, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center justify-between p-2.5 rounded-md border 
-                    ${opt.is_correct
-                      ? 'bg-green-50 border-green-200 shadow-sm'
-                      : 'bg-white border-gray-200 opacity-80'}`}
-                >
+              {Array.isArray(options) && options.map((opt, i) => {
+                if (!opt.text && !opt.image_url) return null;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between p-2.5 rounded-md border 
+                      ${opt.is_correct
+                        ? 'bg-green-50 border-green-200 shadow-sm'
+                        : 'bg-white border-gray-200 opacity-80'}`}
+                  >
                   <div className="flex items-center gap-3 overflow-hidden">
                     {/* Shape/Color Icon */}
                     <div className={`w-6 h-6 rounded shrink-0 flex items-center justify-center text-white text-[10px] shadow-sm ${getShapeColor(i)}`}>
@@ -809,7 +811,8 @@ function QuestionItem({ question, index }) {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
         </div>

@@ -1124,6 +1124,7 @@ export default function Reports({ setView, appState }) {
                               <h4 className="font-semibold mb-3">{t("reports.answerDistribution")}</h4>
                               <div className="space-y-2">
                                 {q.options?.map((opt, optIdx) => {
+                                  if (!opt.text && !opt.image_url) return null;
                                   const count = q.optionCounts[optIdx] || 0;
                                   const percentage = q.totalAnswers > 0
                                     ? ((count / q.totalAnswers) * 100).toFixed(1)
