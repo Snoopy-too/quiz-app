@@ -635,7 +635,10 @@
     "courseAccuracy": "コース正解率",
     "nonCourseAccuracy": "コース外正解率",
     "showStudentPerformance": "クリックで展開",
-    "hideStudentPerformance": "クリックで折りたたむ"
+    "hideStudentPerformance": "クリックで折りたたむ",
+    "lastLive": "最終ライブ実施日: {{date}}",
+    "lastLiveNever": "最終ライブ実施日: 未実施",
+    "actionViewReports": "レポートを表示"
   },
   "studentReport": {
     "totalQuizzes": "総クイズ数",

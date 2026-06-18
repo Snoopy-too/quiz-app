@@ -6,7 +6,7 @@ import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import { useTranslation } from "react-i18next";
 
-export default function Reports({ setView, appState }) {
+export default function Reports({ setView, appState, initialQuizId, onClearInitialQuizId }) {
   const { t } = useTranslation();
   const [quizzes, setQuizzes] = useState([]);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
@@ -30,6 +30,18 @@ export default function Reports({ setView, appState }) {
     fetchTeacherQuizzes();
     fetchStudentPerformance();
   }, []);
+
+  useEffect(() => {
+    if (initialQuizId && quizzes.length > 0) {
+      const quiz = quizzes.find(q => q.id === initialQuizId);
+      if (quiz) {
+        handleQuizSelect(quiz);
+        if (onClearInitialQuizId) {
+          onClearInitialQuizId();
+        }
+      }
+    }
+  }, [initialQuizId, quizzes]);
 
   const fetchStudentPerformance = async () => {
     try {

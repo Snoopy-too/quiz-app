@@ -97,19 +97,27 @@ export default function useManageQuizzes(appState) {
 
       const { data, error: fetchError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id), quiz_assignments(count)")
+        .select("id, title, theme_id, background_image_url, category_id, folder_id, created_at, categories(name), questions(id), quiz_assignments(count), quiz_sessions(created_at, status)")
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      // Add question count and assignment count to each quiz
-      const quizzesWithCount = (data || []).map((quiz) => ({
-        ...quiz,
-        questionCount: quiz.questions?.length || 0,
-        assignmentCount: quiz.quiz_assignments?.[0]?.count || 0,
-        themeDetails: themeMap[quiz.theme_id] || null
-      }));
+      // Add question count, assignment count, and last live date to each quiz
+      const quizzesWithCount = (data || []).map((quiz) => {
+        const liveSessions = quiz.quiz_sessions || [];
+        const latestSession = liveSessions.length > 0
+          ? [...liveSessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+          : null;
+
+        return {
+          ...quiz,
+          questionCount: quiz.questions?.length || 0,
+          assignmentCount: quiz.quiz_assignments?.[0]?.count || 0,
+          themeDetails: themeMap[quiz.theme_id] || null,
+          lastLiveDate: latestSession ? latestSession.created_at : null
+        };
+      });
 
       setQuizzes(quizzesWithCount);
     } catch (err) {

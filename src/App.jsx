@@ -754,13 +754,27 @@ export default function QuizApp() {
           if (v === "edit-quiz") setSelectedQuizId(id);
           if (v === "preview-quiz") setSelectedQuizId(id);
           if (v === "teacher-control") setSelectedSessionId(id);
+          if (v === "reports") setSelectedQuizId(id);
           setView(v);
         }}
         appState={appState}
       />
     );
   if (view === "manage-students") return <ManageStudents setView={setView} appState={appState} />;
-  if (view === "reports") return <Reports setView={(v, data) => { if (data?.studentId) { setSelectedStudentId(data.studentId); } setView(v); }} appState={appState} />;
+  if (view === "reports")
+    return (
+      <Reports
+        setView={(v, data) => {
+          if (data?.studentId) {
+            setSelectedStudentId(data.studentId);
+          }
+          setView(v);
+        }}
+        appState={appState}
+        initialQuizId={selectedQuizId}
+        onClearInitialQuizId={() => setSelectedQuizId(null)}
+      />
+    );
   if (view === "student-report") return <StudentReport setView={setView} studentId={selectedStudentId} appState={appState} />;
   if (view === "public-quizzes") return <PublicQuizzes setView={(v, id) => { if (v === "preview-quiz") setSelectedQuizId(id); setView(v); }} appState={appState} viewType="public" />;
   if (view === "global-quizzes") return <PublicQuizzes setView={(v, id) => { if (v === "preview-quiz") setSelectedQuizId(id); setView(v); }} appState={appState} viewType="global" />;

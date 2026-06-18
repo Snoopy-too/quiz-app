@@ -634,7 +634,10 @@
     "courseAccuracy": "Course Accuracy",
     "nonCourseAccuracy": "Non-Course Accuracy",
     "showStudentPerformance": "Click to expand",
-    "hideStudentPerformance": "Click to collapse"
+    "hideStudentPerformance": "Click to collapse",
+    "lastLive": "Last Live: {{date}}",
+    "lastLiveNever": "Last Live: Never",
+    "actionViewReports": "View Reports"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",

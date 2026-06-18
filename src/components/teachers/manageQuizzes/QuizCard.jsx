@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Edit2, Trash2, Copy, Move, Eye, CheckSquare, Square, Calendar, Users } from "lucide-react";
+import { Play, Edit2, Trash2, Copy, Move, Eye, CheckSquare, Square, Calendar, Users, BarChart3 } from "lucide-react";
 
 export default function QuizCard({
   quiz,
@@ -157,6 +157,25 @@ export default function QuizCard({
               <span>•</span>
               <span>{quiz.questionCount} {quiz.questionCount !== 1 ? t('quiz.questions') : t('quiz.question')}</span>
             </div>
+
+            {/* Last Live Date */}
+            <div className="text-xs text-gray-500 mt-1">
+              {quiz.lastLiveDate ? (
+                <span>
+                  {t('reports.lastLive', {
+                    date: new Date(quiz.lastLiveDate).toLocaleString(undefined, {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    })
+                  })}
+                </span>
+              ) : (
+                <span>{t('reports.lastLiveNever')}</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -202,6 +221,13 @@ export default function QuizCard({
               title={t('actions.duplicate')}
             >
               <Copy size={16} />
+            </button>
+            <button
+              onClick={() => setView("reports", quiz.id)}
+              className="p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition flex-1 flex justify-center"
+              title={t('reports.actionViewReports', 'View Reports')}
+            >
+              <BarChart3 size={16} />
             </button>
             <button
               onClick={() => setMoveQuizModal(quiz.id)}
