@@ -1214,7 +1214,7 @@ export default function Reports({ setView, appState }) {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-600 text-sm">
-                                  {student.takenAt ? new Date(student.takenAt).toLocaleString() : '-'}
+                                  {student.takenAt ? new Date(student.takenAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-'}
                                 </td>
                               </tr>
                             ))}
