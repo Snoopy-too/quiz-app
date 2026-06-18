@@ -326,7 +326,8 @@ export default function Reports({ setView, appState }) {
           studentIdNo: p.users?.student_id || "",
           score: p.score || 0,
           type: 'session',
-          sourceId: p.session_id
+          sourceId: p.session_id,
+          takenAt: p.joined_at
         })),
         ...(assignments || []).map(a => ({
           id: a.id, // Assignment ID (acts as Participant ID)
@@ -336,7 +337,8 @@ export default function Reports({ setView, appState }) {
           studentIdNo: a.users?.student_id || "",
           score: a.score || 0,
           type: 'assignment',
-          sourceId: a.id
+          sourceId: a.id,
+          takenAt: a.completed_at
         }))
       ];
 
@@ -419,7 +421,8 @@ export default function Reports({ setView, appState }) {
           questionsAnswered: total,
           correctAnswers: correct,
           accuracy: total > 0 ? ((correct / total) * 100).toFixed(1) : 0,
-          type: p.type // Optional: show if it was assignment or session?
+          type: p.type, // Optional: show if it was assignment or session?
+          takenAt: p.takenAt
         };
       }).sort((a, b) => b.score - a.score)
         .map((player, idx) => ({ ...player, rank: idx + 1 }));
@@ -635,6 +638,10 @@ export default function Reports({ setView, appState }) {
       case 'accuracy':
         aValue = parseFloat(a.accuracy);
         bValue = parseFloat(b.accuracy);
+        break;
+      case 'takenAt':
+        aValue = a.takenAt ? new Date(a.takenAt).getTime() : 0;
+        bValue = b.takenAt ? new Date(b.takenAt).getTime() : 0;
         break;
       default:
         return 0;
@@ -1160,6 +1167,17 @@ export default function Reports({ setView, appState }) {
                                   </span>
                                 </div>
                               </th>
+                              <th
+                                className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
+                                onClick={() => handleQuizStudentSort('takenAt')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {t("studentReport.dateTaken")}
+                                  <span className="text-gray-400">
+                                    {quizStudentSortConfig.key === 'takenAt' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                                  </span>
+                                </div>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1194,6 +1212,9 @@ export default function Reports({ setView, appState }) {
                                     }`}>
                                     {student.accuracy}%
                                   </span>
+                                </td>
+                                <td className="px-6 py-4 text-gray-600 text-sm">
+                                  {student.takenAt ? new Date(student.takenAt).toLocaleString() : '-'}
                                 </td>
                               </tr>
                             ))}
