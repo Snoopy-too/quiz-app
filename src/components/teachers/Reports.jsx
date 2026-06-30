@@ -1178,7 +1178,7 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                                   onClick={() => handleQuizStudentSort('rank')}
                                 >
                                   <div className="flex items-center gap-1">
-                                    {t("reports.tableHeaderRank")}
+                                    {t("reports.rank")}
                                     <span className="text-gray-400">
                                       {quizStudentSortConfig.key === 'rank' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
                                     </span>
@@ -1189,31 +1189,31 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                                   onClick={() => handleQuizStudentSort('name')}
                                 >
                                   <div className="flex items-center gap-1">
-                                    {t("reports.tableHeaderName")}
+                                    {t("reports.student")}
                                     <span className="text-gray-400">
                                       {quizStudentSortConfig.key === 'name' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
                                     </span>
                                   </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderStudentId")}</th>
+                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.studentId")}</th>
                                 <th
                                   className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
                                   onClick={() => handleQuizStudentSort('score')}
                                 >
                                   <div className="flex items-center gap-1">
-                                    {t("reports.tableHeaderScore")}
+                                    {t("reports.score")}
                                     <span className="text-gray-400">
                                       {quizStudentSortConfig.key === 'score' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
                                     </span>
                                   </div>
                                 </th>
-                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.tableHeaderCorrectAnswers")}</th>
+                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.questions")}</th>
                                 <th
                                   className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
                                   onClick={() => handleQuizStudentSort('accuracy')}
                                 >
                                   <div className="flex items-center gap-1">
-                                    {t("reports.tableHeaderAccuracy")}
+                                    {t("reports.accuracyHeader")}
                                     <span className="text-gray-400">
                                       {quizStudentSortConfig.key === 'accuracy' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
                                     </span>
