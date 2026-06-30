@@ -73,6 +73,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   const [isPublic, setIsPublic] = useState(false);
   const [isGlobal, setIsGlobal] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
+  const [isSurvey, setIsSurvey] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -314,7 +315,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
-    if (!hasCorrectAnswer) {
+    if (!isSurvey && !hasCorrectAnswer) {
       setAlertModal({
         isOpen: true,
         title: "Validation Error",
@@ -494,6 +495,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             is_public: isPublic,
             is_global: isGlobal,
             is_course_material: isCourseMaterial,
+            is_survey: isSurvey,
           },
         ])
         .select("id")
@@ -507,8 +509,8 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
           question_text: question.question_text,
           question_type: question.question_type,
           time_limit: question.time_limit,
-          points: question.points,
-          options: question.options,
+          points: isSurvey ? 0 : question.points,
+          options: isSurvey ? question.options.map(opt => ({ ...opt, is_correct: false })) : question.options,
           image_url: question.image_url || null,
           video_url: question.video_url || null,
           gif_url: question.gif_url || null,
@@ -630,21 +632,25 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
-            <input
-              type="number"
-              value={questionForm.points}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                setQuestionForm((prev) => ({
-                  ...prev,
-                  points: Number.isNaN(value) ? prev.points : value,
-                }));
-              }}
-              className="w-full border rounded px-3 py-2"
-              min="10"
-              max="1000"
-            />
+            {!isSurvey && (
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
+                <input
+                  type="number"
+                  value={questionForm.points}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setQuestionForm((prev) => ({
+                      ...prev,
+                      points: Number.isNaN(value) ? prev.points : value,
+                    }));
+                  }}
+                  className="w-full border rounded px-3 py-2"
+                  min="10"
+                  max="1000"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -700,15 +706,17 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                   placeholder={opt.image_url ? "(optional text)" : `${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
-                <label className="flex items-center gap-2 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={opt.is_correct}
-                    onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm">{t('quiz.correctAnswer')}</span>
-                </label>
+                {!isSurvey && (
+                  <label className="flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={opt.is_correct}
+                      onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
+                      className="w-5 h-5"
+                    />
+                    <span className="text-sm">{t('quiz.correctAnswer')}</span>
+                  </label>
+                )}
               </div>
             ))}
           </div>
@@ -912,6 +920,27 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isCourseMaterial')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isSurvey}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setIsSurvey(val);
+                            if (val) {
+                              // Surveys do not need scoring or correct answers, so clear/disable them
+                              setQuestionForm((prev) => ({
+                                ...prev,
+                                points: 0,
+                                options: prev.options.map((o) => ({ ...o, is_correct: false })),
+                              }));
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isSurvey', 'Is Survey')}</span>
                       </label>
                     </div>
                   </div>

@@ -544,6 +544,29 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   // Quiz completed
   if (session.status === "completed") {
+    if (quiz?.is_survey) {
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+            <div className="text-6xl mb-6">📊</div>
+            <h2 className="text-4xl font-bold mb-6">{t('student.surveyComplete', 'Survey Complete!')}</h2>
+            <p className="text-gray-600 mb-8">
+              {t('student.thankYouForParticipation', 'Thank you for your participation!')}
+            </p>
+            <button
+              onClick={() => {
+                clearActiveSession();
+                setView("student-dashboard");
+              }}
+              className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold w-full"
+            >
+              {t('student.backToDashboard')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
@@ -789,22 +812,31 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
             {/* Feedback after answering */}
             {hasAnswered && (
-              <div
-                className={`mt-6 p-4 rounded-xl text-center ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}
-              >
-                <p className="text-2xl font-bold">
-                  {wasCorrect ? `✓ ${t('session.correctAnswer')}` : `✗ ${t('student.incorrect')}`}
-                </p>
-                <p className="text-lg">
-                  {wasCorrect
-                    ? `+${currentQuestion.points} ${t('quiz.points')}!`
-                    : t('student.betterLuckNextTime')}
-                </p>
-                <p className="text-sm mt-2 opacity-75">
-                  Waiting for other players...
-                </p>
-              </div>
+              quiz?.is_survey ? (
+                <div className="mt-6 p-4 rounded-xl text-center bg-blue-100 text-blue-800">
+                  <p className="text-2xl font-bold">✓ {t('student.answerSubmitted', 'Answer Submitted')}</p>
+                  <p className="text-sm mt-2 opacity-75">
+                    {t('student.waitingForOtherPlayers', 'Waiting for other players...')}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={`mt-6 p-4 rounded-xl text-center ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}
+                >
+                  <p className="text-2xl font-bold">
+                    {wasCorrect ? `✓ ${t('session.correctAnswer')}` : `✗ ${t('student.incorrect')}`}
+                  </p>
+                  <p className="text-lg">
+                    {wasCorrect
+                      ? `+${currentQuestion.points} ${t('quiz.points')}!`
+                      : t('student.betterLuckNextTime')}
+                  </p>
+                  <p className="text-sm mt-2 opacity-75">
+                    Waiting for other players...
+                  </p>
+                </div>
+              )
             )}
 
             {!hasAnswered && timeRemaining === 0 && (
@@ -833,6 +865,22 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   // Showing results
   if (session.status === "showing_results" && currentQuestion) {
+    if (quiz?.is_survey) {
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
+            <div className="text-6xl mb-4">👍</div>
+            <h2 className="text-4xl font-bold text-blue-600 mb-6">{t('student.answerRecorded', 'Answer Recorded')}</h2>
+            <p className="text-gray-600">
+              {session.current_question_index >= questions.length - 1
+                ? t('student.waitingForResults', 'Waiting for teacher to show final results...')
+                : t('student.waitingForNextQuestion', 'Waiting for next question...')}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">

@@ -60,6 +60,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   const [isPublic, setIsPublic] = useState(false);
   const [isGlobal, setIsGlobal] = useState(false);
   const [isCourseMaterial, setIsCourseMaterial] = useState(true);
+  const [isSurvey, setIsSurvey] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [folders, setFolders] = useState([]);
   const [activeTab, setActiveTab] = useState("settings");
@@ -98,7 +99,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     try {
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
-        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public, is_global, is_course_material")
+        .select("id, title, theme_id, background_image_url, folder_id, is_template, is_public, is_global, is_course_material, is_survey")
         .eq("id", quizId)
         .single();
 
@@ -112,6 +113,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       setIsPublic(Boolean(quizData.is_public));
       setIsGlobal(Boolean(quizData.is_global));
       setIsCourseMaterial(quizData.is_course_material !== false);
+      setIsSurvey(Boolean(quizData.is_survey));
 
       const { data: questionsData, error: questionsError } = await supabase
         .from("questions")
@@ -215,11 +217,11 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     }
 
     const hasCorrectAnswer = questionForm.options.some((opt) => opt.is_correct);
-    if (!hasCorrectAnswer) {
+    if (!isSurvey && !hasCorrectAnswer) {
       setAlertModal({
         isOpen: true,
         title: "Validation Error",
-        message: t('quiz.markCorrectAnswer'),
+        message: t('quiz.markCorrectAnswer') || "Please mark at least one answer as correct.",
         type: "warning"
       });
       return;
@@ -236,10 +238,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         question_text: questionForm.question_text.trim(),
         question_type: questionForm.question_type,
         time_limit: questionForm.time_limit,
-        points: questionForm.points,
+        points: isSurvey ? 0 : questionForm.points,
         options: questionForm.options.map((opt) => ({
           text: opt.text.trim(),
-          is_correct: opt.is_correct,
+          is_correct: isSurvey ? false : opt.is_correct,
           image_url: opt.image_url || "",
         })),
         image_url: questionForm.image_url || null,
@@ -493,10 +495,22 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
         is_public: isPublic,
         is_global: isGlobal,
         is_course_material: isCourseMaterial,
+        is_survey: isSurvey,
       };
 
       const { error: updateError } = await supabase.from("quizzes").update(payload).eq("id", quizId);
       if (updateError) throw updateError;
+
+      if (isSurvey) {
+        // Clear all points and correct answers for existing questions of this quiz
+        for (const q of questions) {
+          const cleanedOptions = q.options.map(opt => ({ ...opt, is_correct: false }));
+          await supabase.from("questions").update({
+            points: 0,
+            options: cleanedOptions
+          }).eq("id", q.id);
+        }
+      }
 
       if (exit) {
         setView("manage-quizzes");
@@ -611,22 +625,26 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
-            <input
-              type="number"
-              value={questionForm.points}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                setQuestionForm((prev) => ({
-                  ...prev,
-                  points: Number.isNaN(value) ? prev.points : value,
-                }));
-              }}
-              className="w-full border rounded px-3 py-2"
-              min="10"
-              max="1000"
-            />
-          </div>
+           {!isSurvey && (
+             <div>
+               <label className="block text-sm font-medium mb-1">{t('quiz.points')}</label>
+               <input
+                 type="number"
+                 value={questionForm.points}
+                 onChange={(e) => {
+                   const value = parseInt(e.target.value, 10);
+                   setQuestionForm((prev) => ({
+                     ...prev,
+                     points: Number.isNaN(value) ? prev.points : value,
+                   }));
+                 }}
+                 className="w-full border rounded px-3 py-2"
+                 min="10"
+                 max="1000"
+               />
+             </div>
+           )}
+         </div>
         </div>
 
         <div>
@@ -681,15 +699,17 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   placeholder={opt.image_url ? "(optional text)" : `${t('quiz.option')} ${idx + 1}`}
                   disabled={questionForm.question_type === "true_false"}
                 />
-                <label className="flex items-center gap-2 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={opt.is_correct}
-                    onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm">{t('quiz.correct')}</span>
-                </label>
+                 {!isSurvey && (
+                   <label className="flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                     <input
+                       type="checkbox"
+                       checked={opt.is_correct}
+                       onChange={(e) => updateOption(idx, "is_correct", e.target.checked)}
+                       className="w-5 h-5"
+                     />
+                     <span className="text-sm">{t('quiz.correct')}</span>
+                   </label>
+                 )}
               </div>
             ))}
           </div>
@@ -931,6 +951,26 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                           className="w-4 h-4"
                         />
                         <span className="text-sm">{t('quiz.isCourseMaterial')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isSurvey}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setIsSurvey(val);
+                            if (val) {
+                              setQuestionForm((prev) => ({
+                                ...prev,
+                                points: 0,
+                                options: prev.options.map((o) => ({ ...o, is_correct: false })),
+                              }));
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{t('quiz.isSurvey', 'Is Survey')}</span>
                       </label>
                     </div>
                   </div>

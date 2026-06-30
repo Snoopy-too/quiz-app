@@ -75,7 +75,7 @@ export default function QuestionResults({
             <MediaDisplay question={currentQuestion} className="max-w-md mx-auto rounded-lg shadow-lg mb-6" />
 
             <div className="mb-8">
-              <AnswerOptionsGrid options={displayOptions} mode="results" answerCounts={answerCounts} />
+              <AnswerOptionsGrid options={displayOptions} mode="results" answerCounts={answerCounts} isSurvey={quiz?.is_survey} />
             </div>
 
             <div className="flex justify-center">
@@ -95,16 +95,18 @@ export default function QuestionResults({
                   className="bg-blue-700 text-white px-12 py-4 rounded-xl hover:bg-blue-800 text-xl font-bold flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trophy size={24} />
-                  {endingQuiz ? 'Finishing...' : 'Show Final Results'}
+                  {endingQuiz ? 'Finishing...' : (quiz?.is_survey ? 'Finish Survey' : 'Show Final Results')}
                 </button>
               )}
             </div>
           </div>
 
           {/* Leaderboard */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
-            <Leaderboard participants={participants} teams={teams} mode={session.mode} limit={5} />
-          </div>
+          {!quiz?.is_survey && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-6">
+              <Leaderboard participants={participants} teams={teams} mode={session.mode} limit={5} />
+            </div>
+          )}
         </div>
       </div>
     </>

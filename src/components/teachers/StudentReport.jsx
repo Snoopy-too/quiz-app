@@ -46,6 +46,7 @@ export default function StudentReport({ setView, studentId, appState }) {
                 id,
                 title,
                 is_course_material,
+                is_survey,
                 questions (id)
               )
             ),
@@ -70,6 +71,7 @@ export default function StudentReport({ setView, studentId, appState }) {
               id,
               title,
               is_course_material,
+              is_survey,
               questions (id)
             ),
             assignment_answers (
@@ -83,7 +85,7 @@ export default function StudentReport({ setView, studentId, appState }) {
 
       // Process sessions
       const sessionQuizzes = participations
-        .filter(p => p.quiz_sessions?.status === 'completed')
+        .filter(p => p.quiz_sessions?.status === 'completed' && !p.quiz_sessions?.quizzes?.is_survey)
         .map(p => {
           const correctAnswers = p.quiz_answers.filter(a => a.is_correct).length;
           const totalQuestions = p.quiz_sessions?.quizzes?.questions?.length || p.quiz_answers.length;
@@ -105,7 +107,9 @@ export default function StudentReport({ setView, studentId, appState }) {
         });
 
       // Process assignments
-      const assignmentQuizzes = assignmentsData.map(a => {
+      const assignmentQuizzes = assignmentsData
+        .filter(a => !a.quizzes?.is_survey)
+        .map(a => {
         const correctAnswers = a.assignment_answers.filter(ans => ans.is_correct).length;
         const totalQuestions = a.quizzes?.questions?.length || a.assignment_answers.length;
         const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;

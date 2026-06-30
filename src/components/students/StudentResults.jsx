@@ -56,7 +56,8 @@ export default function StudentResults({ appState, onBack }) {
             quizzes (
               id,
               title,
-              is_course_material
+              is_course_material,
+              is_survey
             )
           )
         `)
@@ -65,9 +66,9 @@ export default function StudentResults({ appState, onBack }) {
 
       if (participantError) throw participantError;
 
-      // Filter out cancelled sessions - only show completed quizzes
+      // Filter out cancelled sessions and surveys - only show completed quizzes
       const completedParticipantData = participantData.filter(
-        p => p.quiz_sessions?.status === 'completed'
+        p => p.quiz_sessions?.status === 'completed' && !p.quiz_sessions?.quizzes?.is_survey
       );
 
       // For each session, fetch the answers
@@ -114,7 +115,8 @@ export default function StudentResults({ appState, onBack }) {
           quizzes (
             id,
             title,
-            is_course_material
+            is_course_material,
+            is_survey
           )
         `)
         .eq("student_id", appState.currentUser.id)
@@ -123,8 +125,12 @@ export default function StudentResults({ appState, onBack }) {
 
       if (assignmentError) throw assignmentError;
 
+      const filteredAssignmentData = assignmentData.filter(
+        a => !a.quizzes?.is_survey
+      );
+
       const assignmentHistory = await Promise.all(
-        assignmentData.map(async (assignment) => {
+        filteredAssignmentData.map(async (assignment) => {
           // We need total questions count. We can count answers in assignment_answers
           const { count, error: countError } = await supabase
             .from("assignment_answers")

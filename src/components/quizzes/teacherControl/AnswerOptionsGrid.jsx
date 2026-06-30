@@ -8,7 +8,7 @@ const ANSWER_STYLES = [
   { bg: "bg-green-500", icon: Club },
 ];
 
-export default function AnswerOptionsGrid({ options, mode = "display", answerCounts }) {
+export default function AnswerOptionsGrid({ options, mode = "display", answerCounts, isSurvey = false }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       {options?.map((opt, idx) => {
@@ -18,11 +18,11 @@ export default function AnswerOptionsGrid({ options, mode = "display", answerCou
         const IconComponent = style.icon;
 
         if (mode === "results") {
-          const isCorrect = opt.is_correct;
+          const isCorrect = !isSurvey && opt.is_correct;
           return (
             <div
               key={idx}
-              className={`${style.bg} ${isCorrect ? "ring-4 ring-white" : "opacity-60"} text-white p-6 rounded-lg relative`}
+              className={`${style.bg} ${isCorrect ? "ring-4 ring-white" : (isSurvey ? "opacity-100" : "opacity-60")} text-white p-6 rounded-lg relative`}
             >
               <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
               <div className="text-xl font-bold mb-2 mt-8">{opt.text}</div>

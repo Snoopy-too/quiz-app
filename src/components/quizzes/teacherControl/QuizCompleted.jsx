@@ -9,6 +9,49 @@ export default function QuizCompleted({
   teams,
   setView,
 }) {
+  if (quiz?.is_survey) {
+    return (
+      <>
+        <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
+          <button
+            onClick={() => setView("manage-quizzes")}
+            className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800"
+          >
+            Back to Quizzes
+          </button>
+        </nav>
+
+        <div className="flex-1">
+          <div className="container mx-auto p-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 mb-6 text-center max-w-2xl mx-auto">
+              <span className="text-6xl mb-6 block">📊</span>
+              <h2 className="text-4xl font-bold mb-4 text-center">Survey Complete!</h2>
+              <p className="text-gray-600 text-lg mb-8">
+                Thank you for completing this survey.
+              </p>
+              <div className="bg-gray-50 rounded-xl p-6 mb-8 text-left border max-w-md mx-auto">
+                <h3 className="font-semibold text-gray-800 mb-4 border-b pb-2">Survey Overview</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div className="font-medium">Total Questions:</div>
+                  <div className="font-bold text-gray-900 text-right">{quiz.questions?.length || 'N/A'}</div>
+                  <div className="font-medium">Total Respondents:</div>
+                  <div className="font-bold text-gray-900 text-right">{participants.length}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setView("manage-quizzes")}
+                className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 text-xl font-semibold max-w-md mx-auto block w-full"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
 
   // Determine top 3 based on mode
