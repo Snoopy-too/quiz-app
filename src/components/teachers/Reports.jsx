@@ -1233,7 +1233,7 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                               </tr>
                             </thead>
                             <tbody>
-                              {sortedQuizStudentPerformance.map((student) => (
+                              {sortedQuizPerformance.map((student) => (
                                 <tr key={student.id} className="border-b hover:bg-blue-50 transition-colors">
                                   <td className="px-6 py-4 font-semibold text-gray-800">#{student.rank}</td>
                                   <td className="px-6 py-4">
