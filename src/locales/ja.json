@@ -602,6 +602,7 @@
     "averageScore": "平均スコア",
     "overallAccuracy": "全体的な正解率",
     "questionPerformance": "問題パフォーマンス",
+    "surveyAnswers": "アンケートの回答",
     "questionLabel": "Q",
     "answeredTimes": "回答数：{{count}}回",
     "accuracy": "正解率：{{percent}}%",

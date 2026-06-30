@@ -1236,7 +1236,9 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
 
                   {/* Question Analytics */}
                   <div className="bg-white rounded-xl shadow-md p-6">
-                    <h3 className="text-2xl font-bold mb-4">{t("reports.questionPerformance")}</h3>
+                    <h3 className="text-2xl font-bold mb-4">
+                      {selectedQuiz?.is_survey ? t("reports.surveyAnswers") : t("reports.questionPerformance")}
+                    </h3>
                     <div className="space-y-4">
                       {quizStats.questionAnalytics.map((q, idx) => (
                         <div key={q.id} className="border rounded-lg p-4">

@@ -601,6 +601,7 @@
     "averageScore": "Average Score",
     "overallAccuracy": "Overall Accuracy",
     "questionPerformance": "Question Performance",
+    "surveyAnswers": "Survey Answers",
     "questionLabel": "Q",
     "answeredTimes": "Answered: {{count}} times",
     "accuracy": "Accuracy: {{percent}}%",
