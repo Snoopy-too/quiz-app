@@ -18,8 +18,10 @@ import {
   HelpCircle,
   ImageIcon,
   Shuffle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { uploadImage, uploadVideo, uploadGIF } from "../../utils/mediaUpload";
+import { parseKahootCSV } from "../../utils/csvQuizParser";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
@@ -79,6 +81,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   // Option image upload refs and state
   const optionImageRefs = useRef([]);
   const [uploadingOptionIndex, setUploadingOptionIndex] = useState(null);
+  const csvInputRef = useRef(null);
 
   // Bulk Edit State
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
@@ -175,6 +178,69 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     setQuestionFormMode(null);
     setEditingQuestion(null);
     setQuestionError(null);
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        setSaving(true);
+        const csvContent = event.target?.result;
+        if (typeof csvContent !== 'string') {
+          throw new Error("Invalid file content");
+        }
+        const { title: csvTitle, questions: csvQuestions } = parseKahootCSV(csvContent, file.name);
+
+        if (!title.trim() && csvTitle) {
+          setTitle(csvTitle);
+          await supabase.from("quizzes").update({ title: csvTitle }).eq("id", quizId);
+        }
+
+        if (csvQuestions.length > 0) {
+          // Prepare payload to insert questions immediately
+          const payload = csvQuestions.map((question, index) => ({
+            quiz_id: quizId,
+            question_text: question.question_text,
+            question_type: question.question_type,
+            time_limit: question.time_limit,
+            points: isSurvey ? 0 : question.points,
+            options: isSurvey
+              ? question.options.map((opt) => ({ ...opt, is_correct: false }))
+              : question.options,
+            image_url: question.image_url || null,
+            video_url: question.video_url || null,
+            gif_url: question.gif_url || null,
+            order_index: questions.length + index,
+          }));
+
+          const { error: insertQuestionsError } = await supabase.from("questions").insert(payload);
+          if (insertQuestionsError) throw insertQuestionsError;
+        }
+
+        await fetchQuizAndQuestions();
+
+        setAlertModal({
+          isOpen: true,
+          title: t('common.success'),
+          message: `${csvQuestions.length} ${t('quiz.questions').toLowerCase()} imported successfully.`,
+          type: "success"
+        });
+      } catch (err) {
+        setAlertModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: `Failed to parse CSV: ${err.message}`,
+          type: "error"
+        });
+      } finally {
+        setSaving(false);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   const handleAddQuestion = () => {
@@ -997,6 +1063,30 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                           {t('quiz.shuffleQuestions')}
                         </button>
                       )}
+                      <input
+                        type="file"
+                        ref={csvInputRef}
+                        accept=".csv"
+                        onChange={handleCSVUpload}
+                        className="hidden"
+                      />
+                      {questions.length >= 2 && (
+                        <button
+                          onClick={handleShuffleQuestions}
+                          className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
+                          title={t('quiz.shuffleQuestions')}
+                        >
+                          <Shuffle size={16} />
+                          {t('quiz.shuffleQuestions')}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => csvInputRef.current?.click()}
+                        className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <FileSpreadsheet size={16} />
+                        {t('quiz.importCSV') || 'Import CSV'}
+                      </button>
                       <button
                         onClick={handleAddQuestion}
                         className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2 text-sm font-medium"
@@ -1014,12 +1104,21 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('quiz.noQuestions')}</h3>
                       <p className="text-gray-600 mb-6">{t('quiz.startBuildingQuiz')}</p>
-                      <button
-                        onClick={handleAddQuestion}
-                        className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
-                      >
-                        {t('quiz.addFirstQuestion')}
-                      </button>
+                      <div className="flex justify-center gap-3">
+                        <button
+                          onClick={handleAddQuestion}
+                          className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
+                        >
+                          {t('quiz.addFirstQuestion')}
+                        </button>
+                        <button
+                          onClick={() => csvInputRef.current?.click()}
+                          className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition font-medium flex items-center gap-2"
+                        >
+                          <FileSpreadsheet size={18} />
+                          {t('quiz.importCSV') || 'Import CSV'}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
