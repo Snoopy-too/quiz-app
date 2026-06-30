@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus } from "lucide-react";
+import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus, BarChart3 } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 
-export default function SuperAdminDashboard({ setView, appState }) {
+export default function SuperAdminDashboard({ setView, appState, setSelectedTeacherId }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -798,6 +798,18 @@ export default function SuperAdminDashboard({ setView, appState }) {
                         </td>
                         <td className="p-4">
                           <div className="flex gap-2">
+                            {user.role === "teacher" && (
+                              <button
+                                onClick={() => {
+                                  setSelectedTeacherId(user.id);
+                                  setView("reports");
+                                }}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded"
+                                title="View Teacher Reports"
+                              >
+                                <BarChart3 size={18} />
+                              </button>
+                            )}
                             <button
                               onClick={() => openEditModal(user)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded"

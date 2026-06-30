@@ -6,7 +6,7 @@ import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import { useTranslation } from "react-i18next";
 
-export default function Reports({ setView, appState, initialQuizId, onClearInitialQuizId }) {
+export default function Reports({ setView, appState, initialQuizId, onClearInitialQuizId, teacherId }) {
   const { t } = useTranslation();
   const [quizzes, setQuizzes] = useState([]);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
@@ -25,11 +25,27 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
   const [quizStudentSortConfig, setQuizStudentSortConfig] = useState({ key: 'score', direction: 'desc' });
   const [reportTab, setReportTab] = useState('all'); // 'all' | 'course' | 'non-course' | 'survey'
   const [showStudentPerformance, setShowStudentPerformance] = useState(false);
+  const [teacherName, setTeacherName] = useState("");
+
+  useEffect(() => {
+    if (teacherId) {
+      supabase
+        .from("users")
+        .select("name")
+        .eq("id", teacherId)
+        .single()
+        .then(({ data }) => {
+          if (data) setTeacherName(data.name);
+        });
+    } else {
+      setTeacherName("");
+    }
+  }, [teacherId]);
 
   useEffect(() => {
     fetchTeacherQuizzes();
     fetchStudentPerformance();
-  }, []);
+  }, [teacherId]);
 
   useEffect(() => {
     if (initialQuizId && quizzes.length > 0) {
@@ -48,11 +64,13 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const effectiveTeacherId = teacherId || user.id;
+
       // 1. Get teacher's students
       const { data: students, error: studentsError } = await supabase
         .from('users')
         .select('id, name, student_id')
-        .eq('teacher_id', user.id)
+        .eq('teacher_id', effectiveTeacherId)
         .eq('role', 'student');
 
       if (studentsError) throw studentsError;
@@ -181,6 +199,8 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
       const { data: user } = await supabase.auth.getUser();
       if (!user?.user) return;
 
+      const effectiveTeacherId = teacherId || user.user.id;
+
       // Fetch teacher's quizzes with session and assignment count
       const { data: quizzesData, error: quizzesError } = await supabase
         .from("quizzes")
@@ -193,7 +213,7 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
           quiz_sessions(id, status, created_at),
           quiz_assignments(id, status, completed_at)
         `)
-        .eq("created_by", user.user.id);
+        .eq("created_by", effectiveTeacherId);
 
       if (quizzesError) throw quizzesError;
 
@@ -698,8 +718,20 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
 
       {/* Main Content */}
       <div className="flex-1 ml-64">
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <h1 className="text-2xl font-bold text-blue-600">{t("reports.title")}</h1>
+        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {teacherId && (
+              <button
+                onClick={() => setView("superadmin-dashboard")}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition text-sm font-medium"
+              >
+                &larr; Back to Dashboard
+              </button>
+            )}
+            <h1 className="text-2xl font-bold text-blue-600">
+              {t("reports.title")}{teacherName ? ` - ${teacherName}` : ""}
+            </h1>
+          </div>
         </nav>
 
         <div className="container mx-auto p-6">
@@ -894,12 +926,14 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
               {filteredQuizzes.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-md text-center py-12">
                   <p className="text-gray-600 mb-4">{t("reports.noQuizzesFound")}</p>
-                  <button
-                    onClick={() => setView("create-quiz")}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-                  >
-                    {t("reports.createQuiz")}
-                  </button>
+                  {!teacherId && (
+                    <button
+                      onClick={() => setView("create-quiz")}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                    >
+                      {t("reports.createQuiz")}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -1042,16 +1076,18 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                                   <Download size={16} />
                                   {t("reports.actionExport")}
                                 </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(quiz);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                                >
-                                  <Trash2 size={16} />
-                                  {t("reports.actionDelete")}
-                                </button>
+                                {!teacherId && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(quiz);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                                  >
+                                    <Trash2 size={16} />
+                                    {t("reports.actionDelete")}
+                                  </button>
+                                )}
                               </div>
                             )}
                           </td>

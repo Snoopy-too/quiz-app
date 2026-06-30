@@ -109,6 +109,18 @@ export default function QuizApp() {
     return null;
   });
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('quizapp_selectedTeacherId');
+      if (saved && saved !== 'undefined' && saved !== 'null') {
+        return JSON.parse(saved);
+      }
+    } catch (err) {
+      console.error('[Session Persistence] Error reading selectedTeacherId from sessionStorage:', err);
+      sessionStorage.removeItem('quizapp_selectedTeacherId');
+    }
+    return null;
+  });
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
@@ -153,6 +165,18 @@ export default function QuizApp() {
       console.error('[Session Persistence] Error saving selectedSessionId:', err);
     }
   }, [selectedSessionId]);
+
+  useEffect(() => {
+    try {
+      if (selectedTeacherId !== null && selectedTeacherId !== undefined) {
+        sessionStorage.setItem('quizapp_selectedTeacherId', JSON.stringify(selectedTeacherId));
+      } else {
+        sessionStorage.removeItem('quizapp_selectedTeacherId');
+      }
+    } catch (err) {
+      console.error('[Session Persistence] Error saving selectedTeacherId:', err);
+    }
+  }, [selectedTeacherId]);
 
   // Bootstrap session on initial load & on auth state changes
   useEffect(() => {
@@ -215,6 +239,8 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
         sessionStorage.removeItem('quizapp_activeFolder');
+        sessionStorage.removeItem('quizapp_selectedTeacherId');
+        setSelectedTeacherId(null);
         setAppState((s) => ({ ...s, currentUser: null }));
         setView("login");
         return;
@@ -231,6 +257,8 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
         sessionStorage.removeItem('quizapp_activeFolder');
+        sessionStorage.removeItem('quizapp_selectedTeacherId');
+        setSelectedTeacherId(null);
         setView("login");
         return;
       }
@@ -243,6 +271,8 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
         sessionStorage.removeItem('quizapp_activeFolder');
+        sessionStorage.removeItem('quizapp_selectedTeacherId');
+        setSelectedTeacherId(null);
         setView("login");
         return;
       }
@@ -356,6 +386,8 @@ export default function QuizApp() {
         sessionStorage.removeItem('quizapp_selectedQuizId');
         sessionStorage.removeItem('quizapp_selectedSessionId');
         sessionStorage.removeItem('quizapp_activeFolder');
+        sessionStorage.removeItem('quizapp_selectedTeacherId');
+        setSelectedTeacherId(null);
         // Clear the logout flag once we're fully signed out
         sessionStorage.removeItem('quizapp_logout_initiated');
         setView("login");
@@ -709,6 +741,7 @@ export default function QuizApp() {
         appState={appState}
         setAppState={setAppState}
         setView={setView}
+        setSelectedTeacherId={setSelectedTeacherId}
       />
     );
 
@@ -773,6 +806,7 @@ export default function QuizApp() {
         appState={appState}
         initialQuizId={selectedQuizId}
         onClearInitialQuizId={() => setSelectedQuizId(null)}
+        teacherId={selectedTeacherId}
       />
     );
   if (view === "student-report") return <StudentReport setView={setView} studentId={selectedStudentId} appState={appState} />;
