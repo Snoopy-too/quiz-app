@@ -549,6 +549,21 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       return;
     }
 
+    if (!isSurvey) {
+      const hasInvalidQuestions = questions.some((q) => !q.options?.some((opt) => opt.is_correct));
+      if (hasInvalidQuestions) {
+        setAlertModal({
+          isOpen: true,
+          title: t('common.error'),
+          message: t('quiz.missingCorrectAnswerError', "One or more questions do not have a correct answer selected. Please edit them to select a correct answer."),
+          type: "warning"
+        });
+        setActiveTab("questions");
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
       const payload = {
         title: title.trim(),
@@ -1306,6 +1321,11 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                       <span>{isEditing ? questionForm.points : question.points} pts</span>
                                     </div>
                                   </div>
+                                  {!isSurvey && !question.options?.some(opt => opt.is_correct) && (
+                                    <span className="text-xs font-semibold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                      ⚠️ {t('quiz.noCorrectAnswerWarning', 'No correct answer selected')}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
