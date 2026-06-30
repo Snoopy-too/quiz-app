@@ -327,7 +327,7 @@ export default function QuizApp() {
         profile.teacher_invite_code ||
         profile.teacher_id ||
         (profile.role === "teacher" && profile.teacher_code);
-      const needsProfileCompletion = isGoogleUser && !hasInviteOrLink;
+      const needsProfileCompletion = isGoogleUser && profile.role !== "superadmin" && !hasInviteOrLink;
 
       if (needsProfileCompletion) {
         console.log('[load] Google user missing teacher link, redirecting to complete-profile');
