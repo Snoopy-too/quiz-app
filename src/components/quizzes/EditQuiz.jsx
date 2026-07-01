@@ -504,7 +504,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       }));
 
       for (const update of updates) {
-        await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
+        const { error } = await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
+        if (error) throw error;
       }
 
       await fetchQuizAndQuestions();
@@ -525,7 +526,8 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     try {
       const updates = shuffled.map((q, idx) => ({ id: q.id, order_index: idx }));
       for (const update of updates) {
-        await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
+        const { error } = await supabase.from("questions").update({ order_index: update.order_index }).eq("id", update.id);
+        if (error) throw error;
       }
     } catch (err) {
       await fetchQuizAndQuestions();
@@ -1085,16 +1087,6 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         onChange={handleCSVUpload}
                         className="hidden"
                       />
-                      {questions.length >= 2 && (
-                        <button
-                          onClick={handleShuffleQuestions}
-                          className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
-                          title={t('quiz.shuffleQuestions')}
-                        >
-                          <Shuffle size={16} />
-                          {t('quiz.shuffleQuestions')}
-                        </button>
-                      )}
                       <button
                         onClick={() => csvInputRef.current?.click()}
                         className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 text-sm font-medium"
