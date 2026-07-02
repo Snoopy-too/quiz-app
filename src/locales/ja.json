@@ -639,7 +639,9 @@
     "hideStudentPerformance": "クリックで折りたたむ",
     "lastLive": "最終ライブ実施日: {{date}}",
     "lastLiveNever": "最終ライブ実施日: 未実施",
-    "actionViewReports": "レポートを表示"
+    "actionViewReports": "レポートを表示",
+    "tableHeaderActions": "操作",
+    "actionViewReport": "セッションパフォーマンスを表示"
   },
   "studentReport": {
     "totalQuizzes": "総クイズ数",

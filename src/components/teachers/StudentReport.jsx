@@ -6,7 +6,14 @@ import { Trash2, RefreshCw, X, CheckCircle, XCircle, Clock, HelpCircle, FileText
 import ConfirmModal from '../common/ConfirmModal';
 import AlertModal from '../common/AlertModal';
 
-export default function StudentReport({ setView, studentId, appState }) {
+export default function StudentReport({
+  setView,
+  studentId,
+  appState,
+  initialAttemptId,
+  initialAttemptType,
+  onClearInitialAttempt
+}) {
   const { t } = useTranslation();
   const [student, setStudent] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
@@ -409,6 +416,20 @@ export default function StudentReport({ setView, studentId, appState }) {
   const handleViewDetails = (quiz) => {
     fetchResultDetails(quiz);
   };
+
+  useEffect(() => {
+    if (performanceData && initialAttemptId && initialAttemptType) {
+      const matchingAttempt = performanceData.quizzes.find(
+        q => String(q.participantId) === String(initialAttemptId) && q.type === initialAttemptType
+      );
+      if (matchingAttempt) {
+        handleViewDetails(matchingAttempt);
+      }
+      if (onClearInitialAttempt) {
+        onClearInitialAttempt();
+      }
+    }
+  }, [performanceData, initialAttemptId, initialAttemptType]);
 
   const closeDetails = () => {
     setSelectedResult(null);

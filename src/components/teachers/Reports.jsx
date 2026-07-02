@@ -485,6 +485,18 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
     fetchQuizStatistics(quiz.id);
   };
 
+  const handleStudentSelect = (student) => {
+    setView('student-report', { studentId: student.studentId });
+  };
+
+  const handleViewAttemptDetail = (student) => {
+    setView('student-report', {
+      studentId: student.studentId,
+      attemptId: student.id,
+      attemptType: student.type
+    });
+  };
+
   const handleCheckboxChange = (quizId) => {
     setSelectedReports(prev =>
       prev.includes(quizId)
@@ -1230,6 +1242,9 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                                     </span>
                                   </div>
                                 </th>
+                                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                                  {t("reports.tableHeaderActions")}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1260,6 +1275,15 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                                   </td>
                                   <td className="px-6 py-4 text-gray-600 text-sm">
                                     {student.takenAt ? new Date(student.takenAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-'}
+                                  </td>
+                                  <td className="px-6 py-4 text-left">
+                                    <button
+                                      onClick={() => handleViewAttemptDetail(student)}
+                                      className="p-1.5 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors flex items-center justify-center"
+                                      title={t("reports.actionViewReport", "View Session Performance")}
+                                    >
+                                      <Eye size={18} />
+                                    </button>
                                   </td>
                                 </tr>
                               ))}

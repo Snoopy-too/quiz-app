@@ -638,7 +638,9 @@
     "hideStudentPerformance": "Click to collapse",
     "lastLive": "Last Live: {{date}}",
     "lastLiveNever": "Last Live: Never",
-    "actionViewReports": "View Reports"
+    "actionViewReports": "View Reports",
+    "tableHeaderActions": "Actions",
+    "actionViewReport": "View Session Performance"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",

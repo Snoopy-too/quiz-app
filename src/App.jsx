@@ -122,6 +122,8 @@ export default function QuizApp() {
     return null;
   });
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
+  const [selectedAttemptId, setSelectedAttemptId] = useState(null);
+  const [selectedAttemptType, setSelectedAttemptType] = useState(null);
   const [formData, setFormData] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -801,6 +803,13 @@ export default function QuizApp() {
           if (data?.studentId) {
             setSelectedStudentId(data.studentId);
           }
+          if (data?.attemptId) {
+            setSelectedAttemptId(data.attemptId);
+            setSelectedAttemptType(data.attemptType);
+          } else {
+            setSelectedAttemptId(null);
+            setSelectedAttemptType(null);
+          }
           setView(v);
         }}
         appState={appState}
@@ -809,7 +818,20 @@ export default function QuizApp() {
         teacherId={selectedTeacherId}
       />
     );
-  if (view === "student-report") return <StudentReport setView={setView} studentId={selectedStudentId} appState={appState} />;
+  if (view === "student-report")
+    return (
+      <StudentReport
+        setView={setView}
+        studentId={selectedStudentId}
+        appState={appState}
+        initialAttemptId={selectedAttemptId}
+        initialAttemptType={selectedAttemptType}
+        onClearInitialAttempt={() => {
+          setSelectedAttemptId(null);
+          setSelectedAttemptType(null);
+        }}
+      />
+    );
   if (view === "public-quizzes") return <PublicQuizzes setView={(v, id) => { if (v === "preview-quiz") setSelectedQuizId(id); setView(v); }} appState={appState} viewType="public" />;
   if (view === "global-quizzes") return <PublicQuizzes setView={(v, id) => { if (v === "preview-quiz") setSelectedQuizId(id); setView(v); }} appState={appState} viewType="global" />;
   if (view === "settings") return <Settings setView={setView} appState={appState} setAppState={setAppState} />;
