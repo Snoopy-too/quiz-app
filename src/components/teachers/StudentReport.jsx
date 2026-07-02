@@ -419,7 +419,7 @@ export default function StudentReport({
 
   useEffect(() => {
     if (performanceData && initialAttemptId && initialAttemptType) {
-      const matchingAttempt = performanceData.quizzes.find(
+      const matchingAttempt = performanceData.quizzesTaken.find(
         q => String(q.participantId) === String(initialAttemptId) && q.type === initialAttemptType
       );
       if (matchingAttempt) {
