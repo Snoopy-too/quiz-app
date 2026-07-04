@@ -27,6 +27,8 @@ import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import ThemeSelector from "./ThemeSelector";
 import MediaUploadZone from "./MediaUploadZone";
+import { sanitizeQuizTitle, sanitizeQuestionText, sanitizeOptionText } from "../../utils/sanitize";
+import { quizSchema, questionSchema } from "../../schemas/quiz";
 
 const getDefaultOptions = (type) =>
   type === "true_false"
@@ -272,11 +274,27 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
   };
 
   const handleSaveQuestion = async () => {
-    if (!questionForm.question_text.trim()) {
+    const validationResult = questionSchema.safeParse({
+      question_text: questionForm.question_text,
+      question_type: questionForm.question_type,
+      time_limit: Number(questionForm.time_limit),
+      points: Number(questionForm.points),
+      image_url: questionForm.image_url,
+      video_url: questionForm.video_url,
+      gif_url: questionForm.gif_url,
+      options: questionForm.options.map((opt) => ({
+        text: opt.text,
+        is_correct: opt.is_correct,
+        image_url: opt.image_url,
+      })),
+    });
+
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.issues[0]?.message || "Validation Error";
       setAlertModal({
         isOpen: true,
-        title: t('common.error'),
-        message: t('quiz.questionTextRequired'),
+        title: t('common.error') || "Validation Error",
+        message: errorMsg,
         type: "error"
       });
       return;
@@ -301,12 +319,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     setQuestionError(null);
     try {
       const payload = {
-        question_text: questionForm.question_text.trim(),
+        question_text: sanitizeQuestionText(questionForm.question_text.trim()),
         question_type: questionForm.question_type,
-        time_limit: questionForm.time_limit,
-        points: isSurvey ? 0 : questionForm.points,
+        time_limit: Number(questionForm.time_limit),
+        points: isSurvey ? 0 : Number(questionForm.points),
         options: questionForm.options.map((opt) => ({
-          text: opt.text.trim(),
+          text: sanitizeOptionText(opt.text.trim()),
           is_correct: isSurvey ? false : opt.is_correct,
           image_url: opt.image_url || "",
         })),
@@ -539,11 +557,23 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     const exit = typeof shouldExit === 'boolean' ? shouldExit : false;
     setSaving(true);
 
-    if (!title.trim()) {
+    const validationResult = quizSchema.safeParse({
+      title,
+      theme_id: customThemeUrl ? null : themeId,
+      folder_id: folderId || null,
+      is_template: isTemplate,
+      is_public: isPublic,
+      is_global: isGlobal,
+      is_course_material: isCourseMaterial,
+      is_survey: isSurvey,
+    });
+
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.issues[0]?.message || "Validation Error";
       setAlertModal({
         isOpen: true,
-        title: t('common.error'),
-        message: t('quiz.quizTitleRequired') || "Quiz title is required.",
+        title: t('common.error') || "Validation Error",
+        message: errorMsg,
         type: "warning"
       });
       setActiveTab("settings");
@@ -567,8 +597,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
     }
 
     try {
+      const sanitizedTitle = sanitizeQuizTitle(title.trim());
+
       const payload = {
-        title: title.trim(),
+        title: sanitizedTitle,
         theme_id: customThemeUrl ? null : themeId,
         background_image_url: customThemeUrl || null,
         folder_id: folderId || null,

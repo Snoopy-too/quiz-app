@@ -3,6 +3,7 @@ import { supabase } from "../../supabaseClient";
 import { generateTeacherCode } from "../../utils/teacherCode";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
+import { registrationSchema } from "../../schemas/auth";
 
 export default function Register({ setView, setAppState, error, setError, success, setSuccess }) {
   const { t, i18n } = useTranslation();
@@ -47,6 +48,14 @@ export default function Register({ setView, setAppState, error, setError, succes
     // Prevent self-registration as superadmin
     if (formData.role === "superadmin") {
       setError(t('errors.superadminRestricted') || "Superadmin accounts must be created by the system administrator.");
+      return;
+    }
+
+    // Zod validation
+    const validationResult = registrationSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.issues[0]?.message || "Validation Error";
+      setError(errorMsg);
       return;
     }
 

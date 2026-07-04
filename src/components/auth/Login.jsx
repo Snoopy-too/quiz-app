@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../common/LanguageSwitcher";
+import { loginSchema } from "../../schemas/auth";
 
 export default function Login({
   setView,
@@ -112,6 +113,15 @@ export default function Login({
     setErrorMsg(null);
     setGlobalError?.(null);
     setGlobalSuccess?.(null);
+
+    // Zod validation
+    const validationResult = loginSchema.safeParse({ email, password });
+    if (!validationResult.success) {
+      const errorMsg = validationResult.error.issues[0]?.message || "Validation Error";
+      setErrorMsg(errorMsg);
+      return;
+    }
+
     setLoading(true);
 
     // Clear logout flag when user initiates a new login

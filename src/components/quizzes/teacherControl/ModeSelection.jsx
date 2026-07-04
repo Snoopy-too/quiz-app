@@ -29,9 +29,10 @@ export default function ModeSelection({
         <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
         <button
           onClick={closeSession}
-          className="text-red-600 hover:text-red-700"
+          className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 rounded-xl transition font-medium shadow-sm hover:shadow text-sm"
         >
-          <X size={24} />
+          <X size={16} />
+          <span>{t("common.cancel")}</span>
         </button>
       </nav>
 
