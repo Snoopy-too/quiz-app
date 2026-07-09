@@ -668,20 +668,20 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                         onClick={() => handleSelectOption(currentQuestion.id, idx)}
                         disabled={isDisabled}
                         className={`${style.bg} ${!isDisabled ? style.hover : "opacity-50 cursor-not-allowed"} ${isSelected ? `ring-4 ${style.ring} scale-105` : ""
-                          } text-white p-4 sm:p-6 rounded-lg text-lg font-bold transition-all flex items-center justify-center gap-3`}
+                          } text-white ${opt.image_url ? "p-2" : "p-4 sm:p-6"} rounded-lg text-lg font-bold transition-all flex flex-col items-center justify-center relative`}
                       >
-                        <IconComponent size={24} fill="white" className="shrink-0" />
+                        {!opt.image_url && <IconComponent size={24} fill="white" className="shrink-0" />}
                         {opt.image_url ? (
                           <img
                             src={opt.image_url}
                             alt={opt.text || `Option ${idx + 1}`}
-                            className="max-h-20 object-contain rounded"
+                            className="max-h-32 sm:max-h-48 w-full object-contain rounded"
                           />
                         ) : (
                           <span className="text-center">{opt.text}</span>
                         )}
                         {isSelected && (
-                          <CheckCircle size={24} className="shrink-0" />
+                          <CheckCircle size={24} className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-0.5" />
                         )}
                       </button>
                     );

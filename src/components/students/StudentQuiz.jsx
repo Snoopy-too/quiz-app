@@ -757,14 +757,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                       disabled={hasAnswered || timeRemaining === 0}
                       className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
                         } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                        } text-white p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 relative`}
+                        } text-white ${opt.image_url ? "p-2" : "p-3 sm:p-4 md:p-6 lg:p-8"} rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col items-center justify-center relative`}
                     >
-                      <IconComponent size={28} className="shrink-0" fill="white" />
+                      {!opt.image_url && <IconComponent size={28} className="shrink-0" fill="white" />}
                       {opt.image_url ? (
                         <img
                           src={opt.image_url}
                           alt={opt.text || `Option ${idx + 1}`}
-                          className="max-h-24 sm:max-h-32 md:max-h-40 object-contain rounded"
+                          className="max-h-36 sm:max-h-48 md:max-h-64 w-full object-contain rounded"
                         />
                       ) : (
                         <span className="text-center">{opt.text}</span>

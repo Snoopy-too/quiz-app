@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
-import { Trophy, Clock, Heart, Spade, Diamond, Club, X, SkipForward } from "lucide-react";
+import { Trophy, Clock, Heart, Spade, Diamond, Club, X, SkipForward, ThumbsUp } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
@@ -256,17 +256,30 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
         <div className="container mx-auto p-6 flex items-center justify-center min-h-[80vh]">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
-            <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
+            {quiz?.is_survey ? (
+              <ThumbsUp className="mx-auto mb-6 text-blue-500" size={80} />
+            ) : (
+              <Trophy className="mx-auto mb-6 text-yellow-500" size={80} />
+            )}
             <h2 className="text-4xl font-bold mb-6">Preview Complete!</h2>
 
-            <div className="bg-blue-50 rounded-xl p-8 mb-6">
-              <p className="text-gray-600 mb-2">Final Score</p>
-              <p className="text-5xl font-bold text-blue-700">{score}</p>
-              <p className="text-gray-600 mt-2">points</p>
-            </div>
+            {quiz?.is_survey ? (
+              <div className="bg-blue-50 rounded-xl p-8 mb-6">
+                <p className="text-xl font-semibold text-blue-700 mb-2">Survey Completed!</p>
+                <p className="text-gray-600">Thank you for participating in this survey preview.</p>
+              </div>
+            ) : (
+              <div className="bg-blue-50 rounded-xl p-8 mb-6">
+                <p className="text-gray-600 mb-2">Final Score</p>
+                <p className="text-5xl font-bold text-blue-700">{score}</p>
+                <p className="text-gray-600 mt-2">points</p>
+              </div>
+            )}
 
             <p className="text-gray-600 mb-6">
-              You answered {questions.length} question{questions.length !== 1 ? "s" : ""}
+              {quiz?.is_survey
+                ? `You responded to ${questions.length} question${questions.length !== 1 ? "s" : ""}`
+                : `You answered ${questions.length} question${questions.length !== 1 ? "s" : ""}`}
             </p>
 
             <div className="flex gap-3">
@@ -373,10 +386,12 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                 {timeRemaining}s
               </span>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Preview Score</p>
-              <p className="text-2xl font-bold text-blue-700">{score}</p>
-            </div>
+            {!quiz?.is_survey && (
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Preview Score</p>
+                <p className="text-2xl font-bold text-blue-700">{score}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -432,14 +447,14 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                       disabled={hasAnswered || timeRemaining === 0}
                       className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
                         } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                        } text-white p-6 md:p-8 rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col md:flex-row items-center justify-center gap-3 relative`}
+                        } text-white ${opt.image_url ? "p-2" : "p-6 md:p-8"} rounded-lg text-xl md:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col items-center justify-center relative`}
                     >
-                      <IconComponent size={28} className="shrink-0" fill="white" />
+                      {!opt.image_url && <IconComponent size={28} className="shrink-0" fill="white" />}
                       {opt.image_url ? (
                         <img
                           src={opt.image_url}
                           alt={opt.text || `Option ${idx + 1}`}
-                          className="max-h-24 md:max-h-32 object-contain rounded"
+                          className="max-h-36 md:max-h-52 w-full object-contain rounded"
                         />
                       ) : (
                         <span className="text-center">{opt.text}</span>
@@ -493,23 +508,22 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
                   const style = answerStyles[idx];
                   const IconComponent = style.icon;
-                  const isCorrect = opt.is_correct;
+                  const isCorrect = !quiz?.is_survey && opt.is_correct;
+                  const highlight = quiz?.is_survey ? selectedOption === idx : isCorrect;
 
                   return (
                     <div
                       key={idx}
-                      className={`${style.bg} ${isCorrect ? "ring-4 ring-white" : "opacity-60"
-                        } text-white p-6 rounded-lg relative`}
+                      className={`${style.bg} ${highlight ? "ring-4 ring-white" : "opacity-60"
+                        } text-white ${opt.image_url ? "p-2" : "p-6"} rounded-lg relative flex flex-col justify-center items-center`}
                     >
-                      <IconComponent size={24} className="absolute left-4 top-4" fill="white" />
+                      {!opt.image_url && <IconComponent size={24} className="absolute left-4 top-4" fill="white" />}
                       {opt.image_url ? (
-                        <div className="mt-8 flex justify-center">
-                          <img
-                            src={opt.image_url}
-                            alt={opt.text || `Option ${idx + 1}`}
-                            className="max-h-24 object-contain rounded"
-                          />
-                        </div>
+                        <img
+                          src={opt.image_url}
+                          alt={opt.text || `Option ${idx + 1}`}
+                          className="max-h-36 md:max-h-52 w-full object-contain rounded"
+                        />
                       ) : (
                         <div className="text-xl font-bold mt-8">{opt.text}</div>
                       )}
@@ -518,7 +532,12 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                           ✓
                         </div>
                       )}
-                      {selectedOption === idx && !isCorrect && (
+                      {quiz?.is_survey && selectedOption === idx && (
+                        <div className="absolute top-2 right-2 bg-white text-blue-600 rounded-full p-2 font-bold">
+                          ✓
+                        </div>
+                      )}
+                      {!quiz?.is_survey && selectedOption === idx && !isCorrect && (
                         <div className="absolute top-2 right-2 bg-white text-red-600 rounded-full p-2 font-bold">
                           ✗
                         </div>
@@ -530,14 +549,25 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
 
               {/* Feedback */}
               <div
-                className={`p-4 rounded-xl text-center mb-4 ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}
+                className={`p-4 rounded-xl text-center mb-4 ${
+                  quiz?.is_survey
+                    ? "bg-blue-100 text-blue-800"
+                    : wasCorrect
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
               >
                 <p className="text-2xl font-bold">
-                  {wasCorrect ? "✓ Correct!" : "✗ Incorrect"}
+                  {quiz?.is_survey
+                    ? "✓ Your choice is in!"
+                    : wasCorrect
+                    ? "✓ Correct!"
+                    : "✗ Incorrect"}
                 </p>
                 <p className="text-lg">
-                  {wasCorrect
+                  {quiz?.is_survey
+                    ? "Thank you for your response."
+                    : wasCorrect
                     ? `+${currentQuestion.points} points!`
                     : "Better luck next time!"}
                 </p>
