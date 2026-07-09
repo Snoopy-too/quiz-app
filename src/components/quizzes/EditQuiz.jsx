@@ -893,8 +893,12 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                   <span>
                     {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')}
                   </span>
-                  <span>•</span>
-                  <span>{totalPoints} {t('quiz.totalPoints')}</span>
+                  {!isSurvey && (
+                    <>
+                      <span>•</span>
+                      <span>{totalPoints} {t('quiz.totalPoints')}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1098,7 +1102,11 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         {t('quiz.questions')} ({questions.length})
                       </h2>
                       <p className="text-sm text-white/80">
-                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
+                        {isSurvey ? (
+                          `${questions.length} ${questions.length === 1 ? t('quiz.question') : t('quiz.questions')}`
+                        ) : (
+                          `${questions.length} ${questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • ${totalPoints} ${t('quiz.points')}`
+                        )}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -1235,55 +1243,57 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                               </button>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
-                              <input
-                                type="number"
-                                value={bulkPoints}
-                                onChange={(e) => setBulkPoints(Number(e.target.value))}
-                                className="text-sm border rounded px-2 py-1 w-20"
-                                min="0" step="10"
-                              />
-                              <button
-                                onClick={async () => {
-                                  if (selectedQuestions.size === 0) return;
-                                  setSaving(true);
-                                  try {
-                                    const newQuestions = [...questions];
+                            {!isSurvey && (
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
+                                <input
+                                  type="number"
+                                  value={bulkPoints}
+                                  onChange={(e) => setBulkPoints(Number(e.target.value))}
+                                  className="text-sm border rounded px-2 py-1 w-20"
+                                  min="0" step="10"
+                                />
+                                <button
+                                  onClick={async () => {
+                                    if (selectedQuestions.size === 0) return;
+                                    setSaving(true);
+                                    try {
+                                      const newQuestions = [...questions];
 
-                                    for (const index of selectedQuestions) {
-                                      const q = newQuestions[index];
-                                      if (!q) continue;
+                                      for (const index of selectedQuestions) {
+                                        const q = newQuestions[index];
+                                        if (!q) continue;
 
-                                      // Local update
-                                      newQuestions[index] = { ...q, points: bulkPoints };
+                                        // Local update
+                                        newQuestions[index] = { ...q, points: bulkPoints };
 
-                                      // DB Update if ID exists
-                                      if (q.id) {
-                                        const { error } = await supabase.from("questions").update({ points: bulkPoints }).eq("id", q.id);
-                                        if (error) throw error;
+                                        // DB Update if ID exists
+                                        if (q.id) {
+                                          const { error } = await supabase.from("questions").update({ points: bulkPoints }).eq("id", q.id);
+                                          if (error) throw error;
+                                        }
                                       }
-                                    }
 
-                                    setQuestions(newQuestions);
-                                    setAlertModal({
-                                      isOpen: true,
-                                      title: t('common.success'),
-                                      message: t('messages.changesSaved') || "Points updated!",
-                                      type: "success"
-                                    });
-                                  } catch (err) {
-                                    setAlertModal({ isOpen: true, title: t('common.error'), message: err.message || "Failed to update questions.", type: "error" });
-                                  } finally {
-                                    setSaving(false);
-                                  }
-                                }}
-                                disabled={selectedQuestions.size === 0 || saving}
-                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
-                              >
-                                {t('common.apply') || "Apply"}
-                              </button>
-                            </div>
+                                      setQuestions(newQuestions);
+                                      setAlertModal({
+                                        isOpen: true,
+                                        title: t('common.success'),
+                                        message: t('messages.changesSaved') || "Points updated!",
+                                        type: "success"
+                                      });
+                                    } catch (err) {
+                                      setAlertModal({ isOpen: true, title: t('common.error'), message: err.message || "Failed to update questions.", type: "error" });
+                                    } finally {
+                                      setSaving(false);
+                                    }
+                                  }}
+                                  disabled={selectedQuestions.size === 0 || saving}
+                                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  {t('common.apply') || "Apply"}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1339,11 +1349,15 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                       <Clock size={14} />
                                       <span>{isEditing ? questionForm.time_limit : question.time_limit}s</span>
                                     </div>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-1">
-                                      <Award size={14} />
-                                      <span>{isEditing ? questionForm.points : question.points} pts</span>
-                                    </div>
+                                    {!isSurvey && (
+                                      <>
+                                        <span>•</span>
+                                        <div className="flex items-center gap-1">
+                                          <Award size={14} />
+                                          <span>{isEditing ? questionForm.points : question.points} pts</span>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                   {!isSurvey && !question.options?.some(opt => opt.is_correct) && (
                                     <span className="text-xs font-semibold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">

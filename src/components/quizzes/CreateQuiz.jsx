@@ -1002,7 +1002,11 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         {t('quiz.questions')} ({questions.length})
                       </h2>
                       <p className="text-sm text-white/80">
-                        {questions.length} {questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • {totalPoints} {t('quiz.points')}
+                        {isSurvey ? (
+                          `${questions.length} ${questions.length === 1 ? t('quiz.question') : t('quiz.questions')}`
+                        ) : (
+                          `${questions.length} ${questions.length === 1 ? t('quiz.question') : t('quiz.questions')} • ${totalPoints} ${t('quiz.points')}`
+                        )}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -1112,28 +1116,30 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                               </button>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
-                              <input
-                                type="number"
-                                value={bulkPoints}
-                                onChange={(e) => setBulkPoints(Number(e.target.value))}
-                                className="text-sm border rounded px-2 py-1 w-20"
-                                min="0" step="10"
-                              />
-                              <button
-                                onClick={() => {
-                                  if (selectedQuestions.size === 0) return;
-                                  setQuestions(prev => prev.map((q, i) => selectedQuestions.has(i) ? { ...q, points: bulkPoints } : q));
-                                  setSuccess("Points updated!");
-                                  setTimeout(() => setSuccess(null), 3000);
-                                }}
-                                disabled={selectedQuestions.size === 0}
-                                className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
-                              >
-                                {t('common.apply') || "Apply"}
-                              </button>
-                            </div>
+                            {!isSurvey && (
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm text-gray-600 whitespace-nowrap">{t('quiz.points')}:</label>
+                                <input
+                                  type="number"
+                                  value={bulkPoints}
+                                  onChange={(e) => setBulkPoints(Number(e.target.value))}
+                                  className="text-sm border rounded px-2 py-1 w-20"
+                                  min="0" step="10"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (selectedQuestions.size === 0) return;
+                                    setQuestions(prev => prev.map((q, i) => selectedQuestions.has(i) ? { ...q, points: bulkPoints } : q));
+                                    setSuccess("Points updated!");
+                                    setTimeout(() => setSuccess(null), 3000);
+                                  }}
+                                  disabled={selectedQuestions.size === 0}
+                                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  {t('common.apply') || "Apply"}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1189,11 +1195,15 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                       <Clock size={14} />
                                       <span>{isEditing ? questionForm.time_limit : question.time_limit}s</span>
                                     </div>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-1">
-                                      <Award size={14} />
-                                      <span>{isEditing ? questionForm.points : question.points} pts</span>
-                                    </div>
+                                    {!isSurvey && (
+                                      <>
+                                        <span>•</span>
+                                        <div className="flex items-center gap-1">
+                                          <Award size={14} />
+                                          <span>{isEditing ? questionForm.points : question.points} pts</span>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                   {!isSurvey && !question.options?.some(opt => opt.is_correct) && (
                                     <span className="text-xs font-semibold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1">
