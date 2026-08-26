@@ -3,6 +3,23 @@ import { supabase } from "../../supabaseClient";
 import { User, Lock, Camera, Save, Check } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import { useTranslation } from "react-i18next";
+import AvatarThumbnail from "./AvatarThumbnail";
+
+const AVATAR_CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "open-peeps", label: "Peeps" },
+  { id: "notionists", label: "Notionists" },
+  { id: "bottts", label: "Robots" },
+  { id: "adventurer", label: "Adventurer" },
+  { id: "pixel-art", label: "Pixel Art" },
+  { id: "avataaars", label: "Avataaars" },
+  { id: "personas", label: "Personas" },
+  { id: "lorelei", label: "Lorelei" },
+  { id: "micah", label: "Micah" },
+  { id: "fun-emoji", label: "Emoji" },
+  { id: "thumbs", label: "Thumbs" },
+  { id: "big-ears", label: "Big Ears" },
+];
 
 // 60 default avatars using DiceBear API with different styles
 const DEFAULT_AVATARS = [
@@ -86,6 +103,7 @@ export default function Settings({ setView, appState, setAppState }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Profile form
   const [profileForm, setProfileForm] = useState({
@@ -284,36 +302,52 @@ export default function Settings({ setView, appState, setAppState }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    <Camera className="inline-block mr-2" size={18} />
-                    Select Avatar
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      <Camera className="inline-block mr-2" size={18} />
+                      Select Avatar
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      {selectedCategory === "all"
+                        ? `${DEFAULT_AVATARS.length} available`
+                        : `${DEFAULT_AVATARS.filter((a) => a.includes(`/${selectedCategory}/`)).length} available`}
+                    </span>
+                  </div>
+
+                  {/* Category Filter Pills */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-thin">
+                    {AVATAR_CATEGORIES.map((cat) => {
+                      const isActive = selectedCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                            isActive
+                              ? "bg-blue-700 text-white shadow-sm"
+                              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   {/* Avatar Grid */}
                   <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4 mb-4 md:mb-6 p-3 md:p-4 bg-gray-50 rounded-lg max-h-80 overflow-y-auto">
-                    {DEFAULT_AVATARS.map((avatar, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        title={`Select avatar ${index + 1}`}
+                    {(selectedCategory === "all"
+                      ? DEFAULT_AVATARS
+                      : DEFAULT_AVATARS.filter((avatar) => avatar.includes(`/${selectedCategory}/`))
+                    ).map((avatar, index) => (
+                      <AvatarThumbnail
+                        key={avatar}
+                        src={avatar}
+                        alt={`Avatar option ${index + 1}`}
+                        isSelected={profileForm.avatar_url === avatar}
                         onClick={() => setProfileForm({ ...profileForm, avatar_url: avatar })}
-                        className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all active:scale-95 md:hover:scale-110 ${
-                          profileForm.avatar_url === avatar
-                            ? "border-blue-700 shadow-lg"
-                            : "border-gray-300 hover:border-cyan-400"
-                        }`}
-                      >
-                        <img
-                          src={avatar}
-                          alt={`Avatar option ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {profileForm.avatar_url === avatar && (
-                          <div className="absolute inset-0 bg-blue-700 bg-opacity-20 flex items-center justify-center">
-                            <Check className="text-blue-700 bg-white rounded-full p-1" size={20} />
-                          </div>
-                        )}
-                      </button>
+                      />
                     ))}
                   </div>
 
@@ -331,12 +365,19 @@ export default function Settings({ setView, appState, setAppState }) {
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                       />
                       {profileForm.avatar_url && (
-                        <img
-                          src={profileForm.avatar_url}
-                          alt="Avatar preview"
-                          className="w-10 h-10 rounded-full object-cover border border-gray-300"
-                          onError={(e) => e.target.style.display = 'none'}
-                        />
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                          <img
+                            src={profileForm.avatar_url}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                            }}
+                            onLoad={(e) => {
+                              e.target.style.display = "block";
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
