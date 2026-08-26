@@ -7,6 +7,10 @@ import AvatarThumbnail from "./AvatarThumbnail";
 
 const AVATAR_CATEGORIES = [
   { id: "all", label: "All" },
+  { id: "big-smile", label: "Smiles" },
+  { id: "croodles", label: "Doodles" },
+  { id: "miniavs", label: "Minis" },
+  { id: "shapes", label: "Shapes" },
   { id: "open-peeps", label: "Peeps" },
   { id: "notionists", label: "Notionists" },
   { id: "bottts", label: "Robots" },
@@ -21,7 +25,7 @@ const AVATAR_CATEGORIES = [
   { id: "big-ears", label: "Big Ears" },
 ];
 
-// 60 default avatars using DiceBear API with different styles
+// 80 default avatars using DiceBear API with different styles
 const DEFAULT_AVATARS = [
   // avataaars (1-5)
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Avatar1",
@@ -94,7 +98,31 @@ const DEFAULT_AVATARS = [
   "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar57",
   "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar58",
   "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar59",
-  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar60"
+  "https://api.dicebear.com/7.x/thumbs/svg?seed=Avatar60",
+  // big-smile (61-65)
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Avatar61",
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Avatar62",
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Avatar63",
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Avatar64",
+  "https://api.dicebear.com/7.x/big-smile/svg?seed=Avatar65",
+  // croodles (66-70)
+  "https://api.dicebear.com/7.x/croodles/svg?seed=Avatar66",
+  "https://api.dicebear.com/7.x/croodles/svg?seed=Avatar67",
+  "https://api.dicebear.com/7.x/croodles/svg?seed=Avatar68",
+  "https://api.dicebear.com/7.x/croodles/svg?seed=Avatar69",
+  "https://api.dicebear.com/7.x/croodles/svg?seed=Avatar70",
+  // miniavs (71-75)
+  "https://api.dicebear.com/7.x/miniavs/svg?seed=Avatar71",
+  "https://api.dicebear.com/7.x/miniavs/svg?seed=Avatar72",
+  "https://api.dicebear.com/7.x/miniavs/svg?seed=Avatar73",
+  "https://api.dicebear.com/7.x/miniavs/svg?seed=Avatar74",
+  "https://api.dicebear.com/7.x/miniavs/svg?seed=Avatar75",
+  // shapes (76-80)
+  "https://api.dicebear.com/7.x/shapes/svg?seed=Avatar76",
+  "https://api.dicebear.com/7.x/shapes/svg?seed=Avatar77",
+  "https://api.dicebear.com/7.x/shapes/svg?seed=Avatar78",
+  "https://api.dicebear.com/7.x/shapes/svg?seed=Avatar79",
+  "https://api.dicebear.com/7.x/shapes/svg?seed=Avatar80"
 ];
 
 export default function Settings({ setView, appState, setAppState }) {
