@@ -2,63 +2,47 @@ name: Ping Supabase
 
 on:
   schedule:
+    # Runs daily at midnight UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
   ping:
+    name: Keep-Alive Ping
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install Supabase client
-        run: npm install @supabase/supabase-js
-
-      - name: Ping Supabase
+      - name: Ping Supabase Database
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          node << 'EOF'
-          const { createClient } = require('@supabase/supabase-js');
+          # Sanitize environment variables - remove all whitespace
+          URL=$(echo "${SUPABASE_URL}" | tr -d '[:space:]')
+          KEY=$(echo "${SUPABASE_KEY}" | tr -d '[:space:]')
 
-          // Aggressively clean environment variables - remove all whitespace and newlines
-          const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
-          const supabaseKey = (process.env.SUPABASE_KEY || '').replace(/\s+/g, '');
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_KEY secret in repository settings."
+            exit 1
+          fi
 
-          if (!supabaseUrl || !supabaseKey) {
-            console.error('Missing SUPABASE_URL or SUPABASE_KEY');
-            process.exit(1);
-          }
+          # Query Supabase PostgREST endpoint to keep database active
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "apikey: ${KEY}" \
+            -H "Authorization: Bearer ${KEY}" \
+            "${URL}/rest/v1/quiz_sessions?select=id&limit=1")
 
-          console.log('URL length:', supabaseUrl.length);
-          console.log('Key length:', supabaseKey.length);
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
 
-          const supabase = createClient(supabaseUrl, supabaseKey);
+          echo "HTTP Status: $HTTP_CODE"
 
-          (async () => {
-            try {
-              const { data, error } = await supabase
-                .from('quiz_sessions')
-                .select('id')
-                .limit(1);
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "Supabase database ping successful at $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          elif [ "$HTTP_CODE" -eq 503 ]; then
+            echo "::error::Supabase project is currently paused (HTTP 503). Please unpause it via the Supabase dashboard."
+            exit 1
+          else
+            echo "::error::Supabase ping failed with HTTP $HTTP_CODE: $BODY"
+            exit 1
+          fi
 
-              if (error) {
-                console.error('Ping failed:', error.message);
-                process.exit(1);
-              } else {
-                console.log('Supabase ping successful at', new Date().toISOString());
-                console.log('Database connection verified');
-              }
-            } catch (err) {
-              console.error('Error:', err.message);
-              process.exit(1);
-            }
-          })();
-          EOF
