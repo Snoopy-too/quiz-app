@@ -5,6 +5,7 @@ import { Users, Play, RefreshCw, X } from "lucide-react";
 export default function WaitingLobby({
   quiz,
   session,
+  questions = [],
   participants,
   teams,
   startQuiz,
@@ -14,16 +15,34 @@ export default function WaitingLobby({
 }) {
   const { t } = useTranslation();
   const isTeamMode = session.mode === "team";
+  const isDefuseMode = session.mode === "defuse";
+
+  const totalDefuseSeconds = React.useMemo(() => {
+    if (!isDefuseMode) return 0;
+    return (questions || []).reduce((sum, q) => sum + (parseInt(q?.time_limit, 10) || 30), 0);
+  }, [isDefuseMode, questions]);
 
   return (
     <>
       <nav className="bg-white shadow-md p-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-blue-700">{quiz.title}</h1>
         <div className="flex items-center gap-4">
-          <span className={`px-4 py-2 rounded-lg font-semibold ${isTeamMode ? "bg-blue-100 text-blue-800" : "bg-blue-50 text-blue-800"
-            }`}>
-            {isTeamMode ? "Team Mode" : "Classic Mode"}
+          <span
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              isDefuseMode
+                ? "bg-red-100 text-red-800 border border-red-300 flex items-center gap-1.5"
+                : isTeamMode
+                ? "bg-blue-100 text-blue-800"
+                : "bg-blue-50 text-blue-800"
+            }`}
+          >
+            {isDefuseMode ? "💣 Defuse Mode" : isTeamMode ? "Team Mode" : "Classic Mode"}
           </span>
+          {isDefuseMode && totalDefuseSeconds > 0 && (
+            <span className="px-3 py-2 rounded-lg font-mono font-bold text-sm bg-neutral-900 text-red-400 border border-neutral-700 shadow-inner">
+              ⏱️ {Math.floor(totalDefuseSeconds / 60)}m {totalDefuseSeconds % 60 ? `${totalDefuseSeconds % 60}s` : ""} Bomb Clock
+            </span>
+          )}
           {isTeamMode && session.team_scoring_mode && (
             <span className="px-3 py-2 rounded-lg font-medium text-sm bg-gray-100 text-gray-700">
               {session.team_scoring_mode === 'average' ? '📊 Avg Scoring' : '➕ Combined Scoring'}
@@ -148,10 +167,12 @@ export default function WaitingLobby({
             <button
               onClick={startQuiz}
               disabled={startingQuiz || (isTeamMode ? teams.length === 0 : participants.length === 0)}
-              className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+              className={`${
+                isDefuseMode ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
+              } text-white px-12 py-4 rounded-xl text-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto transition-colors shadow-lg`}
             >
               <Play size={32} />
-              {startingQuiz ? 'Starting...' : 'Start Quiz'}
+              {startingQuiz ? 'Starting...' : isDefuseMode ? 'Start Defusal 💣' : 'Start Quiz'}
             </button>
             {((isTeamMode && teams.length === 0) || (!isTeamMode && participants.length === 0)) && (
               <p className="text-gray-500 mt-4">

@@ -38,21 +38,23 @@ export default function ModeSelection({
 
       <div className="flex-1">
         <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-4xl w-full">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 sm:p-12 text-center max-w-6xl w-full">
             <h2 className="text-4xl font-bold mb-4">Select Quiz Mode</h2>
             <p className="text-gray-600 mb-8">Choose how you want students to participate</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               {/* Classic Mode */}
               <div
                 onClick={() => selectMode("classic")}
-                className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-700 hover:shadow-lg transition cursor-pointer group bg-white"
+                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-blue-700 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
               >
-                <div className="text-6xl mb-4">🎯</div>
-                <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-700">Classic Mode</h3>
-                <p className="text-gray-600 mb-4">
-                  Students join individually using the PIN and compete on their own.
-                </p>
+                <div>
+                  <div className="text-6xl mb-4">🎯</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-700">Classic Mode</h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    Students join individually using the PIN and compete on their own.
+                  </p>
+                </div>
                 <ul className="text-left text-sm text-gray-600 space-y-2">
                   <li>✓ Individual scores</li>
                   <li>✓ Personal leaderboard</li>
@@ -60,87 +62,112 @@ export default function ModeSelection({
                 </ul>
               </div>
 
+              {/* Defuse Mode */}
+              <div
+                onClick={() => selectMode("defuse")}
+                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-red-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between relative overflow-hidden"
+              >
+                <div>
+                  <div className="text-6xl mb-4">💣</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-red-600">Defuse Mode</h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    Race against a ticking bomb! One shared timer for the entire quiz with incorrect answer penalties.
+                  </p>
+                </div>
+                <ul className="text-left text-sm text-gray-600 space-y-2">
+                  <li>✓ Whole-quiz bomb clock</li>
+                  <li>✓ Incorrect answer penalties</li>
+                  <li>✓ Defuse or explode together</li>
+                </ul>
+              </div>
+
               {/* Team Mode */}
               <div
-                className="border-2 border-gray-300 rounded-xl p-8 hover:border-blue-600 hover:shadow-lg transition group bg-white"
+                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-blue-600 hover:shadow-lg transition group bg-white flex flex-col justify-between"
               >
-                <div className="text-6xl mb-4">👥</div>
-                <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
-                <p className="text-gray-600 mb-4">
-                  Students form teams with custom names and compete together.
-                </p>
-                <ul className="text-left text-sm text-gray-600 space-y-2">
-                  <li>✓ Team collaboration</li>
-                  <li>✓ Custom team names</li>
-                  <li>✓ Combined scores</li>
-                </ul>
-
-                {/* Shared Device Toggle */}
-                <label
-                  className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 cursor-pointer text-left"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    type="checkbox"
-                    checked={allowSharedDevice}
-                    onChange={(e) => setAllowSharedDevice(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-600">Allow shared device teams</span>
-                </label>
-
-                {/* Team Scoring Mode Selector */}
-                <div
-                  className="mt-4 pt-4 border-t border-gray-200"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-sm font-medium text-gray-700 mb-2 text-left">Team Scoring</p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTeamScoringMode('combined')}
-                      className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg border-2 transition ${
-                        teamScoringMode === 'combined'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
-                      }`}
-                    >
-                      Combined
-                      <span className="block text-[10px] font-normal mt-0.5 opacity-70">Sum of all scores</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTeamScoringMode('average')}
-                      className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg border-2 transition ${
-                        teamScoringMode === 'average'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
-                      }`}
-                    >
-                      Average
-                      <span className="block text-[10px] font-normal mt-0.5 opacity-70">Fair for unequal teams</span>
-                    </button>
-                  </div>
+                <div>
+                  <div className="text-6xl mb-4">👥</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-blue-600">Team Mode</h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    Students form teams with custom names and compete together.
+                  </p>
+                  <ul className="text-left text-sm text-gray-600 space-y-2">
+                    <li>✓ Team collaboration</li>
+                    <li>✓ Custom team names</li>
+                    <li>✓ Combined scores</li>
+                  </ul>
                 </div>
 
-                <button
-                  onClick={() => selectMode("team")}
-                  className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold transition"
-                >
-                  Start Team Mode
-                </button>
+                <div>
+                  {/* Shared Device Toggle */}
+                  <label
+                    className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 cursor-pointer text-left"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allowSharedDevice}
+                      onChange={(e) => setAllowSharedDevice(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-xs text-gray-600">Allow shared device teams</span>
+                  </label>
+
+                  {/* Team Scoring Mode Selector */}
+                  <div
+                    className="mt-3 pt-3 border-t border-gray-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs font-medium text-gray-700 mb-1.5 text-left">Team Scoring</p>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setTeamScoringMode('combined')}
+                        className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg border-2 transition ${
+                          teamScoringMode === 'combined'
+                            ? 'border-blue-600 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                        }`}
+                      >
+                        Combined
+                        <span className="block text-[9px] font-normal mt-0.5 opacity-70">Sum</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTeamScoringMode('average')}
+                        className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg border-2 transition ${
+                          teamScoringMode === 'average'
+                            ? 'border-blue-600 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                        }`}
+                      >
+                        Average
+                        <span className="block text-[9px] font-normal mt-0.5 opacity-70">Mean</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => selectMode("team")}
+                    className="w-full mt-3 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 font-semibold transition text-sm"
+                  >
+                    Start Team Mode
+                  </button>
+                </div>
               </div>
 
               {/* Assign Quiz Mode */}
               <div
                 onClick={() => setShowAssignModal(true)}
-                className="border-2 border-gray-300 rounded-xl p-8 hover:border-orange-600 hover:shadow-lg transition cursor-pointer group bg-white"
+                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-orange-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
               >
-                <div className="text-6xl mb-4">📋</div>
-                <h3 className="text-2xl font-bold mb-3 group-hover:text-orange-600">{t("teacherControl.assignQuiz", "Assign Quiz")}</h3>
-                <p className="text-gray-600 mb-4">
-                  {t("teacherControl.assignQuizDescription", "Assign this quiz to specific students with a deadline.")}
-                </p>
+                <div>
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-orange-600">{t("teacherControl.assignQuiz", "Assign Quiz")}</h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    {t("teacherControl.assignQuizDescription", "Assign this quiz to specific students with a deadline.")}
+                  </p>
+                </div>
                 <ul className="text-left text-sm text-gray-600 space-y-2">
                   <li>✓ {t("teacherControl.forAbsentStudents", "For absent students")}</li>
                   <li>✓ {t("teacherControl.setDeadline", "Set deadline")}</li>

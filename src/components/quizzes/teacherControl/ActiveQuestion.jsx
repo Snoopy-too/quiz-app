@@ -1,8 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Clock, BrainCircuit, Users, X } from "lucide-react";
+import { Clock, BrainCircuit, Users, X, Flame } from "lucide-react";
 import MediaDisplay from "./MediaDisplay";
 import AnswerOptionsGrid from "./AnswerOptionsGrid";
+import BombDevice from "../../common/BombDevice";
+import ExplosionAnimation from "../../common/ExplosionAnimation";
+import { formatBombTime } from "../../../utils/defuseMode";
 import { buildAnswerShuffleMap } from "../../../utils/answerShuffle";
 
 export default function ActiveQuestion({
@@ -18,8 +21,12 @@ export default function ActiveQuestion({
   showAnswers,
   answerRevealCountdown,
   closeSession,
+  bombTotalTime = 300,
+  bombTimeRemaining = 0,
+  bombExploded = false,
 }) {
   const { t } = useTranslation();
+  const isDefuseMode = session?.mode === "defuse";
 
   // Mirror what students see: apply the same deterministic shuffle when randomize_answers is on
   const displayOptions = React.useMemo(() => {
@@ -36,12 +43,15 @@ export default function ActiveQuestion({
 
   return (
     <>
+      {bombExploded && <ExplosionAnimation />}
       <nav className="bg-white shadow-md p-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-blue-700">{quiz.title}</h1>
         <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isThinkingTime ? "bg-yellow-100 animate-pulse" :
-              !showAnswers ? "bg-purple-100 animate-pulse" : "bg-blue-50"
-            }`}>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            isThinkingTime ? "bg-yellow-100 animate-pulse" :
+            !showAnswers ? "bg-purple-100 animate-pulse" :
+            isDefuseMode ? "bg-red-100 border border-red-300" : "bg-blue-50"
+          }`}>
             {isThinkingTime ? (
               <>
                 <BrainCircuit size={20} className="text-yellow-700" />
@@ -54,6 +64,13 @@ export default function ActiveQuestion({
                 <Clock size={20} className="text-purple-700" />
                 <span className="text-2xl font-bold text-purple-700">
                   {t('quiz.revealing')}: {answerRevealCountdown}s
+                </span>
+              </>
+            ) : isDefuseMode ? (
+              <>
+                <Flame size={20} className="text-red-600 animate-pulse" />
+                <span className="text-2xl font-mono font-bold text-red-600">
+                  💣 {formatBombTime(bombTimeRemaining)}
                 </span>
               </>
             ) : (
@@ -81,7 +98,18 @@ export default function ActiveQuestion({
         <div className="container mx-auto p-6">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
             <div className="text-center mb-8">
-              <p className="text-gray-600 mb-4">Time: {currentQuestion.time_limit}s</p>
+              {isDefuseMode ? (
+                <div className="mb-6 flex justify-center">
+                  <BombDevice
+                    timeRemaining={bombTimeRemaining}
+                    totalTime={bombTotalTime}
+                    isPaused={isThinkingTime || !showAnswers || allStudentsAnswered}
+                    size="md"
+                  />
+                </div>
+              ) : (
+                <p className="text-gray-600 mb-4">Time: {currentQuestion.time_limit}s</p>
+              )}
               <h2 className="text-4xl font-bold mb-6">{currentQuestion.question_text}</h2>
 
               {/* Media Display */}

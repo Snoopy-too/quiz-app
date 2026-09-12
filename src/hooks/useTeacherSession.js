@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabaseClient";
+import { calculateTotalQuizTime, calculateDefusePenalty } from "../utils/defuseMode";
 
 export default function useTeacherSession(sessionId) {
   const { t } = useTranslation();
@@ -36,6 +37,15 @@ export default function useTeacherSession(sessionId) {
   const [startingQuiz, setStartingQuiz] = useState(false);
   const [endingQuiz, setEndingQuiz] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Defuse Mode states
+  const [bombTotalTime, setBombTotalTime] = useState(0);
+  const [bombTimeRemaining, setBombTimeRemaining] = useState(0);
+  const [bombPenaltyInfo, setBombPenaltyInfo] = useState(null);
+  const [bombExploded, setBombExploded] = useState(false);
+
+  const bombTimeRemainingRef = useRef(0);
+  const bombTotalTimeRef = useRef(0);
 
   // Helper with timeout for supabase network calls
   const withTimeout = (promise, ms = 8000) => {
@@ -123,6 +133,81 @@ export default function useTeacherSession(sessionId) {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  // Keep bomb refs in sync with state
+  useEffect(() => {
+    bombTimeRemainingRef.current = bombTimeRemaining;
+  }, [bombTimeRemaining]);
+
+  useEffect(() => {
+    bombTotalTimeRef.current = bombTotalTime;
+  }, [bombTotalTime]);
+
+  const handleBombDetonation = async () => {
+    console.warn('[TeacherControl] Bomb detonated! Time reached zero.');
+    setBombExploded(true);
+    setBombTimeRemaining(0);
+    bombTimeRemainingRef.current = 0;
+    try {
+      await supabase
+        .from("quiz_sessions")
+        .update({
+          status: "completed",
+          bomb_time_remaining: 0,
+          bomb_exploded: true,
+        })
+        .eq("id", sessionId);
+
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "completed",
+              bomb_time_remaining: 0,
+              bomb_exploded: true,
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error("[TeacherControl] Error updating bomb detonation state:", err);
+    }
+  };
+
+  // Master Bomb Timer countdown effect for Defuse Mode
+  useEffect(() => {
+    if (
+      session?.mode === "defuse" &&
+      session?.status === "question_active" &&
+      !isThinkingTime &&
+      !allStudentsAnswered &&
+      showAnswers &&
+      bombTimeRemaining > 0 &&
+      !bombExploded
+    ) {
+      const timer = setInterval(() => {
+        setBombTimeRemaining((prev) => {
+          const next = prev - 1;
+          bombTimeRemainingRef.current = next;
+          if (next <= 0) {
+            clearInterval(timer);
+            handleBombDetonation();
+            return 0;
+          }
+          return next;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [
+    session?.mode,
+    session?.status,
+    isThinkingTime,
+    allStudentsAnswered,
+    showAnswers,
+    bombTimeRemaining,
+    bombExploded,
+  ]);
 
   // Countdown timer effect for quiz start
   useEffect(() => {
@@ -266,6 +351,20 @@ export default function useTeacherSession(sessionId) {
         // Use questions in their original order
         setShuffledQuestions(questionsData);
         setQuestionOrder(questionsData.map(q => q.id));
+      }
+
+      // Initialize Defuse Mode timer if applicable
+      if (session.mode === "defuse") {
+        const total = session.bomb_total_time || calculateTotalQuizTime(questionsData);
+        setBombTotalTime(total);
+        bombTotalTimeRef.current = total;
+        const remaining = session.bomb_time_remaining !== null && session.bomb_time_remaining !== undefined
+          ? session.bomb_time_remaining
+          : total;
+        setBombTimeRemaining(remaining);
+        bombTimeRemainingRef.current = remaining;
+        if (session.bomb_penalty_info) setBombPenaltyInfo(session.bomb_penalty_info);
+        if (session.bomb_exploded) setBombExploded(session.bomb_exploded);
       }
 
       // Load participants - pass session directly since state update may not have completed
@@ -490,7 +589,22 @@ export default function useTeacherSession(sessionId) {
               ...prev,
               current_question_index: payload.new.current_question_index,
               status: payload.new.status,
+              bomb_total_time: payload.new.bomb_total_time,
+              bomb_time_remaining: payload.new.bomb_time_remaining,
+              bomb_penalty_info: payload.new.bomb_penalty_info,
+              bomb_exploded: payload.new.bomb_exploded,
             } : prev);
+
+            if (payload.new.bomb_time_remaining !== undefined && payload.new.bomb_time_remaining !== null) {
+              setBombTimeRemaining(payload.new.bomb_time_remaining);
+              bombTimeRemainingRef.current = payload.new.bomb_time_remaining;
+            }
+            if (payload.new.bomb_total_time) {
+              setBombTotalTime(payload.new.bomb_total_time);
+              bombTotalTimeRef.current = payload.new.bomb_total_time;
+            }
+            if (payload.new.bomb_penalty_info) setBombPenaltyInfo(payload.new.bomb_penalty_info);
+            if (payload.new.bomb_exploded !== undefined) setBombExploded(payload.new.bomb_exploded);
           }
         }
       )
@@ -515,6 +629,18 @@ export default function useTeacherSession(sessionId) {
       if (mode === "team") {
         updateData.allow_shared_device = allowSharedDevice;
         updateData.team_scoring_mode = teamScoringMode;
+      } else if (mode === "defuse") {
+        const total = calculateTotalQuizTime(questions);
+        updateData.bomb_total_time = total;
+        updateData.bomb_time_remaining = total;
+        updateData.bomb_penalty_info = null;
+        updateData.bomb_exploded = false;
+        setBombTotalTime(total);
+        setBombTimeRemaining(total);
+        setBombPenaltyInfo(null);
+        setBombExploded(false);
+        bombTotalTimeRef.current = total;
+        bombTimeRemainingRef.current = total;
       }
 
       // Apply randomization settings
@@ -558,6 +684,12 @@ export default function useTeacherSession(sessionId) {
         mode,
         team_scoring_mode: teamScoringMode,
         allow_shared_device: allowSharedDevice,
+        ...(mode === "defuse" && {
+          bomb_total_time: updateData.bomb_total_time,
+          bomb_time_remaining: updateData.bomb_time_remaining,
+          bomb_penalty_info: null,
+          bomb_exploded: false,
+        }),
         ...(randomizeQuestions && { question_order: updateData.question_order }),
         ...(randomizeAnswers && { randomize_answers: true }),
       };
@@ -602,6 +734,17 @@ export default function useTeacherSession(sessionId) {
 
       // Now try to update with question order if not already set
       const updateData = { status: "active" };
+
+      if (session?.mode === "defuse") {
+        const total = bombTotalTimeRef.current || calculateTotalQuizTime(questions);
+        updateData.bomb_total_time = total;
+        updateData.bomb_time_remaining = total;
+        updateData.bomb_exploded = false;
+        setBombTotalTime(total);
+        setBombTimeRemaining(total);
+        bombTotalTimeRef.current = total;
+        bombTimeRemainingRef.current = total;
+      }
 
       // Only set question_order if it hasn't been set yet
       if (!session.question_order && questionOrder) {
@@ -706,15 +849,17 @@ export default function useTeacherSession(sessionId) {
         setIsThinkingTime(false);
         setQuestionTimeRemaining(question.time_limit);
 
-        // Auto-advance after time limit + 4 seconds for answer reveal
-        clearTimeout(autoAdvanceTimerRef.current);
-        autoAdvanceTimerRef.current = setTimeout(() => {
-          showQuestionResults(questionIndex);
-        }, (question.time_limit + 4) * 1000);
+        // Auto-advance after time limit + 4 seconds for answer reveal (classic/team only)
+        if (session?.mode !== 'defuse') {
+          clearTimeout(autoAdvanceTimerRef.current);
+          autoAdvanceTimerRef.current = setTimeout(() => {
+            showQuestionResults(questionIndex);
+          }, (question.time_limit + 4) * 1000);
+        }
       };
 
-      if (session.mode === 'team') {
-        // Team Mode: 5 second thinking time + 4 second answer reveal
+      if (session.mode === 'team' || session.mode === 'defuse') {
+        // Team Mode & Defuse Mode: 5 second thinking time + 4 second answer reveal
         setIsThinkingTime(true);
         setQuestionTimeRemaining(5);
 
@@ -793,15 +938,40 @@ export default function useTeacherSession(sessionId) {
 
       if (error) throw error;
 
-      // Update session status
+      // Prepare session update payload
+      const updatePayload = { status: "showing_results" };
+
+      if (session?.mode === "defuse") {
+        const totalTakers = participants.length > 0 ? participants.length : (answers || []).length;
+        const incorrectCount = (answers || []).filter((a) => !a.is_correct).length;
+        const totalTime = bombTotalTimeRef.current || calculateTotalQuizTime(questions);
+        const penalty = calculateDefusePenalty(totalTakers, incorrectCount, totalTime);
+        const currentRemaining = bombTimeRemainingRef.current;
+        const updatedRemaining = Math.max(0, currentRemaining - penalty.deductionSeconds);
+
+        setBombPenaltyInfo(penalty);
+        setBombTimeRemaining(updatedRemaining);
+        bombTimeRemainingRef.current = updatedRemaining;
+
+        updatePayload.bomb_time_remaining = updatedRemaining;
+        updatePayload.bomb_penalty_info = penalty;
+
+        if (updatedRemaining <= 0) {
+          updatePayload.status = "completed";
+          updatePayload.bomb_exploded = true;
+          setBombExploded(true);
+        }
+      }
+
+      // Update session status and penalty info in database
       await supabase
         .from("quiz_sessions")
-        .update({ status: "showing_results" })
+        .update(updatePayload)
         .eq("id", sessionId);
 
       setQuestionResults(answers || []);
       setShowResults(true);
-      setSession(prev => prev ? { ...prev, status: "showing_results" } : prev);
+      setSession(prev => prev ? { ...prev, ...updatePayload } : prev);
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorLoadingResults') + ': ' + err.message, type: "error" });
     }
@@ -992,6 +1162,7 @@ export default function useTeacherSession(sessionId) {
     alertModal, confirmModal, showAssignModal,
     allowSharedDevice, teamScoringMode, randomizeQuestions, randomizeAnswers,
     startingQuiz, endingQuiz, backgroundConfig,
+    bombTotalTime, bombTimeRemaining, bombPenaltyInfo, bombExploded,
 
     // Setters needed by UI
     setAlertModal, setConfirmModal, setShowAssignModal,

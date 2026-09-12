@@ -2,13 +2,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { buildAnswerShuffleMap } from "../../utils/answerShuffle";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Trophy, Clock, Heart, Spade, Diamond, Club } from "lucide-react";
+import { Trophy, Clock, Heart, Spade, Diamond, Club, Flame, AlertTriangle } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
+import BombDevice from "../common/BombDevice";
+import ExplosionAnimation from "../common/ExplosionAnimation";
+import CrisisScreen from "../common/CrisisScreen";
+import { calculateTotalQuizTime, formatBombTime } from "../../utils/defuseMode";
 import { clearActiveSession } from "../../utils/sessionPersistence";
-
-
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const { t } = useTranslation();
@@ -38,6 +40,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [correctAnswers, setCorrectAnswers] = useState(null);
+
+  // Defuse Mode states
+  const [bombTimeRemaining, setBombTimeRemaining] = useState(0);
+  const [bombTotalTime, setBombTotalTime] = useState(0);
+  const [exploded, setExploded] = useState(false);
+  const [showExplosionAnim, setShowExplosionAnim] = useState(false);
+
+  const isDefuseMode = session?.mode === "defuse";
 
   useEffect(() => {
     if (sessionId && appState.currentUser?.id) {
@@ -377,9 +387,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     }
   }, [session?.status, answerRevealCountdown, showAnswers]);
 
-  // Timer countdown - only starts after answers are revealed
+  // Timer countdown - only starts after answers are revealed (Classic / Team modes)
   useEffect(() => {
-    if (session?.status === "question_active" && timeRemaining > 0 && !hasAnswered && showAnswers) {
+    if (session?.mode !== "defuse" && session?.status === "question_active" && timeRemaining > 0 && !hasAnswered && showAnswers) {
       const timer = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
@@ -392,7 +402,57 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       return () => clearInterval(timer);
     }
-  }, [session?.status, timeRemaining, hasAnswered, showAnswers]);
+  }, [session?.mode, session?.status, timeRemaining, hasAnswered, showAnswers]);
+
+  // Synchronize Defuse Mode timer from session updates
+  useEffect(() => {
+    if (session?.mode === "defuse") {
+      const total = session.bomb_total_time || calculateTotalQuizTime(questions);
+      setBombTotalTime(total);
+
+      if (session.bomb_time_remaining !== undefined && session.bomb_time_remaining !== null) {
+        setBombTimeRemaining(session.bomb_time_remaining);
+      } else if (bombTimeRemaining === 0 && total > 0) {
+        setBombTimeRemaining(total);
+      }
+
+      if (session.bomb_exploded) {
+        setExploded(true);
+        setShowExplosionAnim(true);
+      }
+    }
+  }, [
+    session?.mode,
+    session?.bomb_time_remaining,
+    session?.bomb_total_time,
+    session?.bomb_exploded,
+    questions,
+  ]);
+
+  // Defuse Mode master countdown on student side while question is active
+  useEffect(() => {
+    if (
+      session?.mode === "defuse" &&
+      session?.status === "question_active" &&
+      bombTimeRemaining > 0 &&
+      showAnswers &&
+      !exploded
+    ) {
+      const timer = setInterval(() => {
+        setBombTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setExploded(true);
+            setShowExplosionAnim(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [session?.mode, session?.status, bombTimeRemaining, showAnswers, exploded]);
 
   const submitAnswer = async (optionIndex) => {
     if (hasAnswered || !currentQuestion || !participant) return;
@@ -567,6 +627,63 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       );
     }
 
+    if (isDefuseMode) {
+      const isExploded = session.bomb_exploded || exploded;
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={backgroundStyle}>
+          {isExploded && showExplosionAnim && (
+            <ExplosionAnimation onAnimationComplete={() => setShowExplosionAnim(false)} />
+          )}
+          <div className={`bg-neutral-900/95 border-4 ${
+            isExploded ? "border-red-600 shadow-red-950/70" : "border-emerald-500 shadow-emerald-950/50"
+          } text-white backdrop-blur-sm rounded-2xl shadow-2xl p-8 sm:p-12 text-center max-w-md w-full`}>
+            <div className="text-6xl mb-4">{isExploded ? "💥" : "🎉"}</div>
+            <h2 className={`text-3xl sm:text-4xl font-black mb-2 ${
+              isExploded ? "text-red-500" : "text-emerald-400"
+            }`}>
+              {isExploded ? "BOMB DETONATED!" : "BOMB DEFUSED!"}
+            </h2>
+            <p className="text-neutral-300 mb-6 font-medium text-sm sm:text-base">
+              {isExploded
+                ? "The countdown reached zero before defusal was complete."
+                : "Mission accomplished! The quiz was completed before detonation."}
+            </p>
+
+            <div className="bg-neutral-950 rounded-xl p-6 mb-4 border border-neutral-800">
+              <p className="text-neutral-400 text-sm mb-1">{t('student.finalScore')}</p>
+              <p className={`text-5xl font-black font-mono ${
+                isExploded ? "text-red-400" : "text-emerald-400"
+              }`}>
+                {participant?.score || 0}
+              </p>
+              <p className="text-neutral-400 mt-1 text-sm">{t('quiz.points')}</p>
+            </div>
+
+            {correctAnswers !== null && (
+              <div className="bg-neutral-950 rounded-xl p-4 mb-6 border border-neutral-800">
+                <p className="text-2xl font-bold text-amber-400 font-mono">
+                  {correctAnswers} / {questions.length}
+                </p>
+                <p className="text-neutral-400 text-sm mt-0.5">{t('student.questionsCorrect')}</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                clearActiveSession();
+                setView("student-dashboard");
+              }}
+              className={`${
+                isExploded ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+              } text-white px-8 py-3 rounded-xl text-lg font-bold w-full transition shadow-lg`}
+            >
+              {t('student.backToDashboard')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
@@ -678,10 +795,21 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 mb-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <Clock size={24} className="text-blue-700" />
-                <span className="text-3xl font-bold text-blue-700">
-                  {timeRemaining}s
-                </span>
+                {isDefuseMode ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">💣</span>
+                    <span className="text-2xl sm:text-3xl font-mono font-black text-red-600">
+                      {formatBombTime(bombTimeRemaining)}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <Clock size={24} className="text-blue-700" />
+                    <span className="text-3xl font-bold text-blue-700">
+                      {timeRemaining}s
+                    </span>
+                  </>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">{t('session.yourScore')}</p>
@@ -695,6 +823,16 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           {/* Question */}
           <div className="p-6 mb-4">
             <div className="text-center mb-6">
+              {isDefuseMode && (
+                <div className="mb-6 flex justify-center">
+                  <BombDevice
+                    timeRemaining={bombTimeRemaining}
+                    totalTime={bombTotalTime}
+                    isPaused={!showAnswers}
+                    size="md"
+                  />
+                </div>
+              )}
               <p className="text-white/80 mb-2 drop-shadow-lg">
                 {t('quiz.question')} {session.current_question_index + 1} {t('student.of')} {questions.length}
               </p>
@@ -749,13 +887,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
                   const style = answerStyles[idx];
                   const IconComponent = style.icon;
+                  const isTimeOut = isDefuseMode ? bombTimeRemaining === 0 : timeRemaining === 0;
 
                   return (
                     <button
                       key={idx}
                       onClick={() => submitAnswer(idx)}
-                      disabled={hasAnswered || timeRemaining === 0}
-                      className={`${style.bg} ${!hasAnswered && timeRemaining > 0 ? style.hover : ""
+                      disabled={hasAnswered || isTimeOut}
+                      className={`${style.bg} ${!hasAnswered && !isTimeOut ? style.hover : ""
                         } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
                         } text-white ${opt.image_url ? "p-2" : "p-3 sm:p-4 md:p-6 lg:p-8"} rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col items-center justify-center relative`}
                     >
@@ -881,6 +1020,69 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       );
     }
 
+    if (isDefuseMode) {
+      return (
+        <div className="min-h-screen py-8 px-4 flex items-center justify-center" style={backgroundStyle}>
+          <CrisisScreen
+            penaltyInfo={session.bomb_penalty_info}
+            timeRemaining={session.bomb_time_remaining ?? bombTimeRemaining}
+            totalTime={session.bomb_total_time ?? bombTotalTime}
+            isThinkingTime={session.is_thinking_time}
+            thinkingSeconds={session.thinking_time_remaining ?? 5}
+          >
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 text-center max-w-md mx-auto w-full">
+              <div className="mb-4">
+                {wasCorrect ? (
+                  <>
+                    <div className="text-5xl mb-2">🎉</div>
+                    <h2 className="text-3xl font-bold text-green-600 mb-1">{t('session.correctAnswer')}</h2>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-5xl mb-2">😔</div>
+                    <h2 className="text-3xl font-bold text-red-600 mb-1">{t('student.incorrect')}</h2>
+                  </>
+                )}
+              </div>
+
+              {showCorrectAnswer && (
+                <div className="mb-4">
+                  <p className="text-gray-600 mb-2">{t('student.theCorrectAnswerWas')}</p>
+                  {(() => {
+                    const correctOpt = currentQuestion.options?.find((o) => o.is_correct);
+                    return correctOpt?.image_url ? (
+                      <img
+                        src={correctOpt.image_url}
+                        alt={correctOpt.text || "Correct answer"}
+                        className="max-h-32 object-contain rounded mx-auto"
+                      />
+                    ) : (
+                      <p className="text-xl font-bold text-green-600">
+                        {correctOpt?.text}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+
+              <div className="bg-blue-50 rounded-xl p-4 inline-block px-8">
+                <p className="text-gray-600 text-sm mb-1">{t('session.yourScore')}</p>
+                <p className="text-3xl font-bold text-blue-700">
+                  {participant?.score || 0}
+                </p>
+              </div>
+
+              <p className="text-gray-600 mt-4">
+                {session.current_question_index >= questions.length - 1
+                  ? t('student.waitingForResults')
+                  : t('student.waitingForNextQuestion')}
+              </p>
+            </div>
+          </CrisisScreen>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
@@ -962,6 +1164,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   return (
     <>
       {renderContent()}
+      {showExplosionAnim && (
+        <ExplosionAnimation onAnimationComplete={() => setShowExplosionAnim(false)} />
+      )}
       <AlertModal
         isOpen={alertModal.isOpen}
         title={alertModal.title}
