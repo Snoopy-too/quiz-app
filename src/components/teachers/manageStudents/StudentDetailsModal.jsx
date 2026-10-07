@@ -144,6 +144,12 @@ export default function StudentDetailsModal({
                     {new Date(selectedStudent.created_at).toLocaleDateString()}
                   </p>
                 </div>
+                {selectedStudent.schools?.name && (
+                  <div>
+                    <p className="text-sm text-gray-600">{t("manageStudents.school") || "School"}</p>
+                    <p className="font-medium">{selectedStudent.schools.name}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
