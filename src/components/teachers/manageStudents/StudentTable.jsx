@@ -80,9 +80,6 @@ export default function StudentTable({
               <tr key={student.id} className={`border-b hover:bg-gray-50 ${highlightedIds.has(student.id) ? 'student-glow' : ''}`}>
                 <td className="px-6 py-4">
                   <div className="font-medium text-gray-900">{student.name}</div>
-                  {filterStatus === "unlinked" && student.schools?.name && (
-                    <div className="text-xs text-blue-600 font-medium">{student.schools.name}</div>
-                  )}
                 </td>
                 <td className="px-6 py-4 text-gray-600">{student.email}</td>
                 <td className="px-6 py-4 text-gray-600">{student.student_id || "-"}</td>

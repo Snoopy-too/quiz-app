@@ -118,12 +118,8 @@ export default function useManageStudents(appState) {
         (payload) => {
           const updated = payload.new;
           if (updated.role !== 'student') return;
-          // If student is assigned to another teacher, remove from this teacher's view
-          if (updated.teacher_id && updated.teacher_id !== teacherId) {
-            setStudents(prev => prev.filter(s => s.id !== updated.id));
-            setPendingStudents(prev => prev.filter(s => s.id !== updated.id));
-            return;
-          }
+          // Only care about students linked to this teacher
+          if (updated.teacher_id !== teacherId) return;
           realtimeWorking = true;
 
           setStudents(prev => {
@@ -162,12 +158,9 @@ export default function useManageStudents(appState) {
 
       try {
         const schoolId = appState.currentUser?.school_id;
-        // TEMPORARY: Allow unlinked students across all schools to be visible to all teachers
-        // REVERT NOTE: To restore school isolation, restore:
-        // const orFilter = schoolId
-        //   ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`
-        //   : `teacher_id.eq.${teacherId}`;
-        const orFilter = `teacher_id.eq.${teacherId},teacher_id.is.null`;
+        const orFilter = schoolId
+          ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${schoolId})`
+          : `teacher_id.eq.${teacherId}`;
 
         const { count, error: countError } = await supabase
           .from('users')
@@ -183,7 +176,7 @@ export default function useManageStudents(appState) {
           // Full fetch to get the new data
           const { data, error: fetchErr } = await supabase
             .from('users')
-            .select('*, schools(id, name)')
+            .select('*')
             .eq('role', 'student')
             .or(orFilter)
             .order('created_at', { ascending: false });
@@ -220,18 +213,16 @@ export default function useManageStudents(appState) {
 
     try {
       // Fetch students associated with the current teacher.
-      // TEMPORARY: Include unlinked students across all schools so teacher can relocate students to the correct school.
-      // REVERT NOTE: To restore school isolation, restore:
-      // const teacherSchoolId = appState.currentUser.school_id;
-      // const orFilter = teacherSchoolId
-      //   ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${teacherSchoolId})`
-      //   : `teacher_id.eq.${teacherId}`;
+      // If teacher has a school_id, also include unlinked students from the same school.
       const teacherId = appState.currentUser.id;
-      const orFilter = `teacher_id.eq.${teacherId},teacher_id.is.null`;
+      const teacherSchoolId = appState.currentUser.school_id;
+      const orFilter = teacherSchoolId
+        ? `teacher_id.eq.${teacherId},and(teacher_id.is.null,school_id.eq.${teacherSchoolId})`
+        : `teacher_id.eq.${teacherId}`;
 
       const { data: studentsData, error: studentsError } = await supabase
         .from("users")
-        .select("*, schools(id, name)")
+        .select("*")
         .eq("role", "student")
         .or(orFilter)
         .order("created_at", { ascending: false });
@@ -273,17 +264,9 @@ export default function useManageStudents(appState) {
       message: t("manageStudents.confirmLinkMessage", { name: student.name }),
       onConfirm: async () => {
         try {
-          const updatePayload = {
-            teacher_id: appState.currentUser.id,
-          };
-          // Move the student to the current teacher's school when linking
-          if (appState.currentUser?.school_id) {
-            updatePayload.school_id = appState.currentUser.school_id;
-          }
-
           const { error } = await supabase
             .from("users")
-            .update(updatePayload)
+            .update({ teacher_id: appState.currentUser.id })
             .eq("id", student.id);
 
           if (error) throw error;
@@ -686,13 +669,14 @@ export default function useManageStudents(appState) {
     .filter((student) => {
       // Filter logic
       // 1. If filter is 'unlinked', explicitly show only unlinked students
-      // TEMPORARY: Allow unlinked students from ALL schools to be visible so teacher can relocate students
-      // REVERT NOTE: To restore school isolation, restore:
-      // const teacherSchoolId = appState.currentUser?.school_id;
-      // if (teacherSchoolId && student.school_id !== teacherSchoolId) return false;
+      //    that share the same school_id as the current teacher
       if (filterStatus === "unlinked") {
         const isUnlinked = student.teacher_id === null;
         if (!isUnlinked) return false;
+
+        // Only show unlinked students from the same school
+        const teacherSchoolId = appState.currentUser?.school_id;
+        if (teacherSchoolId && student.school_id !== teacherSchoolId) return false;
 
         // Apply search if needed
         return (
@@ -750,13 +734,10 @@ export default function useManageStudents(appState) {
     });
 
   const myStudents = students.filter(s => s.teacher_id === appState.currentUser?.id);
-  // TEMPORARY: Count all unlinked students across all schools
-  // REVERT NOTE: To restore school isolation, restore:
-  // const unlinkedStudents = students.filter(s =>
-  //   s.teacher_id === null &&
-  //   s.school_id === appState.currentUser?.school_id
-  // );
-  const unlinkedStudents = students.filter(s => s.teacher_id === null);
+  const unlinkedStudents = students.filter(s =>
+    s.teacher_id === null &&
+    s.school_id === appState.currentUser?.school_id
+  );
 
   return {
     students, myStudents, unlinkedStudents, pendingStudents, quizCounts, searchTerm, setSearchTerm,
