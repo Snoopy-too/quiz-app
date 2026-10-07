@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus, BarChart3 } from "lucide-react";
+import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus, BarChart3, CheckSquare, Check } from "lucide-react";
 import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import BulkEditModal from "./BulkEditModal";
+import { formatTeacherCode } from "../../utils/teacherCode";
 
 export default function SuperAdminDashboard({ setView, appState, setSelectedTeacherId }) {
   const [users, setUsers] = useState([]);
@@ -18,7 +20,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
 
   // Alert/Confirm modals
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -51,7 +55,8 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
     student_id: "",
     approved: false,
     verified: false,
-    school_id: ""
+    school_id: "",
+    teacher_id: ""
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -255,6 +260,7 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
           role: editForm.role,
           student_id: editForm.student_id || null,
           school_id: editForm.school_id || null,
+          teacher_id: editForm.role === "student" ? (editForm.teacher_id || null) : null,
           approved: editForm.approved,
           verified: editForm.verified
         })
@@ -359,7 +365,8 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
       student_id: user.student_id || "",
       approved: user.approved || false,
       verified: user.verified || false,
-      school_id: user.school_id || ""
+      school_id: user.school_id || "",
+      teacher_id: user.teacher_id || ""
     });
     setShowEditModal(true);
   };
@@ -370,11 +377,56 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
     setShowPasswordModal(true);
   };
 
+  // Derived teachers list
+  const teachers = users.filter((u) => u.role === "teacher");
+
   // Helper: look up school name by ID
   const getSchoolName = (schoolId) => {
     if (!schoolId) return "—";
-    const school = schools.find(s => s.id === schoolId);
+    const school = schools.find((s) => s.id === schoolId);
     return school ? school.name : "—";
+  };
+
+  // Helper: look up teacher name by ID
+  const getTeacherName = (teacherId) => {
+    if (!teacherId) return "—";
+    const teacher = users.find((u) => u.id === teacherId);
+    return teacher ? teacher.name : "—";
+  };
+
+  // Selection handlers
+  const toggleSelectUser = (userId) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (sortedUsers.length === 0) return;
+    const allSelected = sortedUsers.every((u) => selectedUserIds.has(u.id));
+    if (allSelected) {
+      setSelectedUserIds((prev) => {
+        const next = new Set(prev);
+        sortedUsers.forEach((u) => next.delete(u.id));
+        return next;
+      });
+    } else {
+      setSelectedUserIds((prev) => {
+        const next = new Set(prev);
+        sortedUsers.forEach((u) => next.add(u.id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedUserIds(new Set());
   };
 
   // Filter users
@@ -419,6 +471,18 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     let aVal = a[sortColumn];
     let bVal = b[sortColumn];
+
+    // Special handling for teacher_id
+    if (sortColumn === "teacher_id") {
+      aVal = getTeacherName(a.teacher_id);
+      bVal = getTeacherName(b.teacher_id);
+    }
+
+    // Special handling for school_id
+    if (sortColumn === "school_id") {
+      aVal = getSchoolName(a.school_id);
+      bVal = getSchoolName(b.school_id);
+    }
 
     // Handle null/undefined values
     if (aVal == null) aVal = "";
@@ -683,15 +747,72 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                 </select>
               </div>
 
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-              >
-                <UserPlus size={20} />
-                Create User
-              </button>
+              <div className="flex items-center gap-3">
+                {selectedUserIds.size > 0 && (
+                  <button
+                    onClick={() => setShowBulkEditModal(true)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2 shadow-sm font-medium transition"
+                  >
+                    <Users size={18} />
+                    Bulk Edit ({selectedUserIds.size})
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
+                >
+                  <UserPlus size={20} />
+                  Create User
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Bulk Selection Action Banner */}
+          {selectedUserIds.size > 0 && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm">
+                  {selectedUserIds.size}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-indigo-950">
+                    {selectedUserIds.size} {selectedUserIds.size === 1 ? "user" : "users"} selected
+                  </p>
+                  <p className="text-xs text-indigo-700">
+                    {users.filter(u => selectedUserIds.has(u.id) && u.role === "student").length} students,{" "}
+                    {users.filter(u => selectedUserIds.has(u.id) && u.role !== "student").length} staff/admins
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedUserIds(new Set(sortedUsers.map(u => u.id)));
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-white border border-indigo-300 rounded hover:bg-indigo-100 transition"
+                >
+                  Select All Filtered ({sortedUsers.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100 transition"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkEditModal(true)}
+                  className="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 transition flex items-center gap-1.5 shadow"
+                >
+                  <Users size={16} />
+                  Bulk Edit School / Teacher
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Users Table */}
           {loading && <p className="text-center text-gray-600">Loading users...</p>}
@@ -703,6 +824,22 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                 <table className="w-full">
                   <thead className="bg-gray-100">
                     <tr>
+                      <th className="p-4 w-12 text-center">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all users"
+                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                          checked={sortedUsers.length > 0 && sortedUsers.every((u) => selectedUserIds.has(u.id))}
+                          ref={(el) => {
+                            if (el) {
+                              const someSelected = sortedUsers.some((u) => selectedUserIds.has(u.id));
+                              const allSelected = sortedUsers.length > 0 && sortedUsers.every((u) => selectedUserIds.has(u.id));
+                              el.indeterminate = someSelected && !allSelected;
+                            }
+                          }}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
                       <th
                         className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
                         onClick={() => handleSort("name")}
@@ -745,6 +882,14 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                       </th>
                       <th
                         className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
+                        onClick={() => handleSort("teacher_id")}
+                      >
+                        <div className="flex items-center gap-2">
+                          Teacher {getSortIcon("teacher_id")}
+                        </div>
+                      </th>
+                      <th
+                        className="p-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition select-none"
                         onClick={() => handleSort("status")}
                       >
                         <div className="flex items-center gap-2">
@@ -764,7 +909,19 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {sortedUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
+                      <tr
+                        key={user.id}
+                        className={`hover:bg-gray-50 transition ${selectedUserIds.has(user.id) ? "bg-indigo-50/60" : ""}`}
+                      >
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${user.name || user.email}`}
+                            className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                            checked={selectedUserIds.has(user.id)}
+                            onChange={() => toggleSelectUser(user.id)}
+                          />
+                        </td>
                         <td className="p-4">{user.name || "N/A"}</td>
                         <td className="p-4">{user.email}</td>
                         <td className="p-4">
@@ -778,6 +935,25 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                         <td className="p-4">{user.student_id || "N/A"}</td>
                         <td className="p-4">
                           <span className="text-sm">{getSchoolName(user.school_id)}</span>
+                        </td>
+                        <td className="p-4">
+                          {user.role === "student" ? (
+                            user.teacher_id ? (
+                              <span className="text-sm font-medium text-gray-900">
+                                {getTeacherName(user.teacher_id)}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                Unlinked
+                              </span>
+                            )
+                          ) : user.role === "teacher" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 font-mono">
+                              {user.teacher_code ? formatTeacherCode(user.teacher_code) : "Teacher"}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">—</span>
+                          )}
                         </td>
                         <td className="p-4">
                           <div className="flex gap-2">
@@ -1011,6 +1187,34 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                     </div>
                   )}
 
+                  {editForm.role === "student" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Assigned Teacher</label>
+                      <select
+                        value={editForm.teacher_id}
+                        onChange={(e) => {
+                          const newTeacherId = e.target.value;
+                          const updates = { teacher_id: newTeacherId };
+                          if (newTeacherId && !editForm.school_id) {
+                            const t = teachers.find((tch) => tch.id === newTeacherId);
+                            if (t?.school_id) {
+                              updates.school_id = t.school_id;
+                            }
+                          }
+                          setEditForm({ ...editForm, ...updates });
+                        }}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">— Unlinked (No Teacher) —</option>
+                        {teachers.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name || t.email} {t.teacher_code ? `(${formatTeacherCode(t.teacher_code)})` : ""} {t.school_id ? `[${getSchoolName(t.school_id)}]` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium mb-1">School</label>
                     <select
@@ -1125,6 +1329,19 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
           )}
 
           {/* Custom Modals */}
+          <BulkEditModal
+            isOpen={showBulkEditModal}
+            onClose={() => setShowBulkEditModal(false)}
+            selectedUsers={users.filter((u) => selectedUserIds.has(u.id))}
+            schools={schools}
+            teachers={teachers}
+            onSuccess={() => {
+              clearSelection();
+              fetchUsers();
+            }}
+            setAlertModal={setAlertModal}
+          />
+
           <AlertModal
             isOpen={alertModal.isOpen}
             title={alertModal.title}
