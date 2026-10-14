@@ -519,7 +519,7 @@
     "import": "Import"
   },
   "publicQuizzes": {
-    "description": "Discover and import quizzes shared by other teachers in your school.",
+    "description": "Discover and import quizzes created by other teachers in your school.",
     "globalDescription": "Discover and import quizzes shared by teachers globally from all schools.",
     "searchPlaceholder": "Search quizzes or creators...",
     "sortByCreator": "Sort: Creator",
