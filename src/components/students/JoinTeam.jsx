@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { ArrowLeft, Users, Check } from "lucide-react";
 import { normalizeTeamCode } from "../../utils/teamCode";
+import { leaveTeamAndSession } from "../../utils/teamCleanup";
 
 export default function JoinTeam({ appState, setView, session, onBack }) {
   const { t } = useTranslation();
@@ -11,6 +12,7 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
   const [error, setError] = useState(null);
   const [foundTeam, setFoundTeam] = useState(null);
   const [joining, setJoining] = useState(false);
+  const [previousParticipant, setPreviousParticipant] = useState(null);
 
   const findTeam = async () => {
     const normalizedCode = normalizeTeamCode(teamCode);
@@ -44,18 +46,31 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
         return;
       }
 
-      // Check if user is already in the session (e.g. created a team then backed out)
+      // Check if user is already in the session (e.g. created a solo team by mistake)
       const { data: existingParticipant } = await supabase
         .from("session_participants")
-        .select("id")
+        .select("id, team_id")
         .eq("session_id", session.id)
         .eq("user_id", appState.currentUser.id)
         .maybeSingle();
 
       if (existingParticipant) {
-        // Already in session — rejoin directly instead of blocking
-        setView("student-quiz", session.id);
-        return;
+        if (existingParticipant.team_id === team.id) {
+          // Already in this exact team — rejoin directly
+          setView("student-quiz", session.id);
+          return;
+        }
+
+        if (session.status !== "waiting") {
+          // Quiz already started — cannot switch teams mid-game
+          setView("student-quiz", session.id);
+          return;
+        }
+
+        // Allow switching to partner's team while in waiting status
+        setPreviousParticipant(existingParticipant);
+      } else {
+        setPreviousParticipant(null);
       }
 
       setFoundTeam(team);
@@ -72,13 +87,22 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
     setError(null);
 
     try {
-      // Check if user is already a team member
+      // If user had a previous participation in another team (e.g. solo team created by mistake), clean it up first
+      if (previousParticipant) {
+        await leaveTeamAndSession({
+          sessionId: session.id,
+          userId: appState.currentUser.id,
+          teamId: previousParticipant.team_id,
+        });
+      }
+
+      // Check if user is already a team member of the new team
       const { data: existingMember } = await supabase
         .from("team_members")
-        .select("id")
+        .select("id, team_id")
         .eq("team_id", foundTeam.id)
         .eq("student_id", appState.currentUser.id)
-        .single();
+        .maybeSingle();
 
       // Add to team_members if not already a member
       if (!existingMember) {
@@ -86,12 +110,12 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
           .from("team_members")
           .insert({
             team_id: foundTeam.id,
-            student_id: appState.currentUser.id
+            student_id: appState.currentUser.id,
           });
 
         if (memberError) {
           console.error("Error adding team member:", memberError);
-          // Continue anyway - they might already be a member
+          // Continue anyway - RLS might restrict if not creator, but session_participants records their active team
         }
       }
 
@@ -103,7 +127,7 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
           user_id: appState.currentUser.id,
           team_id: foundTeam.id,
           is_team_entry: true,
-          score: 0
+          score: 0,
         });
 
       if (participantError) {

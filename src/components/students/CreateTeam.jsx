@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone, UserPlus, Link } from "lucide-react";
+import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone, UserPlus, Link, AlertTriangle } from "lucide-react";
 import { generateTeamCode } from "../../utils/teamCode";
+import { leaveTeamAndSession } from "../../utils/teamCleanup";
 import JoinTeam from "./JoinTeam";
 
 export default function CreateTeam({ appState, setView, error, setError, onBack, isApproved }) {
@@ -27,6 +28,97 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   // Team mode options state
   const [showTeamOptions, setShowTeamOptions] = useState(false);
   const [showJoinTeam, setShowJoinTeam] = useState(false);
+
+  // States for live team members preview and cancellation on code screen
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [cancellingTeam, setCancellingTeam] = useState(false);
+
+  // Check if returning from StudentQuiz waiting room via "Leave / Switch Team"
+  useEffect(() => {
+    const switchSessionId = sessionStorage.getItem('quizapp_switch_team_session_id');
+    if (switchSessionId) {
+      sessionStorage.removeItem('quizapp_switch_team_session_id');
+      loadSessionForTeamSwitch(switchSessionId);
+    }
+  }, []);
+
+  const loadSessionForTeamSwitch = async (sessionId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: foundSession, error: sErr } = await supabase
+        .from("quiz_sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .single();
+
+      if (sErr) throw sErr;
+      if (foundSession && foundSession.status !== 'completed' && foundSession.mode === 'team') {
+        setSession(foundSession);
+        setQuizPin(foundSession.pin || "");
+        setShowTeamOptions(true);
+      }
+    } catch (err) {
+      console.error("[CreateTeam] Error loading session for team switch:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Poll live team members while on the team code display screen
+  useEffect(() => {
+    if (!showTeamCode || !createdTeam?.id) return;
+
+    let isMounted = true;
+    const fetchMembers = async () => {
+      try {
+        const { data, error: membersErr } = await supabase
+          .from("team_members")
+          .select("id, student_id, users(name)")
+          .eq("team_id", createdTeam.id);
+
+        if (!membersErr && data && isMounted) {
+          setTeamMembers(data.map((m) => m.users?.name || t('common.student')));
+        }
+      } catch (err) {
+        console.error("[CreateTeam] Error fetching team members:", err);
+      }
+    };
+
+    fetchMembers();
+    const interval = setInterval(fetchMembers, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [showTeamCode, createdTeam?.id, t]);
+
+  const handleCancelCreatedTeam = async () => {
+    if (!session || !createdTeam) return;
+    setCancellingTeam(true);
+    setError(null);
+    try {
+      await leaveTeamAndSession({
+        sessionId: session.id,
+        userId: appState.currentUser.id,
+        teamId: createdTeam.id,
+      });
+
+      // Reset team creation state
+      setShowTeamCode(false);
+      setCreatedTeam(null);
+      setTeamCreated(false);
+      setGeneratedCode("");
+      setTeamMembers([]);
+      // Open Join Team screen immediately so they can enter partner's code
+      setShowJoinTeam(true);
+    } catch (err) {
+      console.error("[CreateTeam] Error cancelling team:", err);
+      setError(err.message || t('errors.somethingWentWrong'));
+    } finally {
+      setCancellingTeam(false);
+    }
+  };
 
 
 
@@ -301,33 +393,41 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
           <p className="text-gray-600 mb-6">{t('student.teamModeDescription')}</p>
 
           <div className="space-y-4">
-            {/* Create Team Option */}
+            {/* Create Team Option (Leader) */}
             <button
               onClick={() => {
                 setShowTeamOptions(false);
                 // Continue to team creation form
               }}
-              className="w-full bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
+              className="w-full bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all flex flex-col items-start gap-1 text-left border-2 border-blue-500 hover:border-blue-700 shadow-md group"
             >
-              <UserPlus size={24} />
-              <div className="text-left">
-                <div className="font-bold text-lg">{t('student.createNewTeam')}</div>
-                <div className="text-sm opacity-90">{t('student.createNewTeamDesc')}</div>
+              <div className="flex items-center gap-2 font-bold text-lg">
+                <UserPlus size={22} className="text-white group-hover:scale-110 transition-transform" />
+                <span>{t('student.iamTeamLeader', 'I am the Team Leader')}</span>
+              </div>
+              <div className="text-sm text-blue-100 font-medium">
+                {t('student.createTeamAndGetCode', 'Create Team & Get Code')}
+              </div>
+              <div className="mt-2 inline-flex items-center gap-1.5 bg-amber-400 text-amber-950 px-2.5 py-1 rounded-md text-xs font-bold tracking-wide shadow-sm">
+                <span>⚠️</span>
+                <span>{t('student.oneLeaderWarning', 'Only ONE person per group should click this!')}</span>
               </div>
             </button>
 
-            {/* Join Team Option */}
+            {/* Join Team Option (Partner) */}
             <button
               onClick={() => {
                 setShowTeamOptions(false);
                 setShowJoinTeam(true);
               }}
-              className="w-full bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-3"
+              className="w-full bg-emerald-600 text-white p-4 rounded-xl hover:bg-emerald-700 transition-all flex flex-col items-start gap-1 text-left border-2 border-emerald-500 hover:border-emerald-700 shadow-md group"
             >
-              <Link size={24} />
-              <div className="text-left">
-                <div className="font-bold text-lg">{t('student.joinExistingTeam')}</div>
-                <div className="text-sm opacity-90">{t('student.joinExistingTeamDesc')}</div>
+              <div className="flex items-center gap-2 font-bold text-lg">
+                <Link size={22} className="text-white group-hover:scale-110 transition-transform" />
+                <span>{t('student.ihaveTeamCode', 'I have a Team Code from my partner')}</span>
+              </div>
+              <div className="text-sm text-emerald-100">
+                {t('student.joinTeamWithCode', 'Join Team')} — {t('student.enterCodeFromLeader', 'Enter the 4-character code from your team leader')}
               </div>
             </button>
           </div>
@@ -341,35 +441,82 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
     return (
       <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h1 className="text-2xl font-bold mb-2">{t('student.teamCreated')}</h1>
-          <p className="text-gray-600 mb-6">{t('student.shareCodeWithTeammates')}</p>
+          <div className="text-5xl mb-3">🎉</div>
+          <h1 className="text-2xl font-bold mb-1">{t('student.teamCreated')}</h1>
+          {createdTeam?.name && (
+            <div className="inline-block bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full mb-3">
+              {createdTeam.name}
+            </div>
+          )}
+          <p className="text-gray-600 mb-5 text-sm">{t('student.shareCodeWithTeammates')}</p>
 
           {/* Team Code Display */}
-          <div className="bg-gray-100 rounded-xl p-6 mb-6">
-            <p className="text-gray-500 text-sm mb-2">{t('student.yourTeamCode')}</p>
-            <div className="text-5xl font-bold tracking-widest text-blue-700 mb-4">
+          <div className="bg-gray-100 rounded-xl p-5 mb-5 border border-gray-200">
+            <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">
+              {t('student.yourTeamCode')}
+            </p>
+            <div className="text-5xl font-extrabold tracking-widest text-blue-700 mb-3 font-mono">
               {generatedCode}
             </div>
             <button
               onClick={copyTeamCode}
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
             >
-              <Copy size={18} />
+              <Copy size={16} />
               {codeCopied ? t('common.copied') : t('common.copyCode')}
             </button>
           </div>
 
-          <p className="text-sm text-gray-500 mb-6">
-            {t('student.teammatesEnterCode')}
-          </p>
+          {/* Live Members Roster */}
+          <div className="bg-blue-50 rounded-xl p-4 mb-5 border border-blue-200 text-left">
+            <div className="flex items-center justify-between text-xs font-bold text-blue-900 mb-2">
+              <span className="flex items-center gap-1.5">
+                <Users size={16} />
+                {t('student.teammates', 'Teammates')} ({teamMembers.length})
+              </span>
+              <span className="text-blue-600 font-normal">
+                {teamMembers.length > 1
+                  ? t('student.teammatesJoined', { count: teamMembers.length })
+                  : t('student.waitingForTeammates', 'Waiting for partner...')}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+              {teamMembers.map((name, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 bg-white border border-blue-200 text-blue-800 text-xs px-2.5 py-1 rounded-md font-medium"
+                >
+                  <Check size={12} className="text-green-600" />
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
 
-          <button
-            onClick={() => setView("student-quiz", session.id)}
-            className="w-full bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 text-xl font-semibold"
-          >
-            {t('student.continueToQuiz')}
-          </button>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg mb-4 text-xs">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <button
+              onClick={() => setView("student-quiz", session.id)}
+              className="w-full bg-blue-600 text-white p-3.5 rounded-xl hover:bg-blue-700 text-lg font-semibold shadow-md transition-colors"
+            >
+              {t('student.continueToQuiz')}
+            </button>
+
+            {/* Cancel & Join Partner's Team Escape Hatch */}
+            <button
+              onClick={handleCancelCreatedTeam}
+              disabled={cancellingTeam}
+              className="w-full bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 border border-gray-300 hover:border-red-300 p-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowLeft size={16} />
+              {cancellingTeam ? t('student.cancellingTeam', 'Cancelling team...') : t('student.cancelAndJoinPartner', "Cancel & Join Partner's Team Instead")}
+            </button>
+          </div>
         </div>
       </div>
     );

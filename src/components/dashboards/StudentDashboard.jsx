@@ -10,7 +10,16 @@ import { getActiveSession, clearActiveSession } from "../../utils/sessionPersist
 
 export default function StudentDashboard({ appState, setAppState, setView, error, setError }) {
   const { t } = useTranslation();
-  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, join-classic, create-team, results
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      if (sessionStorage.getItem('quizapp_switch_team_session_id')) {
+        return "create-team";
+      }
+    } catch (e) {
+      // ignore
+    }
+    return "dashboard";
+  });
   const isApproved = appState.currentUser?.approved;
   const [activeSession, setActiveSession] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -18,6 +27,11 @@ export default function StudentDashboard({ appState, setAppState, setView, error
 
   // Check for active quiz session on mount
   useEffect(() => {
+    if (sessionStorage.getItem('quizapp_switch_team_session_id')) {
+      setCurrentView("create-team");
+      setCheckingSession(false);
+      return;
+    }
     if (appState.currentUser?.id) {
       checkForActiveSession();
       fetchPendingAssignments();

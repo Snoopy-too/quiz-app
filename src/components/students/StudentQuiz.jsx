@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { buildAnswerShuffleMap } from "../../utils/answerShuffle";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { Trophy, Clock, Heart, Spade, Diamond, Club, Flame, AlertTriangle } from "lucide-react";
+import { Trophy, Clock, Heart, Spade, Diamond, Club, Flame, AlertTriangle, Users, Copy, ArrowLeft } from "lucide-react";
+import { leaveTeamAndSession } from "../../utils/teamCleanup";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
@@ -40,6 +41,10 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
   const [correctAnswers, setCorrectAnswers] = useState(null);
+
+  // Team Mode waiting room states
+  const [teamInfo, setTeamInfo] = useState(null);
+  const [leavingTeam, setLeavingTeam] = useState(false);
 
   // Defuse Mode states
   const [bombTimeRemaining, setBombTimeRemaining] = useState(0);
@@ -206,6 +211,81 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   useEffect(() => {
     questionsRef.current = questions;
   }, [questions]);
+
+  // Poll team details when waiting in Team Mode
+  useEffect(() => {
+    if (session?.mode !== "team" || session?.status !== "waiting" || !participant?.team_id) {
+      return;
+    }
+
+    let isMounted = true;
+    const fetchTeamInfo = async () => {
+      try {
+        const { data: teamData, error: teamErr } = await supabase
+          .from("teams")
+          .select("id, name, team_code, is_shared_device")
+          .eq("id", participant.team_id)
+          .maybeSingle();
+
+        if (teamErr || !teamData) return;
+
+        const { data: membersData, error: memErr } = await supabase
+          .from("team_members")
+          .select("id, student_id, users(name)")
+          .eq("team_id", participant.team_id);
+
+        if (!memErr && isMounted) {
+          const membersList = (membersData || []).map((m) => m.users?.name || t('common.student'));
+          setTeamInfo({
+            name: teamData.name,
+            team_code: teamData.team_code,
+            is_shared_device: teamData.is_shared_device,
+            members: membersList,
+          });
+        }
+      } catch (err) {
+        console.error("[StudentQuiz] Error loading waiting room team info:", err);
+      }
+    };
+
+    fetchTeamInfo();
+    const interval = setInterval(fetchTeamInfo, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [session?.mode, session?.status, participant?.team_id, t]);
+
+  const handleLeaveWaitingTeam = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: t('student.leaveTeamTitle', 'Leave Current Team?'),
+      message: t('student.leaveTeamConfirm', 'Are you sure you want to leave this team? You will return to team selection and can join your partner\'s team.'),
+      onConfirm: async () => {
+        setLeavingTeam(true);
+        try {
+          await leaveTeamAndSession({
+            sessionId: session.id,
+            userId: appState.currentUser.id,
+            teamId: participant.team_id,
+          });
+          // Store handoff so StudentDashboard -> CreateTeam opens directly to team selection for this session
+          sessionStorage.setItem('quizapp_switch_team_session_id', session.id);
+          setView("student-dashboard");
+        } catch (err) {
+          console.error("[StudentQuiz] Error leaving waiting room team:", err);
+          setAlertModal({
+            isOpen: true,
+            title: t('common.error'),
+            message: err.message || t('errors.somethingWentWrong'),
+            type: "error",
+          });
+        } finally {
+          setLeavingTeam(false);
+        }
+      },
+    });
+  };
 
   const joinSession = async () => {
     try {
@@ -747,15 +827,75 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
   // Waiting for quiz to start
   if (session.status === "waiting") {
+    const isTeam = session.mode === "team" && participant?.team_id;
+
     return (
-      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-md">
-          <h2 className="text-3xl font-bold mb-4">{t('student.youreIn')}</h2>
-          <p className="text-gray-600 mb-6">
+      <div className="min-h-screen flex items-center justify-center p-4" style={backgroundStyle}>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 sm:p-10 text-center max-w-md w-full">
+          <div className="animate-pulse text-5xl mb-3">⏳</div>
+          <h2 className="text-3xl font-bold mb-2">{t('student.youreIn')}</h2>
+          <p className="text-gray-600 mb-3 text-sm">
             {t('student.waitingForTeacherToStart')}
           </p>
-          <div className="animate-pulse text-6xl mb-4">⏳</div>
-          <p className="text-lg font-semibold" style={{ color: theme?.primary_color || "#7C3AED" }}>{quiz.title}</p>
+          <p className="text-base font-semibold mb-6" style={{ color: theme?.primary_color || "#7C3AED" }}>
+            {quiz?.title}
+          </p>
+
+          {isTeam && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs uppercase tracking-wider text-blue-600 font-bold">
+                  {t('student.yourTeam', 'Your Team')}
+                </span>
+                {teamInfo?.team_code && !teamInfo.is_shared_device && (
+                  <span className="text-xs font-mono font-bold bg-white text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                    {t('student.teamCode')}: {teamInfo.team_code}
+                  </span>
+                )}
+              </div>
+
+              <div className="text-xl font-bold text-blue-900 mb-3">
+                {teamInfo?.name || t('student.team')}
+              </div>
+
+              {/* Members */}
+              <div className="border-t border-blue-200 pt-2.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-blue-800 mb-1.5">
+                  <span className="flex items-center gap-1">
+                    <Users size={14} />
+                    {t('student.teammates', 'Teammates')} ({teamInfo?.members?.length || 1})
+                  </span>
+                  {teamInfo?.members?.length === 1 && (
+                    <span className="text-amber-600 font-normal">
+                      {t('student.waitingForTeammates', 'Waiting for partner...')}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                  {(teamInfo?.members || [appState.currentUser?.name || "You"]).map((name, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-block bg-white text-blue-800 text-xs px-2 py-0.5 rounded border border-blue-200 font-medium"
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Leave / Switch Team Escape Hatch */}
+          {isTeam && (
+            <button
+              onClick={handleLeaveWaitingTeam}
+              disabled={leavingTeam}
+              className="w-full bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 border border-gray-300 hover:border-red-300 px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <ArrowLeft size={16} />
+              {leavingTeam ? t('student.leavingTeam', 'Leaving team...') : t('student.leaveTeam', 'Leave / Switch Team')}
+            </button>
+          )}
         </div>
       </div>
     );
