@@ -1286,35 +1286,38 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                   <p className="text-lg font-semibold text-gray-900 select-text cursor-text">{question.question_text}</p>
 
                                   <div className="grid grid-cols-2 gap-3">
-                                    {question.options.map((option, optionIndex) => (
-                                      <div
-                                        key={optionIndex}
-                                        className={`p-3 rounded-lg border-2 transition-all ${option.is_correct
-                                          ? "bg-green-50 border-green-400 shadow-sm"
-                                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
-                                          }`}
-                                      >
-                                        <div className="flex items-start gap-2">
-                                          {option.is_correct && (
-                                            <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
-                                          )}
-                                          {option.image_url ? (
-                                            <img
-                                              src={option.image_url}
-                                              alt={option.text || `Option ${optionIndex + 1}`}
-                                              className="w-full h-20 object-contain rounded"
-                                            />
-                                          ) : (
-                                            <span
-                                              className={`text-sm select-text cursor-text ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
-                                                }`}
-                                            >
-                                              {option.text || <em className="text-gray-400">No answer text</em>}
-                                            </span>
-                                          )}
+                                    {question.options.map((option, optionIndex) => {
+                                      const isCorrect = !isSurvey && option.is_correct;
+                                      return (
+                                        <div
+                                          key={optionIndex}
+                                          className={`p-3 rounded-lg border-2 transition-all ${isCorrect
+                                            ? "bg-green-50 border-green-400 shadow-sm"
+                                            : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                                            }`}
+                                        >
+                                          <div className="flex items-start gap-2">
+                                            {isCorrect && (
+                                              <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                            )}
+                                            {option.image_url ? (
+                                              <img
+                                                src={option.image_url}
+                                                alt={option.text || `Option ${optionIndex + 1}`}
+                                                className="w-full h-20 object-contain rounded"
+                                              />
+                                            ) : (
+                                              <span
+                                                className={`text-sm select-text cursor-text ${isCorrect ? "font-semibold text-green-900" : "text-gray-700"
+                                                  }`}
+                                              >
+                                                {option.text || <em className="text-gray-400">No answer text</em>}
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </>
                               )}

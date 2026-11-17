@@ -1436,35 +1436,38 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                   <p className="text-lg font-semibold text-gray-900 select-text cursor-text">{question.question_text}</p>
 
                                   <div className="grid grid-cols-2 gap-3">
-                                    {question.options?.map((opt, idx) => (
-                                      <div
-                                        key={idx}
-                                        className={`p-3 rounded-lg border-2 transition-all ${opt.is_correct
-                                          ? "bg-green-50 border-green-400 shadow-sm"
-                                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
-                                          }`}
-                                      >
-                                        <div className="flex items-start gap-2">
-                                          {opt.is_correct && (
-                                            <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
-                                          )}
-                                          {opt.image_url ? (
-                                            <img
-                                              src={opt.image_url}
-                                              alt={opt.text || `Option ${idx + 1}`}
-                                              className="w-full h-20 object-contain rounded"
-                                            />
-                                          ) : (
-                                            <span
-                                              className={`text-sm select-text cursor-text ${opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
-                                                }`}
-                                            >
-                                              {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}
-                                            </span>
-                                          )}
+                                    {question.options?.map((opt, idx) => {
+                                      const isCorrect = !isSurvey && opt.is_correct;
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`p-3 rounded-lg border-2 transition-all ${isCorrect
+                                            ? "bg-green-50 border-green-400 shadow-sm"
+                                            : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                                            }`}
+                                        >
+                                          <div className="flex items-start gap-2">
+                                            {isCorrect && (
+                                              <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                            )}
+                                            {opt.image_url ? (
+                                              <img
+                                                src={opt.image_url}
+                                                alt={opt.text || `Option ${idx + 1}`}
+                                                className="w-full h-20 object-contain rounded"
+                                              />
+                                            ) : (
+                                              <span
+                                                className={`text-sm select-text cursor-text ${isCorrect ? "font-semibold text-green-900" : "text-gray-700"
+                                                  }`}
+                                              >
+                                                {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </>
                               )}
