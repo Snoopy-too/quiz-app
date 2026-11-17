@@ -498,8 +498,16 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       e.preventDefault();
       return;
     }
+    const cardEl = e.currentTarget.closest("[data-question-card]");
+    if (cardEl && e.dataTransfer?.setDragImage) {
+      e.dataTransfer.setDragImage(cardEl, 24, 24);
+    }
     setDraggedQuestion({ question, index });
     e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedQuestion(null);
   };
 
   const handleDragOver = (e) => {
@@ -509,7 +517,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
 
   const handleDrop = async (e, dropIndex) => {
     e.preventDefault();
-    if (!draggedQuestion || draggedQuestion.index === dropIndex) return;
+    if (!draggedQuestion || draggedQuestion.index === dropIndex) {
+      setDraggedQuestion(null);
+      return;
+    }
 
     try {
       const reorderedQuestions = [...questions];
@@ -527,9 +538,10 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
       }
 
       await fetchQuizAndQuestions();
-      setDraggedQuestion(null);
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('quiz.errorReorderingQuestions') + ": " + err.message, type: "error" });
+    } finally {
+      setDraggedQuestion(null);
     }
   };
 
@@ -1303,10 +1315,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                         return (
                           <div
                             key={question.id}
-                            draggable={!isEditing}
-                            onDragStart={(e) => {
-                              if (!isEditing) handleDragStart(e, question, index);
-                            }}
+                            data-question-card
                             onDragOver={(e) => {
                               if (!isEditing) handleDragOver(e);
                             }}
@@ -1319,8 +1328,14 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                             <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`${isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-move text-gray-400 hover:text-gray-600"
+                                  draggable={!isEditing}
+                                  onDragStart={(e) => {
+                                    if (!isEditing) handleDragStart(e, question, index);
+                                  }}
+                                  onDragEnd={handleDragEnd}
+                                  className={`select-none ${isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
                                     }`}
+                                  title={isEditing ? undefined : t('quiz.dragToReorder', 'Drag to reorder')}
                                 >
                                   <GripVertical size={20} />
                                 </div>
@@ -1418,7 +1433,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                     </div>
                                   )}
 
-                                  <p className="text-lg font-semibold text-gray-900">{question.question_text}</p>
+                                  <p className="text-lg font-semibold text-gray-900 select-text cursor-text">{question.question_text}</p>
 
                                   <div className="grid grid-cols-2 gap-3">
                                     {question.options?.map((opt, idx) => (
@@ -1441,7 +1456,7 @@ export default function EditQuiz({ setView, quizId, appState: _appState }) {
                                             />
                                           ) : (
                                             <span
-                                              className={`text-sm ${opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
+                                              className={`text-sm select-text cursor-text ${opt.is_correct ? "font-semibold text-green-900" : "text-gray-700"
                                                 }`}
                                             >
                                               {opt.text || <em className="text-gray-400">{t('quiz.noAnswerText')}</em>}

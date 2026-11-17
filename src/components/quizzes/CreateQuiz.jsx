@@ -380,8 +380,16 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
   };
 
   const handleDragStart = (e, index) => {
+    const cardEl = e.currentTarget.closest("[data-question-card]");
+    if (cardEl && e.dataTransfer?.setDragImage) {
+      e.dataTransfer.setDragImage(cardEl, 24, 24);
+    }
     setDraggedQuestionIndex(index);
     e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedQuestionIndex(null);
   };
 
   const handleDragOver = (e) => {
@@ -391,7 +399,10 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
 
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
-    if (draggedQuestionIndex === null || draggedQuestionIndex === dropIndex) return;
+    if (draggedQuestionIndex === null || draggedQuestionIndex === dropIndex) {
+      setDraggedQuestionIndex(null);
+      return;
+    }
 
     setQuestions((prev) => {
       const reordered = [...prev];
@@ -1149,10 +1160,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                         return (
                           <div
                             key={question.tempId || index}
-                            draggable={!isEditing}
-                            onDragStart={(e) => {
-                              if (!isEditing) handleDragStart(e, index);
-                            }}
+                            data-question-card
                             onDragOver={(e) => {
                               if (!isEditing) handleDragOver(e);
                             }}
@@ -1165,8 +1173,14 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                             <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`${isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-move text-gray-400 hover:text-gray-600"
+                                  draggable={!isEditing}
+                                  onDragStart={(e) => {
+                                    if (!isEditing) handleDragStart(e, index);
+                                  }}
+                                  onDragEnd={handleDragEnd}
+                                  className={`select-none ${isEditing ? "text-gray-300 cursor-not-allowed" : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
                                     }`}
+                                  title={isEditing ? undefined : t('quiz.dragToReorder', 'Drag to reorder')}
                                 >
                                   <GripVertical size={20} />
                                 </div>
@@ -1269,7 +1283,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                     </div>
                                   )}
 
-                                  <p className="text-lg font-semibold text-gray-900">{question.question_text}</p>
+                                  <p className="text-lg font-semibold text-gray-900 select-text cursor-text">{question.question_text}</p>
 
                                   <div className="grid grid-cols-2 gap-3">
                                     {question.options.map((option, optionIndex) => (
@@ -1292,7 +1306,7 @@ export default function CreateQuiz({ onQuizCreated, setView, appState }) {
                                             />
                                           ) : (
                                             <span
-                                              className={`text-sm ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
+                                              className={`text-sm select-text cursor-text ${option.is_correct ? "font-semibold text-green-900" : "text-gray-700"
                                                 }`}
                                             >
                                               {option.text || <em className="text-gray-400">No answer text</em>}
