@@ -1,40 +1,49 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Input } from "../../ui";
 
 export default function NewFolderModal({
-  showNewFolderModal, selectedParentFolder, newFolderName,
-  setNewFolderName, creatingFolder, createFolder, onClose,
+  showNewFolderModal,
+  selectedParentFolder,
+  newFolderName,
+  setNewFolderName,
+  creatingFolder,
+  createFolder,
+  onClose,
 }) {
   const { t } = useTranslation();
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (showNewFolderModal) {
+      inputRef.current?.focus();
+    }
+  }, [showNewFolderModal]);
 
   if (!showNewFolderModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-96">
-        <h3 className="text-xl font-bold mb-4">
-          {selectedParentFolder ? t('folder.createSubfolder') : t('folder.createFolder')}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]">
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-pop">
+        <h3 className="mb-4 text-lg font-semibold text-ink">
+          {selectedParentFolder ? t("folder.createSubfolder") : t("folder.createFolder")}
         </h3>
-        <input
+        <Input
+          ref={inputRef}
           type="text"
-          placeholder={t('folder.folderName')}
+          placeholder={t("folder.folderName")}
           value={newFolderName}
           onChange={(e) => setNewFolderName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !creatingFolder && createFolder()}
-          className="w-full px-4 py-2 border rounded-lg mb-4"
-          autoFocus
+          className="mb-4"
         />
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={createFolder}
-            disabled={creatingFolder}
-            className={`px-4 py-2 text-white rounded-lg ${creatingFolder ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800'}`}
-          >
-            {creatingFolder ? t('common.creating') || 'Creating...' : t('common.create')}
-          </button>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button variant="primary" onClick={createFolder} loading={creatingFolder}>
+            {creatingFolder ? t("common.creating") || "Creating..." : t("common.create")}
+          </Button>
         </div>
       </div>
     </div>

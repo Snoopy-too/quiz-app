@@ -6,6 +6,7 @@ import Leaderboard from "./Leaderboard";
 import BombDevice from "../../common/BombDevice";
 import ExplosionAnimation from "../../common/ExplosionAnimation";
 import { buildAnswerShuffleMap } from "../../../utils/answerShuffle";
+import { HAZARD_STRIPE_PENALTY, HAZARD_STRIPE_SAFE } from "../../../theme/themeDefaults";
 
 export default function QuestionResults({
   quiz,
@@ -94,8 +95,8 @@ export default function QuestionResults({
                   className="h-3 w-full opacity-75"
                   style={{
                     backgroundImage: hasPenalty
-                      ? "repeating-linear-gradient(45deg, #dc2626, #dc2626 12px, #000 12px, #000 24px)"
-                      : "repeating-linear-gradient(45deg, #059669, #059669 12px, #000 12px, #000 24px)",
+                      ? HAZARD_STRIPE_PENALTY
+                      : HAZARD_STRIPE_SAFE,
                   }}
                 />
 

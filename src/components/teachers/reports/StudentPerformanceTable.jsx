@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { Card } from "../../ui";
 
 export default function StudentPerformanceTable({
   sortedStudentPerformance,
@@ -10,117 +11,85 @@ export default function StudentPerformanceTable({
 }) {
   const { t } = useTranslation();
 
+  const renderSortIcon = (key) => {
+    if (studentSortConfig.key !== key) return null;
+    return studentSortConfig.direction === "asc" ? (
+      <ChevronUp className="h-4 w-4 text-brand-600" aria-hidden="true" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-brand-600" aria-hidden="true" />
+    );
+  };
+
+  const accuracyColor = (val) => {
+    const num = parseFloat(val);
+    if (num > 80) return "text-success-600";
+    if (num > 50) return "text-amber-700";
+    return "text-danger-600";
+  };
+
+  const columns = [
+    { key: "student", label: t("reports.student") },
+    { key: "studentId", label: t("reports.studentId") },
+    { key: "quizzesParticipated", label: t("reports.quizzesParticipated") },
+    { key: "averageAccuracy", label: t("reports.overallAccuracy") },
+    { key: "courseAccuracy", label: t("reports.courseAccuracy") },
+    { key: "nonCourseAccuracy", label: t("reports.nonCourseAccuracy") },
+  ];
+
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-100 border-b">
-          <tr>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('student')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.student")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'student' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('studentId')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.studentId")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'studentId' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('quizzesParticipated')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.quizzesParticipated")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'quizzesParticipated' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('averageAccuracy')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.overallAccuracy")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'averageAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('courseAccuracy')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.courseAccuracy")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'courseAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-            <th
-              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-              onClick={() => handleStudentSort('nonCourseAccuracy')}
-            >
-              <div className="flex items-center gap-1">
-                {t("reports.nonCourseAccuracy")}
-                <span className="text-gray-400">
-                  {studentSortConfig.key === 'nonCourseAccuracy' && (studentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                </span>
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedStudentPerformance.map((student) => (
-            <tr key={student.student_id} className="border-b hover:bg-blue-50 transition-colors">
-              <td className="px-6 py-4">
-                <button
-                  onClick={() => setView('student-report', { studentId: student.student_id })}
-                  className="font-bold text-gray-900 hover:text-blue-600 text-left"
-                >
-                  {student.name}
-                </button>
-              </td>
-              <td className="px-6 py-4 text-gray-600 font-mono text-sm">{student.studentIdNo || '-'}</td>
-              <td className="px-6 py-4 text-gray-600">{student.quizzesParticipated}</td>
-              <td className="px-6 py-4">
-                <span className={`font-semibold ${parseFloat(student.averageAccuracy) > 80 ? 'text-green-600' :
-                  parseFloat(student.averageAccuracy) > 50 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                  {student.averageAccuracy}%
-                </span>
-              </td>
-              <td className="px-6 py-4">
-                <span className={`font-semibold ${parseFloat(student.courseAccuracy) > 80 ? 'text-green-600' :
-                  parseFloat(student.courseAccuracy) > 50 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                  {student.courseAccuracy}%
-                </span>
-              </td>
-              <td className="px-6 py-4">
-                <span className={`font-semibold ${parseFloat(student.nonCourseAccuracy) > 80 ? 'text-green-600' :
-                  parseFloat(student.nonCourseAccuracy) > 50 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                  {student.nonCourseAccuracy}%
-                </span>
-              </td>
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-line bg-surface-muted/60 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            <tr>
+              {columns.map(({ key, label }) => (
+                <th key={key} className="px-5 py-3.5 text-left">
+                  <button
+                    type="button"
+                    onClick={() => handleStudentSort(key)}
+                    className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
+                  >
+                    {label}
+                    {renderSortIcon(key)}
+                  </button>
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {sortedStudentPerformance.map((student) => (
+              <tr key={student.student_id} className="transition-colors hover:bg-surface-muted/40">
+                <td className="px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setView("student-report", { studentId: student.student_id })}
+                    className="text-left font-semibold text-ink transition-colors hover:text-brand-600"
+                  >
+                    {student.name}
+                  </button>
+                </td>
+                <td className="px-5 py-4 font-mono text-ink-muted">{student.studentIdNo || "-"}</td>
+                <td className="px-5 py-4 text-ink-muted">{student.quizzesParticipated}</td>
+                <td className="px-5 py-4">
+                  <span className={`font-semibold ${accuracyColor(student.averageAccuracy)}`}>
+                    {student.averageAccuracy}%
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  <span className={`font-semibold ${accuracyColor(student.courseAccuracy)}`}>
+                    {student.courseAccuracy}%
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  <span className={`font-semibold ${accuracyColor(student.nonCourseAccuracy)}`}>
+                    {student.nonCourseAccuracy}%
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

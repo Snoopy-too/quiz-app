@@ -1,29 +1,34 @@
-import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
+import { useTranslation } from "react-i18next";
+import { Globe } from "lucide-react";
 
 export default function LanguageSwitcher({ compact = false }) {
   const { i18n } = useTranslation();
+  const currentLang = (i18n.resolvedLanguage || i18n.language || "en").startsWith("ja") ? "ja" : "en";
 
   if (compact) {
     return (
-      <div className="bg-blue-500/20 rounded-lg p-1">
+      <div className="rounded-lg bg-white/10 p-1" role="group" aria-label="Language">
         <div className="flex items-center gap-1">
           <button
-            onClick={() => i18n.changeLanguage('en')}
-            className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-all ${
-              i18n.language === 'en'
-                ? 'bg-white text-blue-800 shadow-md'
-                : 'text-blue-50 hover:text-white'
+            type="button"
+            aria-pressed={currentLang === "en"}
+            onClick={() => i18n.changeLanguage("en")}
+            className={`flex-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+              currentLang === "en"
+                ? "bg-surface text-brand-700 shadow-sm"
+                : "text-white/80 hover:bg-white/10 hover:text-white"
             }`}
           >
             EN
           </button>
           <button
-            onClick={() => i18n.changeLanguage('ja')}
-            className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-all ${
-              i18n.language === 'ja'
-                ? 'bg-white text-blue-800 shadow-md'
-                : 'text-blue-50 hover:text-white'
+            type="button"
+            aria-pressed={currentLang === "ja"}
+            onClick={() => i18n.changeLanguage("ja")}
+            className={`flex-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+              currentLang === "ja"
+                ? "bg-surface text-brand-700 shadow-sm"
+                : "text-white/80 hover:bg-white/10 hover:text-white"
             }`}
           >
             日本語
@@ -34,24 +39,32 @@ export default function LanguageSwitcher({ compact = false }) {
   }
 
   return (
-    <div className="flex items-center gap-2 bg-white rounded-lg shadow-md border-2 border-blue-100 p-1.5">
-      <Globe size={18} className="text-blue-700 ml-1" />
+    <div
+      className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface p-1 shadow-card"
+      role="group"
+      aria-label="Language"
+    >
+      <Globe size={16} className="ml-1.5 text-brand-600" aria-hidden="true" />
       <button
-        onClick={() => i18n.changeLanguage('en')}
-        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
-          i18n.language === 'en'
-            ? 'bg-blue-700 text-white shadow-md'
-            : 'text-gray-600 hover:bg-gray-100'
+        type="button"
+        aria-pressed={currentLang === "en"}
+        onClick={() => i18n.changeLanguage("en")}
+        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 ${
+          currentLang === "en"
+            ? "bg-brand-600 text-white shadow-sm"
+            : "text-ink-muted hover:bg-surface-muted hover:text-ink"
         }`}
       >
         English
       </button>
       <button
-        onClick={() => i18n.changeLanguage('ja')}
-        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
-          i18n.language === 'ja'
-            ? 'bg-blue-700 text-white shadow-md'
-            : 'text-gray-600 hover:bg-gray-100'
+        type="button"
+        aria-pressed={currentLang === "ja"}
+        onClick={() => i18n.changeLanguage("ja")}
+        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 ${
+          currentLang === "ja"
+            ? "bg-brand-600 text-white shadow-sm"
+            : "text-ink-muted hover:bg-surface-muted hover:text-ink"
         }`}
       >
         日本語

@@ -1,6 +1,33 @@
-import { useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useFocusTrap } from '../../utils/accessibility';
+import { useTranslation } from "react-i18next";
+import { AlertCircle, CheckCircle2, Info, AlertTriangle } from "lucide-react";
+import { Button, Dialog } from "../ui";
+
+const TYPE_CONFIG = {
+  info: {
+    icon: Info,
+    iconClass: "text-brand-600 bg-brand-50",
+    titleClass: "text-ink",
+    buttonVariant: "primary",
+  },
+  success: {
+    icon: CheckCircle2,
+    iconClass: "text-success-600 bg-emerald-50",
+    titleClass: "text-success-600",
+    buttonVariant: "primary",
+  },
+  error: {
+    icon: AlertCircle,
+    iconClass: "text-danger-600 bg-red-50",
+    titleClass: "text-danger-600",
+    buttonVariant: "danger",
+  },
+  warning: {
+    icon: AlertTriangle,
+    iconClass: "text-warning-500 bg-amber-50",
+    titleClass: "text-amber-700",
+    buttonVariant: "primary",
+  },
+};
 
 export default function AlertModal({
   isOpen,
@@ -8,92 +35,32 @@ export default function AlertModal({
   message,
   onClose,
   buttonText,
-  type = "info" // "info", "success", "error", "warning"
+  type = "info", // "info", "success", "error", "warning"
 }) {
   const { t } = useTranslation();
-  const finalButtonText = buttonText || t('common.ok') || "OK";
-
-  const modalRef = useRef(null);
-  useFocusTrap(modalRef, isOpen);
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const typeStyles = {
-    info: "text-blue-600",
-    success: "text-green-600",
-    error: "text-red-600",
-    warning: "text-orange-600"
-  };
-
-  const buttonStyles = {
-    info: "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
-    success: "bg-green-600 hover:bg-green-700",
-    error: "bg-red-600 hover:bg-red-700",
-    warning: "bg-orange-600 hover:bg-orange-700"
-  };
+  const finalButtonText = buttonText || t("common.ok") || "OK";
+  const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.info;
+  const IconComponent = cfg.icon;
 
   return (
-    <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fadeIn"
-      onClick={onClose}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-50" />
-
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        className="relative bg-white rounded-lg shadow-2xl max-w-md w-full animate-scaleIn"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="alert-modal-title"
-        aria-describedby="alert-modal-description"
-      >
-        {/* Header */}
-        <div className="p-6 pb-4">
-          <h3 id="alert-modal-title" className={`text-xl font-semibold text-center ${typeStyles[type]}`}>
-            {title}
-          </h3>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 pb-6">
-          <p id="alert-modal-description" className="text-gray-600 whitespace-pre-line">
-            {message}
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end px-6 pb-6">
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 rounded-lg font-medium text-white transition-colors ${buttonStyles[type]}`}
-          >
-            {finalButtonText}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog
+      open={Boolean(isOpen)}
+      onClose={onClose}
+      showCloseButton={false}
+      title={
+        <span className={`inline-flex items-center gap-2.5 ${cfg.titleClass}`}>
+          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${cfg.iconClass}`}>
+            <IconComponent className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span>{title}</span>
+        </span>
+      }
+      description={message}
+      footer={
+        <Button variant={cfg.buttonVariant} onClick={onClose}>
+          {finalButtonText}
+        </Button>
+      }
+    />
   );
 }

@@ -2,14 +2,10 @@ import React from "react";
 import { ChevronRight, ChevronDown, Folder, FolderOpen, FolderPlus, Edit2, Trash2 } from "lucide-react";
 
 export default function FolderTree({
-  folders,
-  quizzes,
-  themesById,
   expandedFolders,
   activeFolder,
   editingFolder,
   draggedItem,
-  highlightedQuizId,
   toggleFolder,
   setActiveFolder,
   setEditingFolder,
@@ -20,7 +16,6 @@ export default function FolderTree({
   handleDragStart,
   handleDragOver,
   handleDrop,
-  handleSidebarQuizClick,
   buildFolderTree,
   getQuizzesInFolder,
 }) {
@@ -28,46 +23,63 @@ export default function FolderTree({
     const isExpanded = expandedFolders.has(folder.id);
     const subfolders = buildFolderTree(folder.id);
     const folderQuizzes = getQuizzesInFolder(folder.id);
-    const hasChildren = subfolders.length > 0 || folderQuizzes.length > 0;
+    const hasSubfolders = subfolders.length > 0;
     const isActive = activeFolder === folder.id;
 
     return (
-      <div key={folder.id} style={{ marginLeft: `${depth * 16}px` }}>
+      <div key={folder.id} style={depth > 0 ? { paddingLeft: `${depth * 14}px` } : undefined}>
         <div
+          role="button"
+          tabIndex={0}
           draggable
           onDragStart={(e) => handleDragStart(e, folder, "folder")}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, folder)}
           onClick={() => setActiveFolder(folder.id)}
-          className={`flex items-center gap-2 py-2 px-3 rounded-lg group cursor-pointer transition-colors ${isActive ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-            } ${draggedItem?.item.id === folder.id ? "opacity-50" : ""}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActiveFolder(folder.id);
+            }
+          }}
+          className={`group flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 transition-colors ${
+            isActive
+              ? "bg-brand-50 font-medium text-brand-700"
+              : "text-ink-muted hover:bg-surface-muted hover:text-ink"
+          } ${draggedItem?.item.id === folder.id ? "opacity-50" : ""}`}
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              hasChildren && toggleFolder(folder.id);
-            }}
-            className="p-1 hover:bg-gray-300 rounded"
-          >
-            {hasChildren ? (
-              isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
-            ) : (
-              <span className="w-4" />
-            )}
-          </button>
-          {isExpanded ? (
+          {hasSubfolders && (
+            <button
+              type="button"
+              aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFolder(folder.id);
+              }}
+              className="-ml-1.5 rounded p-0.5 text-ink-subtle transition-colors hover:bg-surface hover:text-ink"
+            >
+              {isExpanded ? (
+                <ChevronDown size={15} aria-hidden="true" />
+              ) : (
+                <ChevronRight size={15} aria-hidden="true" />
+              )}
+            </button>
+          )}
+          {isExpanded && hasSubfolders ? (
             <FolderOpen
-              size={22}
-              className={`${isActive ? "text-blue-700" : "text-amber-500"} flex-shrink-0 transition-transform group-hover:scale-110`}
-              fill="currentColor"
-              fillOpacity={0.2}
+              size={18}
+              className={`${
+                isActive ? "text-brand-600" : "text-ink-subtle group-hover:text-ink-muted"
+              } shrink-0 transition-colors`}
+              aria-hidden="true"
             />
           ) : (
             <Folder
-              size={22}
-              className={`${isActive ? "text-blue-700" : "text-amber-500"} flex-shrink-0 transition-transform group-hover:scale-110`}
-              fill="currentColor"
-              fillOpacity={0.2}
+              size={18}
+              className={`${
+                isActive ? "text-brand-600" : "text-ink-subtle group-hover:text-ink-muted"
+              } shrink-0 transition-colors`}
+              aria-hidden="true"
             />
           )}
 
@@ -75,104 +87,74 @@ export default function FolderTree({
             <input
               type="text"
               defaultValue={folder.name}
-              autoFocus
               onClick={(e) => e.stopPropagation()}
               onBlur={(e) => renameFolder(folder.id, e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") renameFolder(folder.id, e.target.value);
                 if (e.key === "Escape") setEditingFolder(null);
               }}
-              className="flex-1 px-2 py-1 border rounded text-sm"
+              className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-0.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent-500"
             />
           ) : (
-            <span className="flex-1 text-sm">{folder.name}</span>
+            <span className="min-w-0 flex-1 truncate text-sm" title={folder.name}>
+              {folder.name}
+            </span>
           )}
 
-          <span className={`text-xs px-2 py-0.5 rounded-full ${isActive ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"}`}>
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium group-hover:hidden group-focus-within:hidden ${
+              isActive
+                ? "bg-brand-100 text-brand-800"
+                : "border border-line bg-surface-muted text-ink-muted"
+            }`}
+          >
             {folderQuizzes.length}
           </span>
 
-          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
+          <div className="hidden shrink-0 items-center gap-0.5 group-hover:flex group-focus-within:flex">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedParentFolder(folder.id);
                 setShowNewFolderModal(true);
               }}
-              className="p-1 hover:bg-gray-300 rounded transition"
+              className="rounded p-1 text-ink-muted transition hover:bg-surface hover:text-ink"
               title="Add subfolder"
+              aria-label="Add subfolder"
             >
-              <FolderPlus size={14} />
+              <FolderPlus size={14} aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingFolder(folder.id);
               }}
-              className="p-1 hover:bg-gray-300 rounded transition"
+              className="rounded p-1 text-ink-muted transition hover:bg-surface hover:text-ink"
               title="Rename folder"
+              aria-label="Rename folder"
             >
-              <Edit2 size={14} />
+              <Edit2 size={14} aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteFolder(folder.id);
               }}
-              className="p-1 hover:bg-red-100 text-red-600 rounded transition"
+              className="rounded p-1 text-danger-600 transition hover:bg-red-50"
               title="Delete folder"
+              aria-label="Delete folder"
             >
-              <Trash2 size={14} />
+              <Trash2 size={14} aria-hidden="true" />
             </button>
           </div>
         </div>
 
-        {isExpanded && (
-          <div>
-            {/* Render subfolders */}
+        {isExpanded && hasSubfolders && (
+          <div className="mt-0.5 space-y-0.5">
             {subfolders.map((subfolder) => renderFolder(subfolder, depth + 1))}
-
-            {/* Render quizzes in this folder as simple clickable items */}
-            {folderQuizzes.length > 0 && (
-              <div className="ml-8 mt-1 space-y-1">
-                {folderQuizzes.map((quiz) => {
-                  const theme = quiz.themeDetails || themesById[quiz.theme_id] || null;
-                  const backgroundImage = theme?.background_image_url || quiz.background_image_url;
-                  const gradient = theme?.primary_color
-                    ? `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color || theme.primary_color})`
-                    : "linear-gradient(135deg, #7C3AED, #2563EB)";
-
-                  const isHighlighted = highlightedQuizId === quiz.id;
-
-                  return (
-                    <div
-                      key={quiz.id}
-                      onClick={() => handleSidebarQuizClick(quiz, folder.id)}
-                      className={`py-1.5 px-3 text-sm rounded cursor-pointer transition-colors flex items-center gap-2 ${
-                        isHighlighted
-                          ? "bg-blue-100 text-blue-800 font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <div
-                        className={`w-3 h-3 rounded-full shadow transition-all ${
-                          isHighlighted
-                            ? "ring-2 ring-blue-400 ring-offset-1"
-                            : "border border-white/60"
-                        }`}
-                        style={{
-                          backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                          background: backgroundImage ? undefined : gradient
-                        }}
-                      ></div>
-                      <span className="flex-1">{quiz.title}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../supabaseClient";
+import { cancelActiveTeacherSessions } from "../infrastructure/dashboardRepository";
 
 export default function useManageQuizzes(appState) {
   const { t } = useTranslation();
@@ -463,6 +464,8 @@ export default function useManageQuizzes(appState) {
         return;
       }
 
+      await cancelActiveTeacherSessions(appState.currentUser.id);
+
       // Generate a 6-digit PIN
       const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -499,7 +502,14 @@ export default function useManageQuizzes(appState) {
   const buildFolderTree = (parentId = null) => {
     return folders
       .filter((folder) => folder.parent_folder_id === parentId)
-      .sort((a, b) => a.order_index - b.order_index);
+      .sort((a, b) => {
+        const orderDiff = (a.order_index ?? 0) - (b.order_index ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        return (a.name || "").localeCompare(b.name || "", undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      });
   };
 
   // Get quizzes for a specific folder

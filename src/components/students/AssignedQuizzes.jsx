@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { ClipboardList, Clock, AlertTriangle, CheckCircle, XCircle, Play, ArrowLeft, Loader2, Calendar } from "lucide-react";
-import VerticalNav from "../layout/VerticalNav";
 import { useTranslation } from "react-i18next";
 
 export default function AssignedQuizzes({ setView, appState, onStartAssignment }) {
@@ -111,10 +110,8 @@ export default function AssignedQuizzes({ setView, appState, onStartAssignment }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <VerticalNav setView={setView} appState={appState} />
-
-      <div className="flex-1 md:ml-64">
+    <div className="min-h-screen bg-canvas">
+      <div className="w-full">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-6">
           <div className="max-w-4xl mx-auto">

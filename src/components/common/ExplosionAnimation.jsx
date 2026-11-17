@@ -87,7 +87,7 @@ export default function ExplosionAnimation({ onAnimationComplete }) {
         {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="absolute h-3 w-3 rounded-full bg-amber-400 shadow-[0_0_10px_#f59e0b]"
+            className="absolute h-3 w-3 rounded-full bg-amber-400 shadow-lg shadow-amber-500/60"
             style={{
               left: `${15 + (i * 7)}%`,
               top: `${40 + (i % 5) * 8}%`,

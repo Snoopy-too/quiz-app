@@ -1,3 +1,5 @@
+@import "./theme/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +8,35 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-[15px] leading-relaxed text-ink antialiased;
+  }
+
+  h1 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-ink;
+  }
+
+  h2 {
+    @apply text-xl font-semibold text-ink;
+  }
+}
+
+:lang(ja) {
+  line-height: 1.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Podium Animation */
@@ -32,7 +63,6 @@ html {
 
 /* Streak Animation */
 @keyframes streak-pulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -78,7 +108,7 @@ html {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
 
   to {

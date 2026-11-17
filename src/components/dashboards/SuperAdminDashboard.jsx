@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus, BarChart3, CheckSquare, Check } from "lucide-react";
-import VerticalNav from "../layout/VerticalNav";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import BulkEditModal from "./BulkEditModal";
@@ -512,12 +511,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Vertical Navigation */}
-      <VerticalNav currentView="superadmin-dashboard" setView={setView} appState={appState} />
-
+    <div className="min-h-screen bg-canvas">
       {/* Main Content */}
-      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
+      <div className="w-full">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-blue-700">Super Admin Dashboard</h1>
@@ -606,8 +602,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                     <h2 className="text-2xl font-bold mb-6">Create New School</h2>
                     <form onSubmit={handleCreateSchool} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">School Name</label>
+                        <label htmlFor="sa-create-school-name" className="block text-sm font-medium mb-1">School Name</label>
                         <input
+                          id="sa-create-school-name"
                           type="text" required
                           value={createSchoolForm.name}
                           onChange={(e) => setCreateSchoolForm({ name: e.target.value })}
@@ -631,8 +628,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                     <h2 className="text-2xl font-bold mb-6">Edit School</h2>
                     <form onSubmit={handleEditSchool} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">School Name</label>
+                        <label htmlFor="sa-edit-school-name" className="block text-sm font-medium mb-1">School Name</label>
                         <input
+                          id="sa-edit-school-name"
                           type="text" required
                           value={editSchoolForm.name}
                           onChange={(e) => setEditSchoolForm({ name: e.target.value })}
@@ -1030,8 +1028,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                 <h2 className="text-2xl font-bold mb-6">Create New User</h2>
                 <form onSubmit={handleCreateUser} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <label htmlFor="sa-create-user-name" className="block text-sm font-medium mb-1">Name</label>
                     <input
+                      id="sa-create-user-name"
                       type="text"
                       required
                       value={createForm.name}
@@ -1041,8 +1040,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <label htmlFor="sa-create-user-email" className="block text-sm font-medium mb-1">Email</label>
                     <input
+                      id="sa-create-user-email"
                       type="email"
                       required
                       value={createForm.email}
@@ -1052,8 +1052,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Password</label>
+                    <label htmlFor="sa-create-user-password" className="block text-sm font-medium mb-1">Password</label>
                     <input
+                      id="sa-create-user-password"
                       type="password"
                       required
                       minLength={6}
@@ -1064,8 +1065,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                    <label htmlFor="sa-create-user-confirm-password" className="block text-sm font-medium mb-1">Confirm Password</label>
                     <input
+                      id="sa-create-user-confirm-password"
                       type="password"
                       required
                       minLength={6}
@@ -1076,8 +1078,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Role</label>
+                    <label htmlFor="sa-create-user-role" className="block text-sm font-medium mb-1">Role</label>
                     <select
+                      id="sa-create-user-role"
                       value={createForm.role}
                       onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                       className="w-full border rounded px-3 py-2"
@@ -1090,8 +1093,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
 
                   {createForm.role === "student" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">Student ID (Optional)</label>
+                      <label htmlFor="sa-create-user-student-id" className="block text-sm font-medium mb-1">Student ID (Optional)</label>
                       <input
+                        id="sa-create-user-student-id"
                         type="text"
                         value={createForm.student_id}
                         onChange={(e) => setCreateForm({ ...createForm, student_id: e.target.value })}
@@ -1101,8 +1105,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">School</label>
+                    <label htmlFor="sa-create-user-school" className="block text-sm font-medium mb-1">School</label>
                     <select
+                      id="sa-create-user-school"
                       value={createForm.school_id}
                       onChange={(e) => setCreateForm({ ...createForm, school_id: e.target.value })}
                       className="w-full border rounded px-3 py-2"
@@ -1141,8 +1146,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                 <h2 className="text-2xl font-bold mb-6">Edit User: {selectedUser.email}</h2>
                 <form onSubmit={handleEditUser} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <label htmlFor="sa-edit-user-name" className="block text-sm font-medium mb-1">Name</label>
                     <input
+                      id="sa-edit-user-name"
                       type="text"
                       required
                       value={editForm.name}
@@ -1152,8 +1158,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <label htmlFor="sa-edit-user-email" className="block text-sm font-medium mb-1">Email</label>
                     <input
+                      id="sa-edit-user-email"
                       type="email"
                       required
                       value={editForm.email}
@@ -1163,8 +1170,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Role</label>
+                    <label htmlFor="sa-edit-user-role" className="block text-sm font-medium mb-1">Role</label>
                     <select
+                      id="sa-edit-user-role"
                       value={editForm.role}
                       onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                       className="w-full border rounded px-3 py-2"
@@ -1177,8 +1185,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
 
                   {editForm.role === "student" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">Student ID</label>
+                      <label htmlFor="sa-edit-user-student-id" className="block text-sm font-medium mb-1">Student ID</label>
                       <input
+                        id="sa-edit-user-student-id"
                         type="text"
                         value={editForm.student_id}
                         onChange={(e) => setEditForm({ ...editForm, student_id: e.target.value })}
@@ -1189,8 +1198,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
 
                   {editForm.role === "student" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">Assigned Teacher</label>
+                      <label htmlFor="sa-edit-user-teacher" className="block text-sm font-medium mb-1">Assigned Teacher</label>
                       <select
+                        id="sa-edit-user-teacher"
                         value={editForm.teacher_id}
                         onChange={(e) => {
                           const newTeacherId = e.target.value;
@@ -1216,8 +1226,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">School</label>
+                    <label htmlFor="sa-edit-user-school" className="block text-sm font-medium mb-1">School</label>
                     <select
+                      id="sa-edit-user-school"
                       value={editForm.school_id}
                       onChange={(e) => setEditForm({ ...editForm, school_id: e.target.value })}
                       className="w-full border rounded px-3 py-2"
@@ -1288,8 +1299,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">New Password</label>
+                    <label htmlFor="sa-pw-new" className="block text-sm font-medium mb-1">New Password</label>
                     <input
+                      id="sa-pw-new"
                       type="password"
                       minLength={6}
                       value={passwordForm.newPassword}
@@ -1300,8 +1312,9 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                    <label htmlFor="sa-pw-confirm" className="block text-sm font-medium mb-1">Confirm Password</label>
                     <input
+                      id="sa-pw-confirm"
                       type="password"
                       minLength={6}
                       value={passwordForm.confirmPassword}

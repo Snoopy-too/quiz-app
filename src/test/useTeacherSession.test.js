@@ -8,7 +8,6 @@ vi.mock('../supabaseClient', () => ({
           order: () => Promise.resolve({ data: [], error: null }),
           single: () => Promise.resolve({ data: null, error: null }),
         }),
-        eq: () => Promise.resolve({ data: [], error: null }),
       }),
     }),
     channel: () => ({

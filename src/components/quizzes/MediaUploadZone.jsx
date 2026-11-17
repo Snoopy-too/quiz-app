@@ -72,7 +72,9 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
         return (
             <div className="relative group">
                 {type === 'video' ? (
-                    <video src={currentUrl} className="w-full h-24 object-cover rounded border" controls />
+                    <video src={currentUrl} className="w-full h-24 object-cover rounded border" controls>
+                        <track kind="captions" />
+                    </video>
                 ) : (
                     <img src={currentUrl} alt="Preview" className="w-full h-24 object-cover rounded border" />
                 )}
@@ -99,13 +101,15 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
     };
 
     return (
-        <div
+        <button
+            type="button"
+            disabled={uploading}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleClick}
-            className={`relative flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200
+            className={`relative w-full flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200
         ${isDragging
                     ? 'border-blue-500 bg-blue-50 scale-[1.02] shadow-sm'
                     : 'border-gray-300 hover:border-cyan-400 hover:bg-blue-50/50'
@@ -128,6 +132,6 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
             <span className={`text-xs font-medium transition-colors ${isDragging ? 'text-blue-600' : 'text-gray-500'}`}>
                 {isDragging ? (t('common.dropHere') || "Drop here") : getLabel()}
             </span>
-        </div>
+        </button>
     );
 }

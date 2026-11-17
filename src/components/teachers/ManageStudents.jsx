@@ -1,7 +1,7 @@
 import React from "react";
-import { UserPlus } from "lucide-react";
+import { UserPlus, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import VerticalNav from "../layout/VerticalNav";
+import { PageHeader, Card, CardBody, Button, Skeleton } from "../ui";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import useManageStudents from "../../hooks/useManageStudents";
@@ -17,10 +17,28 @@ export default function ManageStudents({ setView, appState }) {
 
   if (ms.loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <VerticalNav currentView="manage-students" setView={setView} appState={appState} />
-        <div className="flex-1 ml-64 flex items-center justify-center">
-          <p className="text-xl text-gray-600">{t("manageStudents.loadingStudents")}</p>
+      <div className="min-h-screen bg-canvas">
+        <PageHeader
+          title={t("manageStudents.title")}
+          description={t("teacher.manageStudentsDescription")}
+        />
+        <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <Card key={idx}>
+                <CardBody className="space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-16" />
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardBody className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </CardBody>
+          </Card>
         </div>
       </div>
     );
@@ -28,83 +46,84 @@ export default function ManageStudents({ setView, appState }) {
 
   if (ms.error) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <VerticalNav currentView="manage-students" setView={setView} appState={appState} />
-        <div className="flex-1 ml-64 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-xl text-red-600 mb-4">{t("manageStudents.errorTitle")}: {ms.error}</p>
-            <button
-              onClick={() => setView("teacher-dashboard")}
-              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
-            >
-              {t("manageStudents.backToDashboard")}
-            </button>
-          </div>
+      <div className="min-h-screen bg-canvas">
+        <PageHeader
+          title={t("manageStudents.title")}
+          description={t("teacher.manageStudentsDescription")}
+        />
+        <div className="mx-auto max-w-7xl p-4 sm:p-6">
+          <Card className="border-danger-600/40">
+            <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 text-danger-600">
+                <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <p className="text-sm font-medium">
+                  {t("manageStudents.errorTitle")}: {ms.error}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setView("teacher-dashboard")}>
+                {t("manageStudents.backToDashboard")}
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Vertical Navigation */}
-      <VerticalNav currentView="manage-students" setView={setView} appState={appState} />
+    <div className="min-h-screen bg-canvas">
+      <PageHeader
+        title={t("manageStudents.title")}
+        description={t("teacher.manageStudentsDescription")}
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => {
+              ms.resetCreateStudentState();
+              ms.setShowCreateModal(true);
+            }}
+          >
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            {t("manageStudents.createStudentButton")}
+          </Button>
+        }
+      />
 
-      {/* Main Content */}
-      <div className="flex-1 ml-64">
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 relative z-10">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-2xl font-bold text-green-600">{t("manageStudents.title")}</h1>
-            <button
-              onClick={() => {
-                ms.resetCreateStudentState();
-                ms.setShowCreateModal(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition self-start md:self-auto"
-            >
-              <UserPlus size={18} />
-              {t("manageStudents.createStudentButton")}
-            </button>
-          </div>
-        </nav>
-
-        <div className="container mx-auto p-6 relative z-0">
-          {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <strong>{t("common.note")}:</strong> {t("manageStudents.teacherCodeNote")}
-            </p>
-          </div>
-
-          <StatsCards
-            students={ms.filterStatus === 'unlinked' ? ms.unlinkedStudents : ms.myStudents}
-            pendingStudents={ms.pendingStudents}
-          />
-
-          <SearchFilter
-            searchTerm={ms.searchTerm}
-            setSearchTerm={ms.setSearchTerm}
-            filterStatus={ms.filterStatus}
-            setFilterStatus={ms.setFilterStatus}
-          />
-
-          <StudentTable
-            filteredStudents={ms.filteredStudents}
-            highlightedIds={ms.highlightedIds}
-            sortColumn={ms.sortColumn}
-            sortDirection={ms.sortDirection}
-            handleSort={ms.handleSort}
-            viewStudentDetails={ms.viewStudentDetails}
-            handleApprove={ms.handleApprove}
-            handleReject={ms.handleReject}
-            handleUnlink={ms.handleUnlink}
-            handleDelete={ms.handleDelete}
-            handleLink={ms.handleLink}
-            currentUserId={appState.currentUser.id}
-            quizCounts={ms.quizCounts}
-            filterStatus={ms.filterStatus}
-          />
+      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+        {/* Info Banner */}
+        <div className="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-brand-800">
+          <strong className="font-semibold">{t("common.note")}:</strong>{" "}
+          {t("manageStudents.teacherCodeNote")}
         </div>
+
+        <StatsCards
+          students={ms.filterStatus === "unlinked" ? ms.unlinkedStudents : ms.myStudents}
+          pendingStudents={ms.pendingStudents}
+        />
+
+        <SearchFilter
+          searchTerm={ms.searchTerm}
+          setSearchTerm={ms.setSearchTerm}
+          filterStatus={ms.filterStatus}
+          setFilterStatus={ms.setFilterStatus}
+        />
+
+        <StudentTable
+          filteredStudents={ms.filteredStudents}
+          highlightedIds={ms.highlightedIds}
+          sortColumn={ms.sortColumn}
+          sortDirection={ms.sortDirection}
+          handleSort={ms.handleSort}
+          viewStudentDetails={ms.viewStudentDetails}
+          handleApprove={ms.handleApprove}
+          handleReject={ms.handleReject}
+          handleUnlink={ms.handleUnlink}
+          handleDelete={ms.handleDelete}
+          handleLink={ms.handleLink}
+          currentUserId={appState.currentUser.id}
+          quizCounts={ms.quizCounts}
+          filterStatus={ms.filterStatus}
+        />
       </div>
 
       <CreateStudentModal

@@ -1,511 +1,192 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { supabase } from "../../supabaseClient";
-import { ArrowLeft, Users, UserPlus, Link } from "lucide-react";
-import { saveActiveSession } from "../../utils/sessionPersistence";
+import { ArrowLeft, Link as LinkIcon, UserPlus, Users } from "lucide-react";
+import { Button, Card, CardBody, Field, Input } from "../ui";
+import { useJoinQuiz } from "../../hooks/useJoinQuiz";
 import JoinTeam from "./JoinTeam";
 
-export default function JoinClassicQuiz({ appState, setView, error, setError, onBack, isApproved }) {
+export default function JoinClassicQuiz({
+  appState,
+  setView,
+  error,
+  setError,
+  onBack,
+  isApproved,
+}) {
   const { t } = useTranslation();
   const [joinPin, setJoinPin] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [foundTeam, setFoundTeam] = useState(null);
-  const [availableTeams, setAvailableTeams] = useState([]);
-  const [pendingSession, setPendingSession] = useState(null);
 
-  // Team mode options state
-  const [showTeamModeOptions, setShowTeamModeOptions] = useState(false);
-  const [teamModeSession, setTeamModeSession] = useState(null);
-  const [showJoinTeamByCode, setShowJoinTeamByCode] = useState(false);
+  const joinQuiz = useJoinQuiz({
+    userId: appState?.currentUser?.id,
+    isApproved: Boolean(isApproved),
+    onSuccess: (sessionId) => setView("student-quiz", sessionId),
+    onError: (msg) => setError?.(msg),
+  });
 
-  const joinQuiz = async () => {
-    if (!isApproved) {
-      setError(t('student.accountAwaitingApproval'));
-      return;
-    }
-
-    if (!joinPin || joinPin.length !== 6) {
-      setError(t('student.enterValid6DigitPIN'));
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Find session by PIN
-      console.log('Looking for quiz with PIN:', joinPin);
-      console.log('Current user:', appState.currentUser?.id, appState.currentUser?.email);
-
-      const { data: sessions, error: sessionError } = await supabase
-        .from("quiz_sessions")
-        .select("*")
-        .eq("pin", joinPin);
-
-      console.log('Query result:', { sessions, sessionError });
-
-      if (sessionError) {
-        console.error('Session query error details:', {
-          message: sessionError.message,
-          code: sessionError.code,
-          details: sessionError.details,
-          hint: sessionError.hint
-        });
-
-        if (sessionError.code === '42501' || sessionError.message?.includes('policy')) {
-          setError(t('errors.permissionDeniedEnsureApproved'));
-          setLoading(false);
-          return;
-        }
-
-        throw sessionError;
-      }
-
-      if (!sessions || sessions.length === 0) {
-        console.warn('No quiz session found with PIN:', joinPin);
-        setError(t('errors.invalidPinQuizNotFound'));
-        setLoading(false);
-        return;
-      }
-
-      const session = sessions[0];
-      console.log('Found session:', session);
-
-      if (session.status === "completed" || session.status === "cancelled") {
-        setError(t('errors.quizAlreadyEnded'));
-        setLoading(false);
-        return;
-      }
-
-      // Check if student is already a participant (for reconnection)
-      const { data: existingParticipant } = await supabase
-        .from("session_participants")
-        .select("id")
-        .eq("session_id", session.id)
-        .eq("user_id", appState.currentUser.id)
-        .maybeSingle();
-
-      // Block late joiners once the quiz has moved past the waiting lobby.
-      // Late joins increase participant count mid-question, which can flip
-      // allStudentsAnswered back to false and trigger the stale-timer crash.
-      // EXCEPTION: Allow rejoining if the student is already a participant
-      if (session.status !== "waiting" && !existingParticipant) {
-        setError(t('errors.quizAlreadyStarted'));
-        setLoading(false);
-        return;
-      }
-
-      // Check for team mode
-      if (session.mode === 'team') {
-        console.log('Session is in team mode, checking for existing team memberships...');
-
-        // 1. Get all teams the student belongs to
-        const { data: myTeams, error: teamError } = await supabase
-          .from('team_members')
-          .select('team_id, joined_at, teams(name, team_name)')
-          .eq('student_id', appState.currentUser.id);
-
-        if (teamError) {
-          console.error('Error fetching student teams:', teamError);
-        } else if (myTeams && myTeams.length > 0) {
-          const teamIds = myTeams.map(t => t.team_id);
-          console.log('Student belongs to teams:', teamIds);
-
-          // 2. Check current session participants to find active teams
-          // Use RPC to bypass RLS policies if needed (since joining student isn't in session yet)
-          let activeTeamIds = [];
-
-          try {
-            const { data: rpcData, error: rpcError } = await supabase
-              .rpc('get_active_teams_for_session', { p_session_id: session.id });
-
-            if (rpcError) throw rpcError;
-            activeTeamIds = rpcData?.map(t => t.team_id) || [];
-            console.log('Active teams loaded via RPC:', activeTeamIds);
-          } catch (err) {
-            console.warn('RPC get_active_teams_for_session failed, falling back to direct query:', err);
-
-            // Fallback: Direct query (might return empty if RLS blocks read access)
-            const { data: sessionParticipants, error: checkError } = await supabase
-              .from('session_participants')
-              .select('team_id')
-              .eq('session_id', session.id)
-              .eq('is_team_entry', true);
-
-            if (checkError) console.error('Error checking team participants:', checkError);
-            activeTeamIds = sessionParticipants?.map(p => p.team_id) || [];
-          }
-
-          // Filter my teams to see if any are already in the session
-          const myActiveTeams = myTeams.filter(t => activeTeamIds.includes(t.team_id));
-
-          console.log('My active teams in session:', myActiveTeams);
-
-          // Priority Logic:
-          // 1. If I belong to teams currently in the session, I almost certainly want to join one of them.
-          //    So we filter the list to ONLY those teams.
-          // 2. If I don't belong to any active teams, then I can choose from ANY of my teams (to start a new entry).
-
-          let candidateTeams = myTeams;
-          if (myActiveTeams.length > 0) {
-            candidateTeams = myActiveTeams;
-          } else {
-            // Heuristic Fallback: If no confirmed active teams found (e.g. RPC blocked/failed),
-            // prefer teams joined AFTER the session was created. This filters out 'defunct' teams.
-            if (session.created_at) {
-              const sessionTime = new Date(session.created_at).getTime();
-              const recentTeams = myTeams.filter(t => {
-                if (!t.joined_at) return false;
-                return new Date(t.joined_at).getTime() > sessionTime;
-              });
-
-              if (recentTeams.length > 0) {
-                console.log('Using recent membership heuristic to filter teams:', recentTeams);
-                candidateTeams = recentTeams;
-              }
-            }
-          }
-
-          if (candidateTeams.length === 1) {
-            // Only one valid option - check if it's new or existing
-            const team = candidateTeams[0];
-            const isAlreadyIn = activeTeamIds.includes(team.team_id);
-
-            if (isAlreadyIn) {
-              setFoundTeam({ ...team, session_id: session.id });
-            } else {
-              // Not in session (matches myActiveTeams logic only if count=0, so this path is for the 'start new' case)
-              await joinWithSpecificTeam(session, team);
-            }
-            return;
-          } else if (candidateTeams.length > 1) {
-            // Multiple candidates (either multiple active, or multiple potential new ones)
-            setAvailableTeams(candidateTeams);
-            setPendingSession(session);
-            setLoading(false);
-            return;
-          } else {
-            // Should not happen given logic above (myTeams > 0 check), but fallback
-            console.warn('No candidate teams found');
-            setError(t('errors.failedToJoinQuiz'));
-            setLoading(false);
-            return;
-          }
-        } else {
-          // Student doesn't belong to any team - show team mode options
-          console.log('Student does not belong to any team, showing team mode options');
-          setTeamModeSession(session);
-          setShowTeamModeOptions(true);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Create participant record and join directly (classic mode only)
-      console.log('Creating participant record for user:', appState.currentUser?.id);
-
-      const { data: participant, error: participantError } = await supabase
-        .from("session_participants")
-        .insert({
-          session_id: session.id,
-          user_id: appState.currentUser.id,
-          score: 0,
-          is_team_entry: false
-        })
-        .select()
-        .single();
-
-      if (participantError) {
-        // Check if error is due to duplicate entry (already joined)
-        if (participantError.code === '23505') {
-          console.log('Student already joined this session, proceeding...');
-        } else {
-          console.error('Failed to create participant:', participantError);
-          throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
-        }
-      } else {
-        console.log('Participant created successfully:', participant);
-      }
-
-      // Save session to localStorage for reconnection support
-      saveActiveSession(session.id, { pin: session.pin });
-
-      // Navigate to quiz
-      setView("student-quiz", session.id);
-    } catch (err) {
-      setError(t('errors.errorJoiningQuiz') + ": " + err.message);
-      setLoading(false);
-    }
-  };
-
-  const confirmJoinTeam = async () => {
-    if (!foundTeam) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error: participantError } = await supabase
-        .from("session_participants")
-        .insert({
-          session_id: foundTeam.session_id,
-          user_id: appState.currentUser.id,
-          team_id: foundTeam.team_id,
-          is_team_entry: true,
-          score: 0
-        });
-
-      if (participantError) {
-        if (participantError.code === '23505') {
-          console.log('Already joined team session');
-        } else {
-          throw participantError;
-        }
-      }
-
-      // Save session to localStorage for reconnection support
-      saveActiveSession(foundTeam.session_id);
-
-      // Navigate to quiz
-      setView("student-quiz", foundTeam.session_id);
-    } catch (err) {
-      console.error('Error joining team:', err);
-      setError(t('errors.failedToJoinQuiz') + ": " + err.message);
-      setFoundTeam(null);
-      setLoading(false);
-    }
-  };
-
-  const cancelJoinTeam = () => {
-    setFoundTeam(null);
-    setAvailableTeams([]);
-    setPendingSession(null);
-    setLoading(false);
-  };
-
-  const joinWithSpecificTeam = async (session, team) => {
-    const teamName = team.teams?.name || team.teams?.team_name || 'Unknown Team';
-    console.log('Joining session with team:', teamName);
-
-    try {
-      const { data: participant, error: participantError } = await supabase
-        .from("session_participants")
-        .insert({
-          session_id: session.id,
-          user_id: appState.currentUser.id,
-          team_id: team.team_id,
-          is_team_entry: true,
-          score: 0
-        })
-        .select()
-        .single();
-
-      if (participantError) {
-        if (participantError.code === '23505') {
-          console.log('Already joined this session, proceeding...');
-        } else {
-          console.error('Failed to create team participant:', participantError);
-          throw new Error(`${t('errors.failedToJoinQuiz')}: ${participantError.message}`);
-        }
-      } else {
-        console.log('Team participant created successfully:', participant);
-      }
-
-      // Save session to localStorage for reconnection support
-      saveActiveSession(session.id, { pin: session.pin });
-
-      // Navigate to quiz
-      setView("student-quiz", session.id);
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
-  const handleSelectTeam = async (team) => {
-    if (!pendingSession) return;
-    setLoading(true);
-    await joinWithSpecificTeam(pendingSession, team);
-  };
-
-  // Handle team mode "Join Team by Code" flow
-  if (showJoinTeamByCode && teamModeSession) {
+  if (joinQuiz.showJoinTeamByCode && joinQuiz.teamModeSession) {
     return (
       <JoinTeam
         appState={appState}
         setView={setView}
-        session={teamModeSession}
+        session={joinQuiz.teamModeSession}
         onBack={() => {
-          setShowJoinTeamByCode(false);
-          setShowTeamModeOptions(true);
+          joinQuiz.setShowJoinTeamByCode(false);
+          joinQuiz.setShowTeamModeOptions(true);
         }}
       />
     );
   }
 
-  // Team mode options screen (Create Team vs Join Team)
-  if (showTeamModeOptions && teamModeSession) {
+  if (joinQuiz.showTeamModeOptions && joinQuiz.teamModeSession) {
     return (
-      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-          <button
-            onClick={() => {
-              setShowTeamModeOptions(false);
-              setTeamModeSession(null);
-            }}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            {t('common.back')}
-          </button>
-
-          <div className="text-5xl mb-4">👥</div>
-          <h1 className="text-2xl font-bold mb-2">{t('student.teamModeQuiz')}</h1>
-          <p className="text-gray-600 mb-6">{t('student.teamModeDescription')}</p>
-
-          <div className="space-y-4">
-            {/* Create Team Option */}
-            <button
-              onClick={() => {
-                setShowTeamModeOptions(false);
-                // Navigate to CreateTeam, passing the session info
-                setView("create-team");
-              }}
-              className="w-full bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
-            >
-              <UserPlus size={24} />
-              <div className="text-left">
-                <div className="font-bold text-lg">{t('student.createNewTeam')}</div>
-                <div className="text-sm opacity-90">{t('student.createNewTeamDesc')}</div>
-              </div>
-            </button>
-
-            {/* Join Team Option */}
-            <button
-              onClick={() => {
-                setShowTeamModeOptions(false);
-                setShowJoinTeamByCode(true);
-              }}
-              className="w-full bg-green-600 text-white p-4 rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-3"
-            >
-              <Link size={24} />
-              <div className="text-left">
-                <div className="font-bold text-lg">{t('student.joinExistingTeam')}</div>
-                <div className="text-sm opacity-90">{t('student.joinExistingTeamDesc')}</div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (foundTeam) {
-    return (
-      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-          <h2 className="text-2xl font-bold mb-4">{t('student.joinTeam')}</h2>
-          <p className="text-gray-600 mb-6">
-            {t('student.yourTeamIsAlreadyInSession', { teamName: foundTeam.teams?.team_name })}
-          </p>
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <h3 className="font-bold text-lg text-blue-800">{foundTeam.teams?.team_name}</h3>
-          </div>
-          <div className="space-y-3">
-            <button
-              onClick={confirmJoinTeam}
-              className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              {t('student.joinAsTeamMember')}
-            </button>
-            <button
-              onClick={cancelJoinTeam}
-              className="w-full bg-gray-200 text-gray-800 p-3 rounded-lg hover:bg-gray-300 font-semibold"
-            >
-              {t('common.cancel')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (availableTeams.length > 0) {
-    return (
-      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-          <h2 className="text-2xl font-bold mb-4">{t('student.selectTeam')}</h2>
-          <p className="text-gray-600 mb-6">
-            {t('student.selectTeamDescription') || "Choose which team you want to represent in this quiz:"}
-          </p>
-
-          <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-            {availableTeams.map((teamEntry) => (
-              <button
-                key={teamEntry.team_id}
-                onClick={() => handleSelectTeam(teamEntry)}
-                className="w-full bg-blue-50 border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-100 text-blue-900 p-4 rounded-xl font-bold transition-all flex items-center justify-between group"
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardBody className="space-y-5 p-6 text-center">
+            <Button variant="ghost" size="sm" onClick={joinQuiz.cancelJoinTeam} className="self-start">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              {t("common.back")}
+            </Button>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Users className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-ink">{t("student.teamModeQuiz")}</h1>
+              <p className="mt-1 text-sm text-ink-muted">{t("student.teamModeDescription")}</p>
+            </div>
+            <div className="space-y-3">
+              <Button
+                className="w-full justify-start h-auto p-4 text-left"
+                onClick={() => {
+                  joinQuiz.setShowTeamModeOptions(false);
+                  setView("create-team");
+                }}
               >
-                <span>{teamEntry.teams?.name || teamEntry.teams?.team_name || "Unknown Team"}</span>
-                <span className="opacity-0 group-hover:opacity-100 text-blue-600">➜</span>
-              </button>
-            ))}
-          </div>
+                <UserPlus className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="font-semibold">{t("student.createNewTeam")}</div>
+                  <div className="text-xs opacity-90">{t("student.createNewTeamDesc")}</div>
+                </div>
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full justify-start h-auto p-4 text-left"
+                onClick={() => {
+                  joinQuiz.setShowTeamModeOptions(false);
+                  joinQuiz.setShowJoinTeamByCode(true);
+                }}
+              >
+                <LinkIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="font-semibold">{t("student.joinExistingTeam")}</div>
+                  <div className="text-xs text-ink-muted">{t("student.joinExistingTeamDesc")}</div>
+                </div>
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
-          <button
-            onClick={cancelJoinTeam}
-            className="w-full bg-gray-200 text-gray-800 p-3 rounded-lg hover:bg-gray-300 font-semibold"
-          >
-            {t('common.cancel')}
-          </button>
-        </div>
+  if (joinQuiz.foundTeam) {
+    return (
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardBody className="space-y-4 p-6 text-center">
+            <h2 className="text-xl font-bold text-ink">{t("student.joinTeam")}</h2>
+            <p className="text-sm text-ink-muted">
+              {t("student.yourTeamIsAlreadyInSession", {
+                teamName:
+                  joinQuiz.foundTeam.teams?.team_name || joinQuiz.foundTeam.teams?.name || "",
+              })}
+            </p>
+            <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+              <h3 className="font-bold text-brand-800">
+                {joinQuiz.foundTeam.teams?.team_name || joinQuiz.foundTeam.teams?.name}
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <Button className="w-full" loading={joinQuiz.loading} onClick={joinQuiz.confirmJoinTeam}>
+                {t("student.joinAsTeamMember")}
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={joinQuiz.cancelJoinTeam}>
+                {t("common.cancel")}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (joinQuiz.availableTeams.length > 0) {
+    return (
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardBody className="space-y-4 p-6 text-center">
+            <h2 className="text-xl font-bold text-ink">{t("student.selectTeam")}</h2>
+            <p className="text-sm text-ink-muted">{t("student.selectTeamDescription")}</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {joinQuiz.availableTeams.map((teamEntry) => (
+                <Button
+                  key={teamEntry.team_id}
+                  variant="secondary"
+                  className="w-full justify-between"
+                  onClick={() => joinQuiz.handleSelectTeam(teamEntry)}
+                >
+                  <span>{teamEntry.teams?.name || teamEntry.teams?.team_name || "Unknown Team"}</span>
+                </Button>
+              ))}
+            </div>
+            <Button variant="ghost" className="w-full" onClick={joinQuiz.cancelJoinTeam}>
+              {t("common.cancel")}
+            </Button>
+          </CardBody>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4 pt-20 md:pt-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-4 md:p-8 w-full max-w-sm md:max-w-md">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-3 md:mb-4 text-sm md:text-base"
-        >
-          <ArrowLeft size={20} />
-          {t('student.backToDashboard')}
-        </button>
-
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-6">{t('student.joinQuiz')}</h1>
-        <p className="text-center text-gray-600 mb-4 md:mb-6 text-sm md:text-base">{t('student.enterPinFromTeacher')}</p>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 md:px-4 md:py-3 rounded mb-3 md:mb-4 text-sm md:text-base">
-            {error}
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardBody className="space-y-5 p-6 sm:p-8">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t("student.backToDashboard")}
+          </Button>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-ink">{t("student.joinQuiz")}</h1>
+            <p className="mt-1 text-sm text-ink-muted">{t("student.enterPinFromTeacher")}</p>
           </div>
-        )}
-
-        <input
-          type="text"
-          placeholder={t('session.enterPin')}
-          value={joinPin}
-          onChange={(e) => setJoinPin(e.target.value)}
-          className="w-full p-3 md:p-4 border-2 rounded-lg text-center text-xl md:text-2xl mb-3 md:mb-4"
-          maxLength="6"
-        />
-
-        <button
-          onClick={joinQuiz}
-          disabled={loading || !isApproved}
-          className="w-full bg-blue-700 text-white p-3 md:p-4 rounded-lg hover:bg-blue-800 text-base md:text-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? t('student.joining') : t('student.joinQuiz')}
-        </button>
-
-        {!isApproved && (
-          <p className="mt-3 md:mt-4 text-xs md:text-sm text-gray-500 text-center">
-            {t('student.waitingForTeacherApprovalMessage')}
-          </p>
-        )}
-      </div>
+          <Field label={t("session.enterPin")} error={error}>
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder={t("session.enterPin")}
+              value={joinPin}
+              onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="h-12 text-center font-mono text-2xl font-bold tracking-widest"
+              maxLength={6}
+            />
+          </Field>
+          <Button
+            size="lg"
+            className="w-full"
+            loading={joinQuiz.loading}
+            disabled={!isApproved}
+            onClick={() => joinQuiz.joinByPin(joinPin)}
+          >
+            {joinQuiz.loading ? t("student.joining") : t("student.joinQuiz")}
+          </Button>
+          {!isApproved && (
+            <p className="text-center text-xs text-ink-muted">
+              {t("student.waitingForTeacherApprovalMessage")}
+            </p>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

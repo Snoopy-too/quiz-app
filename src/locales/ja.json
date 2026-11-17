@@ -59,7 +59,17 @@
     "globalQuizzes": "グローバルクイズ",
     "settings": "設定",
     "logout": "ログアウト",
-    "home": "ホーム"
+    "home": "ホーム",
+    "newQuiz": "新規クイズ",
+    "libraryGroup": "ライブラリ",
+    "classGroup": "クラス",
+    "schoolLibrary": "学校のライブラリ",
+    "communityLibrary": "コミュニティライブラリ",
+    "assignments": "課題",
+    "results": "成績",
+    "skipToContent": "メインコンテンツへスキップ",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる"
   },
   "auth": {
     "login": "ログイン",
@@ -138,7 +148,12 @@
     "teacherWillApprove": "先生がアカウントを確認して承認します。承認されたら、ログインしてクイズに参加できます！",
     "goToLogin": "ログインへ",
     "accountApproved": "アカウントが承認されました！",
-    "youCanNowLogin": "先生がアカウントを承認しました。ログインしてクイズに参加できます！"
+    "youCanNowLogin": "先生がアカウントを承認しました。ログインしてクイズに参加できます！",
+    "verifyEmailPrompt": "続行するにはメールアドレスを確認してください。",
+    "registrationSuccessDetailed": "登録が完了しました！メールを確認してアカウントを有効にしてください。その後、スーパー管理者がアカウントを承認します。",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを隠す",
+    "tagline": "授業用クイズ、チーム対抗戦、リアルタイムな学習分析。"
   },
   "quiz": {
     "quiz": "クイズ",
@@ -303,7 +318,37 @@
     "manageQuizzesDescription": "クラス用のクイズを作成、編集、整理します。",
     "manageStudentsDescription": "学生アカウント、承認、進捗状況を表示および管理します。",
     "reportsDescription": "クイズのパフォーマンスと学生の進捗レポートを表示します。",
-    "thinking": "考え中"
+    "thinking": "考え中",
+    "greetingMorning": "おはようございます、{{name}}さん",
+    "greetingAfternoon": "こんにちは、{{name}}さん",
+    "greetingEvening": "こんばんは、{{name}}さん",
+    "hostQuiz": "クイズを出題",
+    "selectQuizToHost": "出題するクイズを選択",
+    "liveNow": "実施中",
+    "livePlayers": "実施中のセッション {{count}}件 · 参加者 {{players}}名",
+    "resumeSession": "再開",
+    "endSession": "セッションを終了",
+    "endSessionConfirmTitle": "実施中のセッションを終了しますか？",
+    "endSessionConfirmMessage": "「{{title}}」（PIN: {{pin}}）を終了し、参加中のすべての学生のセッションをキャンセルします。",
+    "sessionEnded": "セッションを終了しました。",
+    "statQuizzes": "クイズ数",
+    "statStudents": "学生数",
+    "statPending": "承認待ち",
+    "statAvgScore": "平均正答率（7日間）",
+    "recentQuizzes": "最近作成された未実施のクイズ",
+    "noUnplayedQuizzes": "未実施のクイズはありません。",
+    "dueAssignments": "今週締め切りの課題",
+    "noDueAssignments": "今週締め切りの課題はありません。",
+    "hostAction": "出題",
+    "copyInviteLink": "招待リンクをコピー",
+    "inviteLinkCopied": "招待リンクをコピーしました！",
+    "inviteCodeCopied": "教師コードをコピーしました！",
+    "showQr": "QRコードを表示",
+    "inviteQrTitle": "学生登録用QRコード",
+    "inviteQrDesc": "学生がこのQRコードをスキャンすると、あなたの教師コードが入力された状態で登録画面が開きます。",
+    "browseLibrary": "ライブラリを見る",
+    "lastPlayedNever": "未実施",
+    "noRecentQuizzes": "まだクイズを作成していません。"
   },
   "student": {
     "studentDashboard": "学生ダッシュボード",
@@ -417,7 +462,20 @@
     "teammates": "チームメイト",
     "waitingForTeammates": "パートナーの参加を待機中...",
     "teammatesJoined": "{{count}} 人が参加しました",
-    "cancellingTeam": "チームをキャンセル中..."
+    "cancellingTeam": "チームをキャンセル中...",
+    "teammatesJoined_plural": "{{count}} 人が参加しました",
+    "enterGamePin": "6桁のゲームPINを入力",
+    "joinButton": "参加",
+    "joinAsTeamLink": "チームで参加",
+    "dueAssignmentsTitle": "割り当てられた課題",
+    "recentResultsTitle": "最近の結果",
+    "noRecentResults": "まだ完了したクイズはありません。ライブクイズに参加するか課題を完了すると結果が表示されます。",
+    "checkAgain": "再確認する",
+    "approvalNextSteps": "教師にあなたの登録が通知されました。承認されたら「再確認する」をクリックするか画面を更新してください。",
+    "stillPendingApproval": "まだ教師の承認待ちです。",
+    "approvedNow": "アカウントが承認されました！",
+    "dueCount": "{{count}}件",
+    "viewAll": "すべて見る"
   },
   "theme": {
     "themes": "テーマ",
@@ -869,5 +927,36 @@
     "completed": "完了",
     "pending": "保留中",
     "expired": "期限切れ"
+  },
+  "results": {
+    "answerCount_one": "{{count}}件の回答",
+    "answerCount_other": "{{count}}件の回答"
+  },
+  "editor": {
+    "newQuizTitle": "新規クイズ",
+    "editQuizTitle": "クイズを編集",
+    "questionsPane": "問題一覧",
+    "settingsPane": "設定",
+    "previewPane": "プレビュー",
+    "publish": "保存して終了",
+    "savingStatus": "保存中…",
+    "savedStatus": "保存済み",
+    "unsavedStatus": "未保存の変更",
+    "offlineStatus": "オフライン – 変更はローカルに保持されています",
+    "restoreDraftTitle": "未保存の下書きを復元しますか？",
+    "restoreDraftMessage": "前回のセッションで保存されていないクイズの下書きが見つかりました。復元しますか？",
+    "restoreDraft": "下書きを復元",
+    "discardDraft": "破棄",
+    "unsavedLeaveConfirm": "未保存の変更があります。このままページを離れてもよろしいですか？",
+    "moveUp": "問題を上に移動",
+    "moveDown": "問題を下に移動",
+    "selectQuestionPrompt": "左のリストから問題を選択するか、新しい問題を追加してください。",
+    "previewNotice": "学生画面プレビュー",
+    "validationBlocked": "保存する前にエラーを修正してください"
+  },
+  "notFound": {
+    "title": "ページが見つかりません",
+    "description": "お探しのページは存在しないか、移動しました。",
+    "goToDashboard": "ダッシュボードへ戻る"
   }
 }

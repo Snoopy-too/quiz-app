@@ -9,7 +9,11 @@ import { User, Check, RefreshCw } from "lucide-react";
  * - Smooth transition when image is loaded
  * - Accessible selection state
  */
-export default function AvatarThumbnail({
+export default function AvatarThumbnail(props) {
+  return <AvatarThumbnailInner key={props.src} {...props} />;
+}
+
+function AvatarThumbnailInner({
   src,
   alt,
   isSelected,
@@ -21,21 +25,13 @@ export default function AvatarThumbnail({
   const [imgSrc, setImgSrc] = useState(src);
   const retryTimeoutRef = useRef(null);
 
-  // Reset state if src changes
   useEffect(() => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-    }
-    setImgSrc(src);
-    setLoadState("loading");
-    setRetryCount(0);
-
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
     };
-  }, [src]);
+  }, []);
 
   const handleImageError = () => {
     if (retryCount < maxRetries) {

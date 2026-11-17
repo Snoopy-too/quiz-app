@@ -3,13 +3,27 @@ import { supabase } from "../supabaseClient";
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
 
+const VALID_STUDENT_FILTERS = new Set(["my_students", "approved", "pending", "unverified", "unlinked"]);
+
+function readInitialStudentFilter() {
+  try {
+    const param = new URLSearchParams(window.location.search).get("filter");
+    if (param && VALID_STUDENT_FILTERS.has(param)) {
+      return param;
+    }
+  } catch {
+    // Ignore URL parsing errors in non-browser contexts
+  }
+  return "my_students";
+}
+
 export default function useManageStudents(appState) {
   const { t } = useTranslation();
 
   const [students, setStudents] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("my_students"); // my_students, approved, pending, rejected, unlinked
+  const [filterStatus, setFilterStatus] = useState(readInitialStudentFilter); // my_students, approved, pending, rejected, unlinked
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);

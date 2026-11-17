@@ -1,6 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Play, Edit2, Trash2, Copy, Move, Eye, CheckSquare, Square, Calendar, Users, BarChart3 } from "lucide-react";
+import { Badge, Button } from "../../ui";
+import {
+  DEFAULT_THEME_GRADIENT,
+  DEFAULT_THEME_PRIMARY,
+  DEFAULT_THEME_TEXT_COLOR,
+} from "../../../theme/themeDefaults";
 
 export default function QuizCard({
   quiz,
@@ -21,7 +27,7 @@ export default function QuizCard({
   const { t } = useTranslation();
 
   const translateThemeName = (themeName) => {
-    if (!themeName) return t('theme.defaultTheme');
+    if (!themeName) return t("theme.defaultTheme");
 
     const lowerName = themeName.toLowerCase();
     const themeKey = `theme.${lowerName}`;
@@ -31,9 +37,9 @@ export default function QuizCard({
     return translated === themeKey ? themeName : translated;
   };
 
-  const getThemeMeta = (quiz) => {
-    const theme = quiz.themeDetails || themesById[quiz.theme_id] || null;
-    const customBackground = quiz.background_image_url;
+  const getThemeMeta = (quizItem) => {
+    const theme = quizItem.themeDetails || themesById[quizItem.theme_id] || null;
+    const customBackground = quizItem.background_image_url;
 
     if (theme?.background_image_url) {
       return {
@@ -41,50 +47,50 @@ export default function QuizCard({
         style: {
           backgroundImage: `url(${theme.background_image_url})`,
           backgroundSize: "cover",
-          backgroundPosition: "center"
+          backgroundPosition: "center",
         },
-        textColor: theme.text_color || "#FFFFFF",
+        textColor: theme.text_color || DEFAULT_THEME_TEXT_COLOR,
         overlay: true,
-        isCustom: false
+        isCustom: false,
       };
     }
 
     if (theme && (theme.primary_color || theme.secondary_color)) {
-      const primary = theme.primary_color || "#7C3AED";
+      const primary = theme.primary_color || DEFAULT_THEME_PRIMARY;
       const secondary = theme.secondary_color || primary;
       return {
         label: translateThemeName(theme.name),
         style: {
-          background: `linear-gradient(135deg, ${primary}, ${secondary})`
+          background: `linear-gradient(135deg, ${primary}, ${secondary})`,
         },
-        textColor: theme.text_color || "#FFFFFF",
+        textColor: theme.text_color || DEFAULT_THEME_TEXT_COLOR,
         overlay: false,
-        isCustom: false
+        isCustom: false,
       };
     }
 
     if (customBackground) {
       return {
-        label: t('theme.customTheme'),
+        label: t("theme.customTheme"),
         style: {
           backgroundImage: `url(${customBackground})`,
           backgroundSize: "cover",
-          backgroundPosition: "center"
+          backgroundPosition: "center",
         },
-        textColor: "#FFFFFF",
+        textColor: DEFAULT_THEME_TEXT_COLOR,
         overlay: true,
-        isCustom: true
+        isCustom: true,
       };
     }
 
     return {
-      label: t('theme.defaultTheme'),
+      label: t("theme.defaultTheme"),
       style: {
-        background: "linear-gradient(135deg, #7C3AED, #2563EB)"
+        background: DEFAULT_THEME_GRADIENT,
       },
-      textColor: "#FFFFFF",
+      textColor: DEFAULT_THEME_TEXT_COLOR,
       overlay: false,
-      isCustom: false
+      isCustom: false,
     };
   };
 
@@ -98,165 +104,185 @@ export default function QuizCard({
       data-quiz-id={quiz.id}
       draggable
       onDragStart={(e) => handleDragStart(e, quiz, "quiz")}
-      className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border-2 ${
-        isHighlighted
-          ? "border-blue-500 ring-2 ring-blue-300 shadow-lg shadow-blue-100"
-          : isSelected
-            ? "border-cyan-400 ring-2 ring-blue-100"
-            : "border-transparent"
-        } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
+      className={`flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-card transition-all duration-200 hover:shadow-pop ${
+        isHighlighted || isSelected
+          ? "border-brand-500 ring-2 ring-brand-500/20"
+          : "border-line"
+      } ${draggedItem?.item.id === quiz.id ? "opacity-50" : ""}`}
     >
       {/* Theme Preview */}
-      <div className="relative h-28">
+      <div className="relative h-28 shrink-0">
         <div className="absolute inset-0" style={themeMeta.style}></div>
         {themeMeta.overlay && <div className="absolute inset-0 bg-black/35" />}
         <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
           <span
-            className="text-sm text-blue-700 drop-shadow"
+            className="text-xs font-semibold drop-shadow"
             style={{ color: themeMeta.textColor }}
           >
             {badgeLabel}
           </span>
           {themeMeta.isCustom && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700">{t('theme.custom')}</span>
+            <Badge variant="neutral" className="bg-surface/90 text-ink">
+              {t("theme.custom")}
+            </Badge>
           )}
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="flex flex-1 flex-col p-4">
         {/* Title and selection */}
-        <div className="flex items-start gap-3 mb-3">
+        <div className="mb-3 flex flex-1 items-start gap-2.5">
           <button
+            type="button"
+            aria-label={isSelected ? "Deselect quiz" : "Select quiz"}
             onClick={(e) => {
               e.stopPropagation();
               toggleQuizSelection(quiz.id);
             }}
-            className="mt-1 flex-shrink-0"
+            className="mt-0.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
           >
             {isSelected ? (
-              <CheckSquare size={20} className="text-blue-700" />
+              <CheckSquare size={18} className="text-brand-600" aria-hidden="true" />
             ) : (
-              <Square size={20} className="text-gray-400 hover:text-blue-700" />
+              <Square size={18} className="text-ink-subtle hover:text-brand-600" aria-hidden="true" />
             )}
           </button>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{quiz.title}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-1.5 line-clamp-2 text-base font-semibold text-ink">{quiz.title}</h3>
 
-            {/* Tags/Badges */}
+            {/* Category Tag */}
             {quiz.categories?.name && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
-                  {quiz.categories.name}
-                </span>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                <Badge variant="brand">{quiz.categories.name}</Badge>
               </div>
             )}
 
             {/* Meta info */}
-            <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-ink-muted">
               <span>{new Date(quiz.created_at).toLocaleDateString()}</span>
-              <span>•</span>
-              <span>{quiz.questionCount} {quiz.questionCount !== 1 ? t('quiz.questions') : t('quiz.question')}</span>
+              <span>·</span>
+              <span>
+                {quiz.questionCount}{" "}
+                {quiz.questionCount !== 1 ? t("quiz.questions") : t("quiz.question")}
+              </span>
             </div>
 
             {/* Last Live Date */}
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="mt-1 text-xs text-ink-muted">
               {quiz.lastLiveDate ? (
                 <span>
-                  {t('reports.lastLive', {
+                  {t("reports.lastLive", {
                     date: new Date(quiz.lastLiveDate).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit'
-                    })
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }),
                   })}
                 </span>
               ) : (
-                <span>{t('reports.lastLiveNever')}</span>
+                <span>{t("reports.lastLiveNever")}</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Action Buttons - Horizontal row */}
-        <div className="flex items-center gap-1 pt-3 border-t border-gray-100 flex-wrap">
-          <div className="flex gap-1 w-full mb-2">
-            <button
+        {/* Action Buttons */}
+        <div className="border-t border-line pt-3">
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1"
               onClick={() => handleStartQuiz(quiz.id)}
-              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
-              title={t('quiz.startQuiz')}
+              title={t("quiz.startQuiz")}
             >
-              <Play size={14} />
-              {t('actions.start')}
-            </button>
-            <button
+              <Play className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("actions.start")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
               onClick={() => setAssignQuizModal(quiz)}
-              className="flex-1 bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 transition text-sm font-medium flex items-center justify-center gap-1.5"
-              title={t('assignQuiz.title', "Assign")}
+              title={t("assignQuiz.title", "Assign")}
             >
-              <Calendar size={14} />
-              {t('assignQuiz.actions', "Assign")}
-            </button>
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("assignQuiz.actions", "Assign")}
+            </Button>
           </div>
 
-          <div className="flex gap-1 justify-between w-full">
+          <div className="mt-2 flex items-center justify-between gap-1">
             <button
+              type="button"
               onClick={() => setView("preview-quiz", quiz.id)}
-              className="p-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition flex-1 flex justify-center"
-              title={t('actions.preview')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700"
+              title={t("actions.preview")}
+              aria-label={t("actions.preview")}
             >
-              <Eye size={16} />
+              <Eye className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => setView("edit-quiz", quiz.id)}
-              className="p-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition flex-1 flex justify-center"
-              title={t('common.edit')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700"
+              title={t("common.edit")}
+              aria-label={t("common.edit")}
             >
-              <Edit2 size={16} />
+              <Edit2 className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => handleDuplicate(quiz.id)}
-              className="p-2 bg-blue-50 text-blue-800 rounded-md hover:bg-blue-50 transition flex-1 flex justify-center"
-              title={t('actions.duplicate')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700"
+              title={t("actions.duplicate")}
+              aria-label={t("actions.duplicate")}
             >
-              <Copy size={16} />
+              <Copy className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => setView("reports", quiz.id)}
-              className="p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition flex-1 flex justify-center"
-              title={t('reports.actionViewReports', 'View Reports')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700"
+              title={t("reports.actionViewReports", "View Reports")}
+              aria-label={t("reports.actionViewReports", "View Reports")}
             >
-              <BarChart3 size={16} />
+              <BarChart3 className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => setMoveQuizModal(quiz.id)}
-              className="p-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition flex-1 flex justify-center"
-              title={t('folder.moveToFolder')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
+              title={t("folder.moveToFolder")}
+              aria-label={t("folder.moveToFolder")}
             >
-              <Move size={16} />
+              <Move className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => handleDelete(quiz.id)}
-              className="p-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition flex-1 flex justify-center"
-              title={t('common.delete')}
+              className="flex flex-1 items-center justify-center rounded-lg p-2 text-ink-muted transition-colors hover:bg-red-50 hover:text-danger-600"
+              title={t("common.delete")}
+              aria-label={t("common.delete")}
             >
-              <Trash2 size={16} />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
           {/* Assignments Button - only if there are assignments */}
           {quiz.assignmentCount > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setViewAssignmentsModal(quiz)}
-              className="w-full mt-2 p-2 bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition flex items-center justify-center gap-2 text-sm font-medium"
-              title={t('assignQuiz.viewAssignments', "View Assignments")}
+              className="mt-2 w-full border border-line bg-surface-muted/50"
+              title={t("assignQuiz.viewAssignments", "View Assignments")}
             >
-              <Users size={14} />
-              {t('assignQuiz.viewAssignments', "View Assignments")} ({quiz.assignmentCount})
-            </button>
+              <Users className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("assignQuiz.viewAssignments", "View Assignments")} ({quiz.assignmentCount})
+            </Button>
           )}
-
         </div>
       </div>
     </div>

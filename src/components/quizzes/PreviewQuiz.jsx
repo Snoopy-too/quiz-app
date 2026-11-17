@@ -4,6 +4,11 @@ import { Trophy, Clock, Heart, Spade, Diamond, Club, X, SkipForward, ThumbsUp } 
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
+import {
+  DEFAULT_THEME_GRADIENT,
+  DEFAULT_THEME_PRIMARY,
+  TRACK_RING_BG,
+} from "../../theme/themeDefaults";
 
 export default function PreviewQuiz({ quizId, setView, returnView = "manage-quizzes" }) {
   const [quiz, setQuiz] = useState(null);
@@ -116,7 +121,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       };
     }
 
-    return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
+    return { background: DEFAULT_THEME_GRADIENT };
   };
 
   const backgroundStyle = getBackgroundStyle();
@@ -329,7 +334,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
               <p className="text-gray-600 mb-4">Starting in...</p>
-              <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
+              <div className="text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || DEFAULT_THEME_PRIMARY }}>
                 {countdown}
               </div>
             </div>
@@ -471,7 +476,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke="#e5e7eb"
+                    stroke={TRACK_RING_BG}
                     strokeWidth="8"
                   />
                   <circle
@@ -479,7 +484,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke={theme?.primary_color || "#7C3AED"}
+                    stroke={theme?.primary_color || DEFAULT_THEME_PRIMARY}
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray="283"

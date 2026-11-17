@@ -5,6 +5,7 @@ import MediaDisplay from "./MediaDisplay";
 import AnswerOptionsGrid from "./AnswerOptionsGrid";
 import BombDevice from "../../common/BombDevice";
 import ExplosionAnimation from "../../common/ExplosionAnimation";
+import { TRACK_RING_ACCENT, TRACK_RING_BG } from "../../../theme/themeDefaults";
 import { formatBombTime } from "../../../utils/defuseMode";
 import { buildAnswerShuffleMap } from "../../../utils/answerShuffle";
 
@@ -29,17 +30,22 @@ export default function ActiveQuestion({
   const isDefuseMode = session?.mode === "defuse";
 
   // Mirror what students see: apply the same deterministic shuffle when randomize_answers is on
+  const randomizeAnswers = session?.randomize_answers;
+  const sessionId = session?.id;
+  const questionId = currentQuestion?.id;
+  const questionOptions = currentQuestion?.options;
+
   const displayOptions = React.useMemo(() => {
-    if (session?.randomize_answers && currentQuestion?.options) {
+    if (randomizeAnswers && questionOptions) {
       const { shuffledOptions } = buildAnswerShuffleMap(
-        currentQuestion.options,
-        session.id,
-        currentQuestion.id
+        questionOptions,
+        sessionId,
+        questionId
       );
       return shuffledOptions;
     }
-    return currentQuestion?.options;
-  }, [session?.randomize_answers, session?.id, currentQuestion?.id, currentQuestion?.options]);
+    return questionOptions;
+  }, [randomizeAnswers, sessionId, questionId, questionOptions]);
 
   return (
     <>
@@ -128,7 +134,7 @@ export default function ActiveQuestion({
                       cy="50"
                       r="45"
                       fill="none"
-                      stroke="#e5e7eb"
+                      stroke={TRACK_RING_BG}
                       strokeWidth="8"
                     />
                     {/* Animated progress circle */}
@@ -137,7 +143,7 @@ export default function ActiveQuestion({
                       cy="50"
                       r="45"
                       fill="none"
-                      stroke="#3b82f6"
+                      stroke={TRACK_RING_ACCENT}
                       strokeWidth="8"
                       strokeLinecap="round"
                       strokeDasharray="283"

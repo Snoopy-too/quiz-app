@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Users, Play, RefreshCw, X } from "lucide-react";
+import QRCode from "react-qr-code";
 
 export default function WaitingLobby({
   quiz,
@@ -61,9 +62,22 @@ export default function WaitingLobby({
         <div className="container mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-12 text-center max-w-2xl w-full">
             <h2 className="text-4xl font-bold mb-6">Join at QuizMaster</h2>
-            <div className="bg-gray-100 rounded-xl p-8 mb-6">
-              <p className="text-gray-600 text-xl mb-2">Game PIN:</p>
-              <p className="text-7xl font-bold text-blue-700">{session.pin}</p>
+            <div className="bg-surface-muted rounded-xl p-6 sm:p-8 mb-6 flex flex-col sm:flex-row items-center justify-center gap-6">
+              <div>
+                <p className="text-ink-muted text-xl mb-2">Game PIN:</p>
+                <p className="text-6xl sm:text-7xl font-bold text-brand-700 font-mono tracking-wider">
+                  {session.pin}
+                </p>
+              </div>
+              {session.pin && (
+                <div className="bg-white p-3 rounded-xl border border-line shadow-sm">
+                  <QRCode
+                    value={`${window.location.origin}/join/${encodeURIComponent(session.pin)}`}
+                    size={128}
+                    aria-label={`Join game PIN ${session.pin}`}
+                  />
+                </div>
+              )}
             </div>
 
             {isTeamMode ? (

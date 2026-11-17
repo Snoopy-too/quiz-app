@@ -1,10 +1,33 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { useTranslation } from 'react-i18next';
-import VerticalNav from '../layout/VerticalNav';
-import { Trash2, RefreshCw, X, CheckCircle, XCircle, Clock, HelpCircle, FileText, ChevronRight, ChevronDown } from 'lucide-react';
-import ConfirmModal from '../common/ConfirmModal';
-import AlertModal from '../common/AlertModal';
+import { useState, useEffect } from "react";
+import { supabase } from "../../supabaseClient";
+import { useTranslation } from "react-i18next";
+import {
+  Trash2,
+  RefreshCw,
+  X,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  ChevronLeft,
+  BookOpen,
+  Award,
+  Target,
+  AlertCircle,
+} from "lucide-react";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardBody,
+  Badge,
+  Button,
+  Skeleton,
+  IconButton,
+  Spinner,
+} from "../ui";
+import ConfirmModal from "../common/ConfirmModal";
+import AlertModal from "../common/AlertModal";
 
 export default function StudentReport({
   setView,
@@ -436,151 +459,249 @@ export default function StudentReport({
   };
 
   if (loading) {
-    return <div className="p-6">{t('loading')}</div>;
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageHeader title={t("reports.student")} />
+        <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <Card key={idx}>
+                <CardBody className="space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-16" />
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardBody>
+              <Skeleton className="h-48 w-full" />
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-6">{t('error')}: {error}</div>;
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageHeader title={t("reports.student")} />
+        <div className="mx-auto max-w-7xl p-4 sm:p-6">
+          <Card className="border-danger-600/40">
+            <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 text-danger-600">
+                <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <p className="text-sm font-medium">
+                  {t("error")}: {error}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setView("reports")}>
+                {t("back_to_reports")}
+              </Button>
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
+  const tabs = [
+    { key: "all", label: t("reports.allQuizzes") },
+    { key: "course", label: t("reports.courseQuizzes") },
+    { key: "non-course", label: t("reports.nonCourseQuizzes") },
+  ];
+
+  const displayedQuizzes = performanceData
+    ? activeTab === "all"
+      ? performanceData.quizzesTaken
+      : activeTab === "course"
+        ? performanceData.courseQuizzes
+        : performanceData.nonCourseQuizzes
+    : [];
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <VerticalNav currentView="reports" setView={setView} appState={appState} />
-      <div className="flex-1 ml-64">
-        <div className="p-6">
-          <button onClick={() => setView('reports')} className="text-blue-600 hover:underline mb-4">&larr; {t('back_to_reports')}</button>
-          <h1 className="text-3xl font-bold mb-2">{student?.name}</h1>
-          <p className="text-gray-600 mb-6">{student?.email}</p>
+    <div className="min-h-screen bg-canvas">
+      <PageHeader
+        breadcrumbs={
+          <button
+            type="button"
+            onClick={() => setView("reports")}
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            {t("back_to_reports")}
+          </button>
+        }
+        title={student?.name || t("reports.student")}
+        description={student?.email}
+      />
 
-          {performanceData && (
-            <>
-              {/* Tab Navigation */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+        {performanceData && (
+          <>
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-2">
+              {tabs.map(({ key, label }) => {
+                const active = activeTab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActiveTab(key)}
+                    className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-brand-600 text-white shadow-sm"
+                        : "border border-line bg-surface text-ink-muted hover:bg-surface-muted hover:text-ink"
                     }`}
-                >
-                  {t("reports.allQuizzes")}
-                </button>
-                <button
-                  onClick={() => setActiveTab('course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'course'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {t("reports.courseQuizzes")}
-                </button>
-                <button
-                  onClick={() => setActiveTab('non-course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'non-course'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                >
-                  {t("reports.nonCourseQuizzes")}
-                </button>
-              </div>
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
 
-              {/* Stats Cards - show based on active tab */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <p className="text-sm text-gray-600">{t('studentReport.totalQuizzes')}</p>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {activeTab === 'all' ? performanceData.totalQuizzes :
-                      activeTab === 'course' ? performanceData.courseTotalQuizzes :
-                        performanceData.nonCourseTotalQuizzes}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <p className="text-sm text-gray-600">{t('studentReport.averageScore')}</p>
-                  <p className="text-3xl font-bold text-blue-700">
-                    {activeTab === 'all' ? performanceData.averageScore :
-                      activeTab === 'course' ? performanceData.courseAverageScore :
-                        performanceData.nonCourseAverageScore}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <p className="text-sm text-gray-600">{t('studentReport.averageAccuracy')}</p>
-                  <p className="text-3xl font-bold text-orange-600">
-                    {activeTab === 'all' ? performanceData.averageAccuracy :
-                      activeTab === 'course' ? performanceData.courseAverageAccuracy :
-                        performanceData.nonCourseAverageAccuracy}%
-                  </p>
-                </div>
-              </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Card>
+                <CardBody className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-ink-muted">
+                      {t("studentReport.totalQuizzes")}
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-ink">
+                      {activeTab === "all"
+                        ? performanceData.totalQuizzes
+                        : activeTab === "course"
+                          ? performanceData.courseTotalQuizzes
+                          : performanceData.nonCourseTotalQuizzes}
+                    </p>
+                  </div>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <BookOpen className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </CardBody>
+              </Card>
 
-              <h2 className="text-2xl font-bold mb-4">{t('studentReport.quizHistory')}</h2>
-              <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-100 border-b">
+              <Card>
+                <CardBody className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-ink-muted">
+                      {t("studentReport.averageScore")}
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-ink">
+                      {activeTab === "all"
+                        ? performanceData.averageScore
+                        : activeTab === "course"
+                          ? performanceData.courseAverageScore
+                          : performanceData.nonCourseAverageScore}
+                    </p>
+                  </div>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-success-600">
+                    <Award className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-ink-muted">
+                      {t("studentReport.averageAccuracy")}
+                    </p>
+                    <p className="mt-1 text-3xl font-bold text-ink">
+                      {activeTab === "all"
+                        ? performanceData.averageAccuracy
+                        : activeTab === "course"
+                          ? performanceData.courseAverageAccuracy
+                          : performanceData.nonCourseAverageAccuracy}
+                      %
+                    </p>
+                  </div>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                    <Target className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </CardBody>
+              </Card>
+            </div>
+
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <h2 className="text-base font-semibold text-ink">
+                  {t("studentReport.quizHistory")}
+                </h2>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-line bg-surface-muted/60 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.quizTitle')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.dateTaken')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.score')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.correctTotal')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('studentReport.accuracy')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('reports.type')}</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t('common.actions')}</th>
+                      <th className="px-5 py-3.5 text-left">{t("studentReport.quizTitle")}</th>
+                      <th className="px-5 py-3.5 text-left">{t("studentReport.dateTaken")}</th>
+                      <th className="px-5 py-3.5 text-left">{t("studentReport.score")}</th>
+                      <th className="px-5 py-3.5 text-left">{t("studentReport.correctTotal")}</th>
+                      <th className="px-5 py-3.5 text-left">{t("studentReport.accuracy")}</th>
+                      <th className="px-5 py-3.5 text-left">{t("reports.type")}</th>
+                      <th className="px-5 py-3.5 text-right">{t("common.actions")}</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {(activeTab === 'all' ? performanceData.quizzesTaken :
-                      activeTab === 'course' ? performanceData.courseQuizzes :
-                        performanceData.nonCourseQuizzes).map((quiz, index) => (
-                          <tr key={quiz.participantId || index} className="border-b hover:bg-gray-50">
-                            <td className="px-6 py-4 font-medium">
-                              <button
-                                onClick={() => handleViewDetails(quiz)}
-                                className="text-blue-600 hover:text-blue-800 hover:underline text-left font-medium flex items-center gap-2"
-                              >
-                                <FileText size={16} />
-                                {quiz.title}
-                              </button>
-                            </td>
-                            <td className="px-6 py-4 text-gray-600">{quiz.date}</td>
-                            <td className="px-6 py-4 text-green-600 font-semibold">{quiz.score}</td>
-                            <td className="px-6 py-4 text-gray-600 font-medium">
-                              {quiz.correctAnswers} / {quiz.totalQuestions}
-                            </td>
-                            <td className="px-6 py-4 font-semibold">{quiz.accuracy}%</td>
-                            <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${quiz.isCourseMaterial
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                {quiz.isCourseMaterial ? t('reports.courseQuizzes') : t('reports.nonCourseQuizzes')}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleToggleType(quiz)}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                  title={t('studentReport.toggleType')}
-                                >
-                                  <RefreshCw size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteResult(quiz)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  title={t('common.delete')}
-                                >
-                                  <Trash2 size={18} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                  <tbody className="divide-y divide-line">
+                    {displayedQuizzes.map((quiz, index) => (
+                      <tr
+                        key={quiz.participantId || index}
+                        className="transition-colors hover:bg-surface-muted/40"
+                      >
+                        <td className="px-5 py-4 font-medium">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDetails(quiz)}
+                            className="inline-flex items-center gap-2 text-left font-semibold text-brand-700 hover:underline"
+                          >
+                            <FileText size={15} aria-hidden="true" />
+                            {quiz.title}
+                          </button>
+                        </td>
+                        <td className="px-5 py-4 text-ink-muted">{quiz.date}</td>
+                        <td className="px-5 py-4 font-semibold text-success-600">{quiz.score}</td>
+                        <td className="px-5 py-4 font-medium text-ink-muted">
+                          {quiz.correctAnswers} / {quiz.totalQuestions}
+                        </td>
+                        <td className="px-5 py-4 font-semibold text-ink">{quiz.accuracy}%</td>
+                        <td className="px-5 py-4">
+                          <Badge variant={quiz.isCourseMaterial ? "brand" : "neutral"}>
+                            {quiz.isCourseMaterial
+                              ? t("reports.courseQuizzes")
+                              : t("reports.nonCourseQuizzes")}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <IconButton
+                              aria-label={t("studentReport.toggleType")}
+                              size="sm"
+                              onClick={() => handleToggleType(quiz)}
+                              title={t("studentReport.toggleType")}
+                            >
+                              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                            </IconButton>
+                            <IconButton
+                              aria-label={t("common.delete")}
+                              size="sm"
+                              onClick={() => handleDeleteResult(quiz)}
+                              className="text-danger-600 hover:bg-red-50 hover:text-danger-600"
+                              title={t("common.delete")}
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </IconButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            </>
-          )}
-        </div>
+            </Card>
+          </>
+        )}
       </div>
 
       <ConfirmModal
@@ -603,80 +724,91 @@ export default function StudentReport({
       {/* Detailed Result Modal/Slide-over */}
       {selectedResult && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+            role="presentation"
+            className="absolute inset-0 bg-black/50 backdrop-blur-[1px] transition-opacity"
             onClick={closeDetails}
           ></div>
 
-          {/* Panel */}
-          <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto transform transition-transform duration-300 ease-in-out">
+          <div className="relative h-full w-full max-w-2xl overflow-y-auto border-l border-line bg-surface shadow-pop">
             <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
+              <div className="mb-6 flex items-start justify-between border-b border-line pb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedResult.quiz.title}</h2>
-                  <p className="text-sm text-gray-500">
-                    {selectedResult.quiz.date} • {selectedResult.quiz.score} pts • {selectedResult.quiz.correctAnswers}/{selectedResult.quiz.totalQuestions} • {selectedResult.quiz.accuracy}%
+                  <h2 className="text-lg font-semibold text-ink">{selectedResult.quiz.title}</h2>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {selectedResult.quiz.date} · {selectedResult.quiz.score} pts ·{" "}
+                    {selectedResult.quiz.correctAnswers}/{selectedResult.quiz.totalQuestions} ·{" "}
+                    {selectedResult.quiz.accuracy}%
                   </p>
                 </div>
-                <button
-                  onClick={closeDetails}
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
-                >
-                  <X size={24} />
-                </button>
+                <IconButton aria-label={t("common.close")} size="sm" onClick={closeDetails}>
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </IconButton>
               </div>
 
               {loadingDetails ? (
                 <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <Spinner />
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {selectedResult.details.map((item) => (
-                    <div key={item.id} className={`border rounded-lg p-4 ${item.isCorrect ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-gray-800 text-lg flex gap-2">
-                          <span className="text-gray-500">#{item.number}</span>
-                          {item.questionText}
+                    <div
+                      key={item.id}
+                      className={`rounded-xl border p-4 ${
+                        item.isCorrect
+                          ? "border-emerald-200 bg-emerald-50/50"
+                          : "border-red-200 bg-red-50/50"
+                      }`}
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <h3 className="flex gap-2 text-base font-semibold text-ink">
+                          <span className="text-ink-muted">#{item.number}</span>
+                          <span>{item.questionText}</span>
                         </h3>
                         {item.isCorrect ? (
-                          <span className="flex items-center text-green-600 font-medium bg-green-100 px-2 py-1 rounded text-xs whitespace-nowrap">
-                            <CheckCircle size={14} className="mr-1" />
-                            {t('common.correct', 'Correct')}
-                          </span>
+                          <Badge variant="success" className="shrink-0">
+                            <CheckCircle className="h-3 w-3" aria-hidden="true" />
+                            {t("common.correct", "Correct")}
+                          </Badge>
                         ) : (
-                          <span className="flex items-center text-red-600 font-medium bg-red-100 px-2 py-1 rounded text-xs whitespace-nowrap">
-                            <XCircle size={14} className="mr-1" />
-                            {t('common.incorrect', 'Incorrect')}
-                          </span>
+                          <Badge variant="danger" className="shrink-0">
+                            <XCircle className="h-3 w-3" aria-hidden="true" />
+                            {t("common.incorrect", "Incorrect")}
+                          </Badge>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 text-sm">
-                        <div className="bg-white p-3 rounded border border-gray-200">
-                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">{t('reports.studentAnswer', 'Student Answer')}</p>
-                          <p className={`font-medium ${item.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                      <div className="grid grid-cols-1 gap-2.5 text-sm">
+                        <div className="rounded-lg border border-line bg-surface p-3">
+                          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                            {t("reports.studentAnswer", "Student Answer")}
+                          </p>
+                          <p
+                            className={`font-medium ${
+                              item.isCorrect ? "text-success-600" : "text-danger-600"
+                            }`}
+                          >
                             {item.studentAnswer}
                           </p>
                         </div>
 
                         {!item.isCorrect && (
-                          <div className="bg-white p-3 rounded border border-gray-200">
-                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">{t('reports.correctAnswer', 'Correct Answer')}</p>
-                            <p className="font-medium text-gray-800">
-                              {item.correctAnswer}
+                          <div className="rounded-lg border border-line bg-surface p-3">
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                              {t("reports.correctAnswer", "Correct Answer")}
                             </p>
+                            <p className="font-medium text-ink">{item.correctAnswer}</p>
                           </div>
                         )}
 
-                        <div className="flex gap-4 text-gray-500 text-xs mt-1">
-                          <span className="flex items-center">
-                            <Clock size={12} className="mr-1" />
+                        <div className="mt-1 flex gap-4 text-xs text-ink-muted">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} aria-hidden="true" />
                             {item.timeTaken}s
                           </span>
                           {item.points > 0 && (
-                            <span className="flex items-center text-amber-600 font-semibold">
+                            <span className="font-semibold text-amber-700">
                               +{item.points} pts
                             </span>
                           )}

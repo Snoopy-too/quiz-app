@@ -9,8 +9,20 @@ import {
   Trash2,
   Eye,
   ChevronLeft,
+  AlertCircle,
+  BarChart3,
 } from "lucide-react";
-import VerticalNav from "../layout/VerticalNav";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  IconButton,
+} from "../ui";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import StudentPerformanceTable from "./reports/StudentPerformanceTable";
@@ -62,301 +74,370 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
 
   if (loading && !selectedQuiz) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-600">{t("reports.loadingReports")}</p>
+      <div className="min-h-screen bg-canvas">
+        <PageHeader
+          title={t("reports.title")}
+          description={t("teacher.reportsDescription")}
+        />
+        <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+          <Card>
+            <CardBody className="space-y-3">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-48 w-full" />
+            </CardBody>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-red-600 mb-4">{t("reports.errorTitle")}: {error}</p>
-          <button
-            onClick={() => setView("teacher-dashboard")}
-            className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
-          >
-            {t("reports.backToDashboard")}
-          </button>
+      <div className="min-h-screen bg-canvas">
+        <PageHeader
+          title={t("reports.title")}
+          description={t("teacher.reportsDescription")}
+        />
+        <div className="mx-auto max-w-7xl p-4 sm:p-6">
+          <Card className="border-danger-600/40">
+            <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 text-danger-600">
+                <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <p className="text-sm font-medium">
+                  {t("reports.errorTitle")}: {error}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setView("teacher-dashboard")}>
+                {t("reports.backToDashboard")}
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
     );
   }
 
+  const renderSortIcon = (config, key) => {
+    if (config.key !== key) return null;
+    return config.direction === "asc" ? (
+      <ChevronUp className="h-4 w-4 text-brand-600" aria-hidden="true" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-brand-600" aria-hidden="true" />
+    );
+  };
+
+  const tabs = [
+    { key: "all", label: t("reports.allQuizzes") },
+    { key: "course", label: t("reports.courseQuizzes") },
+    { key: "non-course", label: t("reports.nonCourseQuizzes") },
+    { key: "survey", label: t("reports.surveyQuizzes", "Survey Quizzes") },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Vertical Navigation */}
-      <VerticalNav currentView="reports" setView={setView} appState={appState} />
+    <div className="min-h-screen bg-canvas">
+      <PageHeader
+        breadcrumbs={
+          selectedQuiz ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedQuiz(null);
+                setQuizStats(null);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("reports.backToQuizList")}
+            </button>
+          ) : undefined
+        }
+        title={
+          selectedQuiz
+            ? `${selectedQuiz.title} — ${t("reports.analytics")}`
+            : `${t("reports.title")}${teacherName ? ` — ${teacherName}` : ""}`
+        }
+        description={!selectedQuiz ? t("teacher.reportsDescription") : undefined}
+        actions={
+          selectedQuiz ? (
+            <Button variant="secondary" size="sm" onClick={() => handleExport(selectedQuiz)}>
+              <Download className="h-4 w-4" aria-hidden="true" />
+              {t("reports.actionExport", "Export")}
+            </Button>
+          ) : teacherId ? (
+            <Button variant="secondary" size="sm" onClick={() => setView("superadmin-dashboard")}>
+              &larr; Back to Dashboard
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {/* Main Content */}
-      <div className="flex-1 ml-64">
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {teacherId && (
-              <button
-                onClick={() => setView("superadmin-dashboard")}
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition text-sm font-medium"
-              >
-                &larr; Back to Dashboard
-              </button>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+        {/* Global Student Performance Section */}
+        {!selectedQuiz && (
+          <section className="space-y-4">
+            <button
+              id="toggle-student-performance"
+              type="button"
+              onClick={() => setShowStudentPerformance((prev) => !prev)}
+              className="group flex w-full items-center gap-3 text-left"
+            >
+              <h2 className="text-lg font-semibold text-ink">
+                {t("reports.studentPerformanceGlobal")}
+              </h2>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100">
+                {showStudentPerformance ? (
+                  <ChevronUp size={18} aria-hidden="true" />
+                ) : (
+                  <ChevronDown size={18} aria-hidden="true" />
+                )}
+              </span>
+              <span className="text-sm font-medium text-ink-muted">
+                {showStudentPerformance
+                  ? t("reports.hideStudentPerformance")
+                  : t("reports.showStudentPerformance")}
+              </span>
+            </button>
+
+            {showStudentPerformance && (
+              <>
+                {studentPerformanceLoading ? (
+                  <Card>
+                    <CardBody className="space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-32 w-full" />
+                    </CardBody>
+                  </Card>
+                ) : studentPerformance.length === 0 ? (
+                  <EmptyState
+                    icon={<BarChart3 className="h-6 w-6" aria-hidden="true" />}
+                    title={t("reports.noStudentDataAvailable")}
+                  />
+                ) : (
+                  <StudentPerformanceTable
+                    sortedStudentPerformance={sortedStudentPerformance}
+                    studentSortConfig={studentSortConfig}
+                    handleStudentSort={handleStudentSort}
+                    setView={setView}
+                  />
+                )}
+              </>
             )}
-            <h1 className="text-2xl font-bold text-blue-600">
-              {t("reports.title")}{teacherName ? ` - ${teacherName}` : ""}
-            </h1>
-          </div>
-        </nav>
+          </section>
+        )}
 
-        <div className="container mx-auto p-6">
-          {/* Student Performance Section */}
-          {!selectedQuiz && (
-            <div className="mb-8">
-              <button
-                id="toggle-student-performance"
-                onClick={() => setShowStudentPerformance((prev) => !prev)}
-                className="flex items-center gap-3 w-full text-left group mb-4"
-              >
-                <h2 className="text-2xl font-bold">{t("reports.studentPerformanceGlobal")}</h2>
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
-                  {showStudentPerformance ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </span>
-                <span className="text-sm text-gray-500 font-medium">
-                  {showStudentPerformance ? t("reports.hideStudentPerformance") : t("reports.showStudentPerformance")}
-                </span>
-              </button>
-
-              {showStudentPerformance && (
-                <>
-                  {studentPerformanceLoading ? (
-                    <div className="bg-white rounded-xl shadow-md text-center py-12">
-                      <p className="text-gray-600">{t("reports.loadingStudentPerformance")}</p>
-                    </div>
-                  ) : studentPerformance.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-md text-center py-12">
-                      <p className="text-gray-600">{t("reports.noStudentDataAvailable")}</p>
-                    </div>
-                  ) : (
-                    <StudentPerformanceTable
-                      sortedStudentPerformance={sortedStudentPerformance}
-                      studentSortConfig={studentSortConfig}
-                      handleStudentSort={handleStudentSort}
-                      setView={setView}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Quiz Selection */}
-          {!selectedQuiz ? (
-            <div>
-              <h2 className="text-2xl font-bold mb-4">{t("reports.quizReports")}</h2>
+        {/* Quiz Selection or Selected Quiz Detail */}
+        {!selectedQuiz ? (
+          <section className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-ink">{t("reports.quizReports")}</h2>
 
               {/* Tab Navigation */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setReportTab('all')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {t("reports.allQuizzes")}
-                </button>
-                <button
-                  onClick={() => setReportTab('course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'course'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {t("reports.courseQuizzes")}
-                </button>
-                <button
-                  onClick={() => setReportTab('non-course')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'non-course'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {t("reports.nonCourseQuizzes")}
-                </button>
-                <button
-                  onClick={() => setReportTab('survey')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    reportTab === 'survey'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {t("reports.surveyQuizzes", "Survey Quizzes")}
-                </button>
-              </div>
-
-              {filteredQuizzes.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-md text-center py-12">
-                  <p className="text-gray-600 mb-4">{t("reports.noQuizzesFound")}</p>
-                  {!teacherId && (
+              <div className="flex flex-wrap gap-2">
+                {tabs.map(({ key, label }) => {
+                  const active = reportTab === key;
+                  return (
                     <button
-                      onClick={() => setView("create-quiz")}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                      key={key}
+                      type="button"
+                      onClick={() => setReportTab(key)}
+                      className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-brand-600 text-white shadow-sm"
+                          : "border border-line bg-surface text-ink-muted hover:bg-surface-muted hover:text-ink"
+                      }`}
                     >
-                      {t("reports.createQuiz")}
+                      {label}
                     </button>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-100 border-b">
+                  );
+                })}
+              </div>
+            </div>
+
+            {filteredQuizzes.length === 0 ? (
+              <EmptyState
+                icon={<BarChart3 className="h-6 w-6" aria-hidden="true" />}
+                title={t("reports.noQuizzesFound")}
+                primaryAction={
+                  !teacherId
+                    ? {
+                        label: t("reports.createQuiz"),
+                        onClick: () => setView("create-quiz"),
+                      }
+                    : undefined
+                }
+              />
+            ) : (
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-line bg-surface-muted/60 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                       <tr>
-                        <th className="px-4 py-3 text-left w-12">
+                        <th className="w-12 px-4 py-3.5 text-left">
                           <input
                             type="checkbox"
-                            checked={selectedReports.length === filteredQuizzes.length && filteredQuizzes.length > 0}
+                            aria-label={t("manager.selectAll")}
+                            checked={
+                              selectedReports.length === filteredQuizzes.length &&
+                              filteredQuizzes.length > 0
+                            }
                             onChange={(e) => handleSelectAll(e, filteredQuizzes)}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border-line text-brand-600 focus:ring-2 focus:ring-accent-500"
                           />
                         </th>
-                        <th
-                          className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                          onClick={() => handleSort('title')}
-                        >
-                          <div className="flex items-center gap-1">
-                            {reportTab === 'survey' ? t("reports.tableHeaderSurveyTitle", "Survey Title") : t("reports.tableHeaderQuizTitle")}
-                            <span className="text-gray-400">
-                              {sortConfig.key === 'title' && (sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                            </span>
-                          </div>
-                        </th>
-                        <th
-                          className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                          onClick={() => handleSort('date')}
-                        >
-                          <div className="flex items-center gap-1">
-                            {reportTab === 'survey' ? t("reports.tableHeaderLastAdministered", "Last Administered") : t("reports.tableHeaderDateTime")}
-                            <span className="text-gray-400">
-                              {sortConfig.key === 'date' && (sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                            </span>
-                          </div>
-                        </th>
-                        {reportTab !== 'survey' && (
-                          <th
-                            className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                            onClick={() => handleSort('mode')}
+                        <th className="px-5 py-3.5 text-left">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("title")}
+                            className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                           >
-                            <div className="flex items-center gap-1">
+                            {reportTab === "survey"
+                              ? t("reports.tableHeaderSurveyTitle", "Survey Title")
+                              : t("reports.tableHeaderQuizTitle")}
+                            {renderSortIcon(sortConfig, "title")}
+                          </button>
+                        </th>
+                        <th className="px-5 py-3.5 text-left">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("date")}
+                            className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
+                          >
+                            {reportTab === "survey"
+                              ? t("reports.tableHeaderLastAdministered", "Last Administered")
+                              : t("reports.tableHeaderDateTime")}
+                            {renderSortIcon(sortConfig, "date")}
+                          </button>
+                        </th>
+                        {reportTab !== "survey" && (
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleSort("mode")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
+                            >
                               {t("reports.tableHeaderMode")}
-                              <span className="text-gray-400">
-                                {sortConfig.key === 'mode' && (sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                              </span>
-                            </div>
+                              {renderSortIcon(sortConfig, "mode")}
+                            </button>
                           </th>
                         )}
-                        <th
-                          className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                          onClick={() => handleSort('players')}
-                        >
-                          <div className="flex items-center gap-1">
-                            {reportTab === 'survey' ? t("reports.tableHeaderTimesAdministered", "Times Administered") : t("reports.tableHeaderPlayers")}
-                            <span className="text-gray-400">
-                              {sortConfig.key === 'players' && (sortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                            </span>
-                          </div>
+                        <th className="px-5 py-3.5 text-left">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("players")}
+                            className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
+                          >
+                            {reportTab === "survey"
+                              ? t("reports.tableHeaderTimesAdministered", "Times Administered")
+                              : t("reports.tableHeaderPlayers")}
+                            {renderSortIcon(sortConfig, "players")}
+                          </button>
                         </th>
-                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 w-12"></th>
+                        <th className="w-12 px-5 py-3.5 text-right">
+                          <span className="sr-only">{t("common.actions")}</span>
+                        </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-line">
                       {filteredQuizzes.map((quiz) => (
-                        <tr key={quiz.id} className="border-b hover:bg-blue-50 transition-colors">
+                        <tr key={quiz.id} className="transition-colors hover:bg-surface-muted/40">
                           <td className="px-4 py-4">
                             <input
                               type="checkbox"
+                              aria-label={quiz.title}
                               checked={selectedReports.includes(quiz.id)}
                               onChange={() => handleCheckboxChange(quiz.id)}
-                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                               onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 rounded border-line text-brand-600 focus:ring-2 focus:ring-accent-500"
                             />
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-5 py-4">
                             <button
+                              type="button"
                               onClick={() => handleQuizSelect(quiz)}
-                              className="font-bold text-gray-900 hover:text-blue-600 text-left"
+                              className="text-left font-semibold text-ink transition-colors hover:text-brand-600"
                             >
                               {quiz.title}
                             </button>
                           </td>
-                          <td className="px-6 py-4 text-gray-600 text-sm">
+                          <td className="px-5 py-4 text-ink-muted">
                             {quiz.latestSession
                               ? new Date(quiz.latestSession.created_at).toLocaleString()
                               : t("reports.neverAdministered", "Never")}
                           </td>
-                          {reportTab !== 'survey' && (
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                quiz.mode === "Team" || quiz.mode === "team"
-                                  ? "bg-blue-50 text-blue-800"
-                                  : "bg-green-100 text-green-800"
-                              }`}>
-                                {quiz.mode === "Team" || quiz.mode === "team" ? t("reports.teamMode") : t("reports.individual")}
-                              </span>
+                          {reportTab !== "survey" && (
+                            <td className="px-5 py-4">
+                              <Badge
+                                variant={
+                                  quiz.mode === "Team" || quiz.mode === "team" ? "brand" : "success"
+                                }
+                              >
+                                {quiz.mode === "Team" || quiz.mode === "team"
+                                  ? t("reports.teamMode")
+                                  : t("reports.individual")}
+                              </Badge>
                             </td>
                           )}
-                          <td className="px-6 py-4 text-gray-600">
-                            {reportTab === 'survey'
-                              ? `${quiz.completedCount} ${quiz.completedCount === 1 ? t("reports.time", "time") : t("reports.times", "times")}`
-                              : `${quiz.completedCount} ${quiz.completedCount !== 1 ? t("reports.sessions") : t("reports.session")}`
-                            }
+                          <td className="px-5 py-4 text-ink-muted">
+                            {reportTab === "survey"
+                              ? `${quiz.completedCount} ${
+                                  quiz.completedCount === 1
+                                    ? t("reports.time", "time")
+                                    : t("reports.times", "times")
+                                }`
+                              : `${quiz.completedCount} ${
+                                  quiz.completedCount !== 1
+                                    ? t("reports.sessions")
+                                    : t("reports.session")
+                                }`}
                           </td>
-                          <td className="px-6 py-4 relative">
-                            <button
+                          <td className="relative px-5 py-4 text-right">
+                            <IconButton
+                              aria-label={t("common.actions")}
+                              size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenMenuId(openMenuId === quiz.id ? null : quiz.id);
                               }}
-                              className="p-1 hover:bg-gray-200 rounded transition-colors"
                             >
-                              <MoreVertical size={20} className="text-gray-600" />
-                            </button>
+                              <MoreVertical className="h-4 w-4" aria-hidden="true" />
+                            </IconButton>
 
                             {openMenuId === quiz.id && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-10">
+                              <div className="absolute right-5 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-line bg-surface py-1 text-left shadow-pop">
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleQuizSelect(quiz);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted"
                                 >
-                                  <Eye size={16} />
+                                  <Eye size={15} aria-hidden="true" />
                                   {t("reports.actionView")}
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleExport(quiz);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-ink transition-colors hover:bg-surface-muted"
                                 >
-                                  <Download size={16} />
-                                  {t("reports.actionView")}
+                                  <Download size={15} aria-hidden="true" />
+                                  {t("reports.actionExport", "Export")}
                                 </button>
                                 {!teacherId && (
                                   <button
+                                    type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDelete(quiz);
                                     }}
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger-600 transition-colors hover:bg-red-50"
                                   >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={15} aria-hidden="true" />
                                     {t("reports.actionDelete")}
                                   </button>
                                 )}
@@ -368,159 +449,164 @@ export default function Reports({ setView, appState, initialQuizId, onClearIniti
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              {/* Back to Quiz List */}
-              <button
-                onClick={() => {
-                  setSelectedQuiz(null);
-                  setQuizStats(null);
-                }}
-                className="mb-4 text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-              >
-                <ChevronLeft size={16} />
-                {t("reports.backToQuizList")}
-              </button>
+              </Card>
+            )}
+          </section>
+        ) : (
+          <div className="space-y-6">
+            {/* Overview Stats Cards */}
+            <QuizStatsCards quizStats={quizStats} isSurvey={selectedQuiz.is_survey} />
 
-              <h2 className="text-3xl font-bold mb-6">{selectedQuiz.title} - {t("reports.analytics")}</h2>
-
-              {/* Overview Stats Cards */}
-              <QuizStatsCards quizStats={quizStats} isSurvey={selectedQuiz.is_survey} />
-
-              {/* Student Performance Leaderboard (Selected Quiz) */}
-              {!selectedQuiz.is_survey && quizStats && (
-                <div className="bg-white rounded-xl shadow-md p-6 mb-6 overflow-hidden">
-                  <h3 className="text-2xl font-bold mb-4">{t("reports.studentPerformance")}</h3>
-                  {quizStats.studentPerformance.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8">{t("reports.noStudentData")}</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-100 border-b">
-                          <tr>
-                            <th
-                              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                              onClick={() => handleQuizStudentSort('rank')}
+            {/* Student Performance Leaderboard (Selected Quiz) */}
+            {!selectedQuiz.is_survey && quizStats && (
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <h3 className="text-base font-semibold text-ink">
+                    {t("reports.studentPerformance")}
+                  </h3>
+                </CardHeader>
+                {quizStats.studentPerformance.length === 0 ? (
+                  <CardBody>
+                    <p className="py-6 text-center text-sm text-ink-muted">
+                      {t("reports.noStudentData")}
+                    </p>
+                  </CardBody>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-line bg-surface-muted/60 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                        <tr>
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleQuizStudentSort("rank")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                             >
-                              <div className="flex items-center gap-1">
-                                {t("reports.rank")}
-                                <span className="text-gray-400">
-                                  {quizStudentSortConfig.key === 'rank' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                                </span>
-                              </div>
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                              onClick={() => handleQuizStudentSort('student')}
+                              {t("reports.rank")}
+                              {renderSortIcon(quizStudentSortConfig, "rank")}
+                            </button>
+                          </th>
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleQuizStudentSort("student")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                             >
-                              <div className="flex items-center gap-1">
-                                {t("reports.student")}
-                                <span className="text-gray-400">
-                                  {quizStudentSortConfig.key === 'student' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                                </span>
-                              </div>
-                            </th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.studentId")}</th>
-                            <th
-                              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                              onClick={() => handleQuizStudentSort('score')}
+                              {t("reports.student")}
+                              {renderSortIcon(quizStudentSortConfig, "student")}
+                            </button>
+                          </th>
+                          <th className="px-5 py-3.5 text-left">{t("reports.studentId")}</th>
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleQuizStudentSort("score")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                             >
-                              <div className="flex items-center gap-1">
-                                {t("reports.score")}
-                                <span className="text-gray-400">
-                                  {quizStudentSortConfig.key === 'score' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                                </span>
-                              </div>
-                            </th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">{t("reports.questions")}</th>
-                            <th
-                              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                              onClick={() => handleQuizStudentSort('accuracy')}
+                              {t("reports.score")}
+                              {renderSortIcon(quizStudentSortConfig, "score")}
+                            </button>
+                          </th>
+                          <th className="px-5 py-3.5 text-left">{t("reports.questions")}</th>
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleQuizStudentSort("accuracy")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                             >
-                              <div className="flex items-center gap-1">
-                                {t("reports.accuracyHeader")}
-                                <span className="text-gray-400">
-                                  {quizStudentSortConfig.key === 'accuracy' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                                </span>
-                              </div>
-                            </th>
-                            <th
-                              className="px-6 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors group"
-                              onClick={() => handleQuizStudentSort('date')}
+                              {t("reports.accuracyHeader")}
+                              {renderSortIcon(quizStudentSortConfig, "accuracy")}
+                            </button>
+                          </th>
+                          <th className="px-5 py-3.5 text-left">
+                            <button
+                              type="button"
+                              onClick={() => handleQuizStudentSort("date")}
+                              className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider text-ink-muted transition-colors hover:text-ink"
                             >
-                              <div className="flex items-center gap-1">
-                                {t("reports.tableHeaderDateTime")}
-                                <span className="text-gray-400">
-                                  {quizStudentSortConfig.key === 'date' && (quizStudentSortConfig.direction === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                                </span>
-                              </div>
-                            </th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                              {t("reports.tableHeaderActions")}
-                            </th>
+                              {t("reports.tableHeaderDateTime")}
+                              {renderSortIcon(quizStudentSortConfig, "date")}
+                            </button>
+                          </th>
+                          <th className="px-5 py-3.5 text-right">{t("reports.tableHeaderActions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line">
+                        {sortedQuizPerformance.map((student) => (
+                          <tr key={student.id} className="transition-colors hover:bg-surface-muted/40">
+                            <td className="px-5 py-4 font-semibold text-ink">#{student.rank}</td>
+                            <td className="px-5 py-4">
+                              <button
+                                type="button"
+                                onClick={() => handleStudentSelect(student)}
+                                className="text-left font-semibold text-ink transition-colors hover:text-brand-600"
+                              >
+                                {student.name}
+                              </button>
+                            </td>
+                            <td className="px-5 py-4 font-mono text-ink-muted">
+                              {student.studentIdNo || t("manageStudents.notApplicable")}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="text-base font-bold text-success-600">{student.score}</span>
+                            </td>
+                            <td className="px-5 py-4 text-ink-muted">
+                              {student.correctAnswers}/{student.questionsAnswered}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`font-semibold ${
+                                  student.accuracy > 80
+                                    ? "text-success-600"
+                                    : student.accuracy > 50
+                                      ? "text-amber-700"
+                                      : "text-danger-600"
+                                }`}
+                              >
+                                {student.accuracy}%
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-ink-muted">
+                              {student.takenAt
+                                ? new Date(student.takenAt).toLocaleString(undefined, {
+                                    year: "numeric",
+                                    month: "numeric",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  })
+                                : "-"}
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <IconButton
+                                aria-label={t("reports.actionViewReport", "View Session Performance")}
+                                size="sm"
+                                onClick={() => handleViewAttemptDetail(student)}
+                                title={t("reports.actionViewReport", "View Session Performance")}
+                              >
+                                <Eye className="h-4 w-4" aria-hidden="true" />
+                              </IconButton>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {sortedQuizPerformance.map((student) => (
-                            <tr key={student.id} className="border-b hover:bg-blue-50 transition-colors">
-                              <td className="px-6 py-4 font-semibold text-gray-800">#{student.rank}</td>
-                              <td className="px-6 py-4">
-                                <button
-                                  onClick={() => handleStudentSelect(student)}
-                                  className="font-bold text-gray-900 hover:text-blue-600 text-left"
-                                >
-                                  {student.name}
-                                </button>
-                              </td>
-                              <td className="px-6 py-4 text-gray-600">{student.studentIdNo || t("manageStudents.notApplicable")}</td>
-                              <td className="px-6 py-4">
-                                <span className="text-lg font-bold text-green-600">{student.score}</span>
-                              </td>
-                              <td className="px-6 py-4 text-gray-600">
-                                {student.correctAnswers}/{student.questionsAnswered}
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`font-semibold ${student.accuracy > 80 ? 'text-green-600' :
-                                  student.accuracy > 50 ? 'text-yellow-600' : 'text-red-600'
-                                  }`}>
-                                  {student.accuracy}%
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-gray-600 text-sm">
-                                {student.takenAt ? new Date(student.takenAt).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-'}
-                              </td>
-                              <td className="px-6 py-4 text-left">
-                                <button
-                                  onClick={() => handleViewAttemptDetail(student)}
-                                  className="p-1.5 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors flex items-center justify-center"
-                                  title={t("reports.actionViewReport", "View Session Performance")}
-                                >
-                                  <Eye size={18} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            )}
 
-              {/* Question Analytics Breakdown */}
-              {quizStats && (
-                <QuestionAnalysis
-                  questionAnalytics={quizStats.questionAnalytics}
-                  isSurvey={selectedQuiz.is_survey}
-                  expandedQuestion={expandedQuestion}
-                  setExpandedQuestion={setExpandedQuestion}
-                />
-              )}
-            </div>
-          )}
-        </div>
+            {/* Question Analytics Breakdown */}
+            {quizStats && (
+              <QuestionAnalysis
+                questionAnalytics={quizStats.questionAnalytics}
+                isSurvey={selectedQuiz.is_survey}
+                expandedQuestion={expandedQuestion}
+                setExpandedQuestion={setExpandedQuestion}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       <AlertModal

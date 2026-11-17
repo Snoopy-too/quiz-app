@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { User, Lock, Camera, Save, Check } from "lucide-react";
-import VerticalNav from "../layout/VerticalNav";
 import { useTranslation } from "react-i18next";
 import AvatarThumbnail from "./AvatarThumbnail";
 
@@ -239,10 +238,8 @@ export default function Settings({ setView, appState, setAppState }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <VerticalNav currentView="settings" setView={setView} appState={appState} />
-
-      <div className="flex-1 md:ml-64 ml-0">
+    <div className="min-h-screen bg-canvas">
+      <div className="w-full">
         <nav className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
           <h1 className="text-xl md:text-2xl font-bold text-blue-700">{t("settings.settings")}</h1>
         </nav>
@@ -331,10 +328,10 @@ export default function Settings({ setView, appState, setAppState }) {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <p className="block text-sm font-medium text-gray-700">
                       <Camera className="inline-block mr-2" size={18} />
                       Select Avatar
-                    </label>
+                    </p>
                     <span className="text-xs text-gray-500">
                       {selectedCategory === "all"
                         ? `${DEFAULT_AVATARS.length} available`
@@ -381,11 +378,12 @@ export default function Settings({ setView, appState, setAppState }) {
 
                   {/* Custom URL Option */}
                   <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="custom-avatar-url" className="block text-sm font-medium text-gray-700 mb-2">
                       Or enter custom avatar URL
                     </label>
                     <div className="flex gap-3">
                       <input
+                        id="custom-avatar-url"
                         type="url"
                         placeholder={t("settings.avatarUrlPlaceholder")}
                         value={profileForm.avatar_url}

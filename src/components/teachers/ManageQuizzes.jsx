@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Archive, FolderOpen, Search, X } from "lucide-react";
-import VerticalNav from "../layout/VerticalNav";
+import { Plus, Archive, FolderOpen, FolderPlus, Search, X, AlertCircle } from "lucide-react";
+import { PageHeader, Button, Card, CardBody, EmptyState, Skeleton } from "../ui";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AssignQuizModal from "./AssignQuizModal";
@@ -24,156 +24,203 @@ export default function ManageQuizzes({ setView, appState }) {
     });
   };
 
+  const countDescription = t("manager.quizzesAndFolders", {
+    quizCount: mq.quizzes.length,
+    quizText: mq.quizzes.length !== 1 ? t("quiz.quizzes") : t("quiz.quiz"),
+    folderCount: mq.folders.length,
+    folderText: mq.folders.length !== 1 ? t("folder.folders") : t("folder.folder"),
+  });
+
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Vertical Navigation */}
-      <VerticalNav currentView="manage-quizzes" setView={setView} appState={appState} />
-
-      {/* Main Content */}
-      <div className="flex-1 md:ml-64 pt-16 md:pt-0 flex flex-col h-screen overflow-hidden">
-        {/* Top Navigation */}
-        <nav className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-4">
-              <h1 className="text-lg md:text-2xl font-bold text-blue-700">{t('manager.quizManager')}</h1>
-              <div className="hidden md:block h-6 w-px bg-gray-300"></div>
-              <span className="hidden md:inline text-sm text-gray-600">
-                {t('manager.quizzesAndFolders', {
-                  quizCount: mq.quizzes.length,
-                  quizText: mq.quizzes.length !== 1 ? t('quiz.quizzes') : t('quiz.quiz'),
-                  folderCount: mq.folders.length,
-                  folderText: mq.folders.length !== 1 ? t('folder.folders') : t('folder.folder')
-                })}
-              </span>
-            </div>
-            <span className="md:hidden text-xs text-gray-600">
-              {mq.quizzes.length} {mq.quizzes.length !== 1 ? t('quiz.quizzes') : t('quiz.quiz')} • {mq.folders.length} {mq.folders.length !== 1 ? t('folder.folders') : t('folder.folder')}
-            </span>
-          </div>
-        </nav>
-
-        {/* Toolbar */}
-        <QuizToolbar
-          searchQuery={mq.searchQuery}
-          setSearchQuery={mq.setSearchQuery}
-          sortBy={mq.sortBy}
-          setSortBy={mq.setSortBy}
-          selectedQuizzes={mq.selectedQuizzes}
-          clearSelection={mq.clearSelection}
-          bulkDeleteQuizzes={mq.bulkDeleteQuizzes}
-          setMoveQuizModal={mq.setMoveQuizModal}
-          setShowNewFolderModal={mq.setShowNewFolderModal}
-          setSelectedParentFolder={mq.setSelectedParentFolder}
-          setMobileFolderPanelOpen={mq.setMobileFolderPanelOpen}
-          setView={setView}
+    <div className="flex h-[calc(100vh-3.5rem)] md:h-screen flex-col overflow-hidden bg-canvas">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageHeader
+          title={t("manager.quizManager")}
+          description={countDescription}
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  mq.setSelectedParentFolder(null);
+                  mq.setShowNewFolderModal(true);
+                }}
+              >
+                <FolderPlus className="h-4 w-4" aria-hidden="true" />
+                {t("folder.newFolder")}
+              </Button>
+              <Button variant="primary" onClick={() => setView("create-quiz")}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {t("nav.createQuiz")}
+              </Button>
+            </>
+          }
         />
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
           {mq.loading && (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-gray-600">{t('common.loading')}</p>
-            </div>
-          )}
-
-          {mq.error && (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-red-600">{t('common.error')}: {mq.error}</p>
-            </div>
-          )}
-
-          {!mq.loading && !mq.error && mq.quizzes.length === 0 && mq.folders.length === 0 && (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
-                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus size={32} className="text-blue-700" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{t('quiz.noQuizzes')}</h3>
-                <p className="text-gray-600 mb-6">{t('manager.getStarted')}</p>
-                <button
-                  onClick={() => setView("create-quiz")}
-                  className="bg-blue-700 text-white px-8 py-3 rounded-lg hover:bg-blue-800 transition font-medium"
-                >
-                  {t('manager.createYourFirstQuiz')}
-                </button>
+            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+              <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <Card key={idx}>
+                    <Skeleton className="h-28 w-full rounded-none rounded-t-xl" />
+                    <CardBody className="space-y-3">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-9 w-full" />
+                    </CardBody>
+                  </Card>
+                ))}
               </div>
             </div>
           )}
 
+          {mq.error && (
+            <div className="flex-1 px-4 py-5 sm:px-6">
+              <div className="mx-auto max-w-7xl">
+                <Card className="border-danger-600/40">
+                  <CardBody className="flex items-center gap-3 text-danger-600">
+                    <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <p className="text-sm font-medium">
+                      {t("common.error")}: {mq.error}
+                    </p>
+                  </CardBody>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {!mq.loading && !mq.error && mq.quizzes.length === 0 && mq.folders.length === 0 && (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <EmptyState
+                className="w-full max-w-md"
+                icon={<Plus className="h-6 w-6" aria-hidden="true" />}
+                title={t("quiz.noQuizzes")}
+                description={t("manager.getStarted")}
+                primaryAction={{
+                  label: t("manager.createYourFirstQuiz"),
+                  onClick: () => setView("create-quiz"),
+                }}
+              />
+            </div>
+          )}
+
           {!mq.loading && !mq.error && (mq.folders.length > 0 || mq.quizzes.length > 0) && (
-            <>
+            <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 gap-6 overflow-hidden px-4 py-5 sm:px-6">
               {/* Mobile Folder Panel Overlay */}
               {mq.mobileFolderPanelOpen && (
                 <>
-                  {/* Backdrop */}
                   <div
-                    className="md:hidden fixed inset-0 bg-black/50 z-40"
+                    role="presentation"
+                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
                     onClick={() => mq.setMobileFolderPanelOpen(false)}
                   />
-                  {/* Slide-in Panel */}
-                  <div className="md:hidden fixed top-0 left-0 bottom-0 w-72 bg-gray-100 shadow-2xl z-50 overflow-y-auto" style={{ animation: 'slideInLeft 0.3s ease-out' }}>
+                  <div
+                    className="fixed bottom-0 left-0 top-0 z-50 w-72 overflow-y-auto border-r border-line bg-surface shadow-pop md:hidden"
+                    style={{ animation: "slideInLeft 0.3s ease-out" }}
+                  >
                     <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-sm uppercase text-gray-600 px-2">{t('folder.folders')}</h3>
-                        <button
-                          onClick={() => mq.setMobileFolderPanelOpen(false)}
-                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                        >
-                          <X size={20} className="text-gray-600" />
-                        </button>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h2 className="px-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                          {t("folder.folders")}
+                        </h2>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label={t("folder.newFolder")}
+                            title={t("folder.newFolder")}
+                            onClick={() => {
+                              mq.setSelectedParentFolder(null);
+                              mq.setShowNewFolderModal(true);
+                            }}
+                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700"
+                          >
+                            <FolderPlus className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={t("common.close")}
+                            onClick={() => mq.setMobileFolderPanelOpen(false)}
+                            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
+                          >
+                            <X className="h-5 w-5" aria-hidden="true" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         {/* All Quizzes */}
-                        <div
-                          onClick={() => { mq.setActiveFolder(null); mq.setMobileFolderPanelOpen(false); }}
-                          className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${mq.activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                            }`}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            mq.setActiveFolder(null);
+                            mq.setMobileFolderPanelOpen(false);
+                          }}
+                          className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors ${
+                            mq.activeFolder === null
+                              ? "bg-brand-50 font-medium text-brand-700"
+                              : "text-ink-muted hover:bg-surface-muted hover:text-ink"
+                          }`}
                         >
                           <Archive
-                            size={22}
-                            className={`${mq.activeFolder === null ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
-                            fill="currentColor"
-                            fillOpacity={0.1}
+                            size={18}
+                            className={mq.activeFolder === null ? "text-brand-600" : "text-ink-subtle"}
+                            aria-hidden="true"
                           />
-                          <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${mq.activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                            }`}>
+                          <span className="flex-1 truncate text-sm">{t("folder.allQuizzes")}</span>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                              mq.activeFolder === null
+                                ? "bg-brand-100 text-brand-800"
+                                : "border border-line bg-surface-muted text-ink-muted"
+                            }`}
+                          >
                             {mq.quizzes.length}
                           </span>
-                        </div>
+                        </button>
 
                         {/* Unfiled Quizzes */}
-                        <div
-                          onClick={() => { mq.setActiveFolder("unfiled"); mq.setMobileFolderPanelOpen(false); }}
-                          className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${mq.activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                            }`}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            mq.setActiveFolder("unfiled");
+                            mq.setMobileFolderPanelOpen(false);
+                          }}
+                          className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors ${
+                            mq.activeFolder === "unfiled"
+                              ? "bg-brand-50 font-medium text-brand-700"
+                              : "text-ink-muted hover:bg-surface-muted hover:text-ink"
+                          }`}
                         >
                           <FolderOpen
-                            size={22}
-                            className={`${mq.activeFolder === "unfiled" ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
-                            fill="currentColor"
-                            fillOpacity={0.1}
+                            size={18}
+                            className={mq.activeFolder === "unfiled" ? "text-brand-600" : "text-ink-subtle"}
+                            aria-hidden="true"
                           />
-                          <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${mq.activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                            }`}>
+                          <span className="flex-1 truncate text-sm">{t("folder.unfiledQuizzes")}</span>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                              mq.activeFolder === "unfiled"
+                                ? "bg-brand-100 text-brand-800"
+                                : "border border-line bg-surface-muted text-ink-muted"
+                            }`}
+                          >
                             {mq.getQuizzesWithoutFolder().length}
                           </span>
-                        </div>
+                        </button>
 
                         {/* Folder Tree */}
-                        <div className="pt-2 border-t border-gray-300 mt-2">
+                        <div className="mt-2 space-y-0.5 border-t border-line pt-2">
                           <FolderTree
-                            folders={mq.folders}
-                            quizzes={mq.quizzes}
-                            themesById={mq.themesById}
                             expandedFolders={mq.expandedFolders}
                             activeFolder={mq.activeFolder}
                             editingFolder={mq.editingFolder}
                             draggedItem={mq.draggedItem}
-                            highlightedQuizId={mq.highlightedQuizId}
                             toggleFolder={mq.toggleFolder}
-                            setActiveFolder={mq.setActiveFolder}
+                            setActiveFolder={(folderId) => {
+                              mq.setActiveFolder(folderId);
+                              mq.setMobileFolderPanelOpen(false);
+                            }}
                             setEditingFolder={mq.setEditingFolder}
                             renameFolder={mq.renameFolder}
                             deleteFolder={mq.deleteFolder}
@@ -182,7 +229,6 @@ export default function ManageQuizzes({ setView, appState }) {
                             handleDragStart={mq.handleDragStart}
                             handleDragOver={mq.handleDragOver}
                             handleDrop={mq.handleDrop}
-                            handleSidebarQuizClick={mq.handleSidebarQuizClick}
                             buildFolderTree={mq.buildFolderTree}
                             getQuizzesInFolder={mq.getQuizzesInFolder}
                           />
@@ -193,146 +239,184 @@ export default function ManageQuizzes({ setView, appState }) {
                 </>
               )}
 
-              {/* Left Sidebar: Folder Tree - Hidden on mobile */}
-              <div className="hidden md:block w-72 bg-gray-100 border-r border-gray-200 overflow-y-auto overflow-x-hidden">
-                <div className="p-4">
-                  <h3 className="font-bold text-sm uppercase text-gray-600 mb-3 px-2">{t('folder.folders')}</h3>
-                  <div className="space-y-0.5">
-                    {/* All Quizzes */}
-                    <div
-                      onClick={() => mq.setActiveFolder(null)}
-                      className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${mq.activeFolder === null ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                        }`}
-                    >
-                      <Archive
-                        size={22}
-                        className={`${mq.activeFolder === null ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
-                        fill="currentColor"
-                        fillOpacity={0.1}
-                      />
-                      <span className="flex-1 text-sm">{t('folder.allQuizzes')}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${mq.activeFolder === null ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                        }`}>
-                        {mq.quizzes.length}
-                      </span>
-                    </div>
+              {/* Left Card Sidebar: Folder Tree - Hidden on mobile */}
+              <aside className="hidden shrink-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card md:flex md:w-64 lg:w-72">
+                <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                    {t("folder.folders")}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      mq.setSelectedParentFolder(null);
+                      mq.setShowNewFolderModal(true);
+                    }}
+                    className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-surface-muted hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    title={t("folder.newFolder")}
+                    aria-label={t("folder.newFolder")}
+                  >
+                    <FolderPlus className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
 
-                    {/* Unfiled Quizzes */}
-                    <div
-                      onClick={() => mq.setActiveFolder("unfiled")}
-                      onDragOver={mq.handleDragOver}
-                      onDrop={(e) => mq.handleDrop(e, null)}
-                      className={`py-2 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors ${mq.activeFolder === "unfiled" ? "bg-blue-50 text-blue-800 font-medium" : "hover:bg-gray-200 text-gray-700"
-                        }`}
+                <div className="flex-1 space-y-1 overflow-y-auto p-3">
+                  {/* All Quizzes */}
+                  <button
+                    type="button"
+                    onClick={() => mq.setActiveFolder(null)}
+                    className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors ${
+                      mq.activeFolder === null
+                        ? "bg-brand-50 font-medium text-brand-700"
+                        : "text-ink-muted hover:bg-surface-muted hover:text-ink"
+                    }`}
+                  >
+                    <Archive
+                      size={18}
+                      className={mq.activeFolder === null ? "text-brand-600" : "text-ink-subtle"}
+                      aria-hidden="true"
+                    />
+                    <span className="flex-1 truncate text-sm">{t("folder.allQuizzes")}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        mq.activeFolder === null
+                          ? "bg-brand-100 text-brand-800"
+                          : "border border-line bg-surface-muted text-ink-muted"
+                      }`}
                     >
-                      <FolderOpen
-                        size={22}
-                        className={`${mq.activeFolder === "unfiled" ? "text-blue-600" : "text-gray-500"} transition-transform group-hover:scale-110`}
-                        fill="currentColor"
-                        fillOpacity={0.1}
-                      />
-                      <span className="flex-1 text-sm">{t('folder.unfiledQuizzes')}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${mq.activeFolder === "unfiled" ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-600"
-                        }`}>
-                        {mq.getQuizzesWithoutFolder().length}
-                      </span>
-                    </div>
+                      {mq.quizzes.length}
+                    </span>
+                  </button>
 
-                    {/* Folder Tree */}
-                    <div className="pt-2 border-t border-gray-300 mt-2">
-                      <FolderTree
-                        folders={mq.folders}
-                        quizzes={mq.quizzes}
-                        themesById={mq.themesById}
-                        expandedFolders={mq.expandedFolders}
-                        activeFolder={mq.activeFolder}
-                        editingFolder={mq.editingFolder}
-                        draggedItem={mq.draggedItem}
-                        highlightedQuizId={mq.highlightedQuizId}
-                        toggleFolder={mq.toggleFolder}
-                        setActiveFolder={mq.setActiveFolder}
-                        setEditingFolder={mq.setEditingFolder}
-                        renameFolder={mq.renameFolder}
-                        deleteFolder={mq.deleteFolder}
-                        setSelectedParentFolder={mq.setSelectedParentFolder}
-                        setShowNewFolderModal={mq.setShowNewFolderModal}
-                        handleDragStart={mq.handleDragStart}
-                        handleDragOver={mq.handleDragOver}
-                        handleDrop={mq.handleDrop}
-                        handleSidebarQuizClick={mq.handleSidebarQuizClick}
-                        buildFolderTree={mq.buildFolderTree}
-                        getQuizzesInFolder={mq.getQuizzesInFolder}
-                      />
-                    </div>
+                  {/* Unfiled Quizzes */}
+                  <button
+                    type="button"
+                    onClick={() => mq.setActiveFolder("unfiled")}
+                    onDragOver={mq.handleDragOver}
+                    onDrop={(e) => mq.handleDrop(e, null)}
+                    className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors ${
+                      mq.activeFolder === "unfiled"
+                        ? "bg-brand-50 font-medium text-brand-700"
+                        : "text-ink-muted hover:bg-surface-muted hover:text-ink"
+                    }`}
+                  >
+                    <FolderOpen
+                      size={18}
+                      className={mq.activeFolder === "unfiled" ? "text-brand-600" : "text-ink-subtle"}
+                      aria-hidden="true"
+                    />
+                    <span className="flex-1 truncate text-sm">{t("folder.unfiledQuizzes")}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        mq.activeFolder === "unfiled"
+                          ? "bg-brand-100 text-brand-800"
+                          : "border border-line bg-surface-muted text-ink-muted"
+                      }`}
+                    >
+                      {mq.getQuizzesWithoutFolder().length}
+                    </span>
+                  </button>
+
+                  {/* Folder Tree */}
+                  <div className="mt-2 space-y-0.5 border-t border-line pt-2">
+                    <FolderTree
+                      expandedFolders={mq.expandedFolders}
+                      activeFolder={mq.activeFolder}
+                      editingFolder={mq.editingFolder}
+                      draggedItem={mq.draggedItem}
+                      toggleFolder={mq.toggleFolder}
+                      setActiveFolder={mq.setActiveFolder}
+                      setEditingFolder={mq.setEditingFolder}
+                      renameFolder={mq.renameFolder}
+                      deleteFolder={mq.deleteFolder}
+                      setSelectedParentFolder={mq.setSelectedParentFolder}
+                      setShowNewFolderModal={mq.setShowNewFolderModal}
+                      handleDragStart={mq.handleDragStart}
+                      handleDragOver={mq.handleDragOver}
+                      handleDrop={mq.handleDrop}
+                      buildFolderTree={mq.buildFolderTree}
+                      getQuizzesInFolder={mq.getQuizzesInFolder}
+                    />
                   </div>
                 </div>
-              </div>
+              </aside>
 
-              {/* Right: Quizzes Grid */}
-              <div className="flex-1 overflow-y-auto bg-white">
-                <div className="p-4 md:p-6">
-                  {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-6">
+              {/* Right Column: Toolbar + Quizzes Grid */}
+              <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden">
+                <QuizToolbar
+                  searchQuery={mq.searchQuery}
+                  setSearchQuery={mq.setSearchQuery}
+                  sortBy={mq.sortBy}
+                  setSortBy={mq.setSortBy}
+                  selectedQuizzes={mq.selectedQuizzes}
+                  clearSelection={mq.clearSelection}
+                  bulkDeleteQuizzes={mq.bulkDeleteQuizzes}
+                  setMoveQuizModal={mq.setMoveQuizModal}
+                  setMobileFolderPanelOpen={mq.setMobileFolderPanelOpen}
+                />
+
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  {/* Active Folder Header */}
+                  <div className="mb-4 flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                      <h2 className="text-lg font-semibold text-ink">
                         {mq.activeFolder === null
-                          ? t('folder.allQuizzes')
+                          ? t("folder.allQuizzes")
                           : mq.activeFolder === "unfiled"
-                            ? t('folder.unfiledQuizzes')
-                            : mq.folders.find((f) => f.id === mq.activeFolder)?.name || t('folder.folder')}
+                            ? t("folder.unfiledQuizzes")
+                            : mq.folders.find((f) => f.id === mq.activeFolder)?.name || t("folder.folder")}
                       </h2>
-                      <p className="text-xs md:text-sm text-gray-600 mt-1">
-                        {mq.getDisplayedQuizzes().length} {mq.getDisplayedQuizzes().length !== 1 ? t('quiz.quizzes') : t('quiz.quiz')}
-                        {mq.searchQuery && ` ${t('manager.matchingSearch', { query: mq.searchQuery })}`}
+                      <p className="mt-0.5 text-xs text-ink-muted">
+                        {mq.getDisplayedQuizzes().length}{" "}
+                        {mq.getDisplayedQuizzes().length !== 1 ? t("quiz.quizzes") : t("quiz.quiz")}
+                        {mq.searchQuery && ` ${t("manager.matchingSearch", { query: mq.searchQuery })}`}
                       </p>
                     </div>
 
                     {mq.getDisplayedQuizzes().length > 0 && (
-                      <button
-                        onClick={mq.selectAllQuizzes}
-                        className="text-sm text-blue-700 hover:text-blue-800 font-medium self-start sm:self-auto"
-                      >
-                        {t('manager.selectAll')}
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={mq.selectAllQuizzes}>
+                        {t("manager.selectAll")}
+                      </Button>
                     )}
                   </div>
 
                   {/* Quizzes Grid */}
-                  {mq.getDisplayedQuizzes().length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Search size={32} className="text-gray-400" />
+                  <div className="flex-1 overflow-y-auto pb-6 pr-1">
+                    {mq.getDisplayedQuizzes().length === 0 ? (
+                      <EmptyState
+                        icon={<Search className="h-6 w-6" aria-hidden="true" />}
+                        title={
+                          mq.searchQuery
+                            ? t("manager.noQuizzesFound", { query: mq.searchQuery })
+                            : t("manager.noQuizzesInFolder")
+                        }
+                      />
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {mq.getDisplayedQuizzes().map((quiz) => (
+                          <QuizCard
+                            key={quiz.id}
+                            quiz={quiz}
+                            themesById={mq.themesById}
+                            selectedQuizzes={mq.selectedQuizzes}
+                            highlightedQuizId={mq.highlightedQuizId}
+                            draggedItem={mq.draggedItem}
+                            handleDragStart={mq.handleDragStart}
+                            toggleQuizSelection={mq.toggleQuizSelection}
+                            handleStartQuiz={handleStartQuiz}
+                            handleDuplicate={mq.handleDuplicate}
+                            handleDelete={mq.handleDelete}
+                            setMoveQuizModal={mq.setMoveQuizModal}
+                            setAssignQuizModal={mq.setAssignQuizModal}
+                            setViewAssignmentsModal={mq.setViewAssignmentsModal}
+                            setView={setView}
+                          />
+                        ))}
                       </div>
-                      <p className="text-gray-600">
-                        {mq.searchQuery ? t('manager.noQuizzesFound', { query: mq.searchQuery }) : t('manager.noQuizzesInFolder')}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {mq.getDisplayedQuizzes().map((quiz) => (
-                        <QuizCard
-                          key={quiz.id}
-                          quiz={quiz}
-                          themesById={mq.themesById}
-                          selectedQuizzes={mq.selectedQuizzes}
-                          highlightedQuizId={mq.highlightedQuizId}
-                          draggedItem={mq.draggedItem}
-                          handleDragStart={mq.handleDragStart}
-                          toggleQuizSelection={mq.toggleQuizSelection}
-                          handleStartQuiz={handleStartQuiz}
-                          handleDuplicate={mq.handleDuplicate}
-                          handleDelete={mq.handleDelete}
-                          setMoveQuizModal={mq.setMoveQuizModal}
-                          setAssignQuizModal={mq.setAssignQuizModal}
-                          setViewAssignmentsModal={mq.setViewAssignmentsModal}
-                          setView={setView}
-                        />
-                      ))}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 

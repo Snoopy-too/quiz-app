@@ -1,380 +1,550 @@
-import { useState, useEffect } from "react";
-import { Users, Trophy, BookOpen, ShieldAlert, RefreshCw, ClipboardList } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import {
+  ArrowRight,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  RefreshCw,
+  ShieldAlert,
+  Trophy,
+  UserPlus,
+  Users,
+  Link as LinkIcon,
+  X,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import VerticalNav from "../layout/VerticalNav";
-import JoinClassicQuiz from "../students/JoinClassicQuiz";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Field,
+  IconButton,
+  Input,
+  PageHeader,
+  Skeleton,
+  useToast,
+} from "../ui";
+import { useJoinQuiz } from "../../hooks/useJoinQuiz";
+import { useStudentDashboard } from "../../hooks/useStudentDashboard";
+import { GamePinSchema } from "../../schemas/dashboard";
+import { clearActiveSession } from "../../utils/sessionPersistence";
 import CreateTeam from "../students/CreateTeam";
+import JoinTeam from "../students/JoinTeam";
 import StudentResults from "../students/StudentResults";
-import { supabase } from "../../supabaseClient";
-import { getActiveSession, clearActiveSession } from "../../utils/sessionPersistence";
 
-export default function StudentDashboard({ appState, setAppState, setView, error, setError }) {
+export default function StudentDashboard({
+  appState,
+  setAppState: _setAppState,
+  setView,
+  error,
+  setError,
+  initialPin = "",
+  refreshProfile,
+}) {
   const { t } = useTranslation();
-  const [currentView, setCurrentView] = useState(() => {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const student = appState?.currentUser;
+  const isApproved = Boolean(student?.approved);
+
+  const [subView, setSubView] = useState(() => {
     try {
-      if (sessionStorage.getItem('quizapp_switch_team_session_id')) {
+      if (sessionStorage.getItem("quizapp_switch_team_session_id")) {
         return "create-team";
       }
-    } catch (e) {
-      // ignore
+    } catch {
+      // Ignore storage error
     }
     return "dashboard";
   });
-  const isApproved = appState.currentUser?.approved;
-  const [activeSession, setActiveSession] = useState(null);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [pendingAssignmentCount, setPendingAssignmentCount] = useState(0);
 
-  // Check for active quiz session on mount
+  const [pinOverride, setPinOverride] = useState(null);
+  const [pinFieldError, setPinFieldError] = useState(null);
+  const [checkingApproval, setCheckingApproval] = useState(false);
+  const autoJoinedPinRef = useRef("");
+
+  const pin = pinOverride ?? initialPin;
+  const displayedPinError = pinFieldError ?? error ?? null;
+
+  const {
+    data: summary,
+    loading,
+    refetch,
+    dismissActiveSession,
+  } = useStudentDashboard(student?.id, isApproved);
+
+  const joinQuiz = useJoinQuiz({
+    userId: student?.id,
+    isApproved,
+    onSuccess: (sessionId) => {
+      setView("student-quiz", sessionId);
+    },
+    onError: (msg) => {
+      setPinFieldError(msg);
+      setError?.(msg);
+    },
+  });
+
   useEffect(() => {
-    if (sessionStorage.getItem('quizapp_switch_team_session_id')) {
-      setCurrentView("create-team");
-      setCheckingSession(false);
+    if (
+      initialPin &&
+      isApproved &&
+      GamePinSchema.safeParse(initialPin).success &&
+      autoJoinedPinRef.current !== initialPin
+    ) {
+      autoJoinedPinRef.current = initialPin;
+      const timer = window.setTimeout(() => {
+        joinQuiz.joinByPin(initialPin);
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [initialPin, isApproved, joinQuiz]);
+
+  const handlePinSubmit = (e) => {
+    e.preventDefault();
+    const parsed = GamePinSchema.safeParse(pin);
+    if (!parsed.success) {
+      setPinFieldError(t("student.enterValid6DigitPIN"));
       return;
     }
-    if (appState.currentUser?.id) {
-      checkForActiveSession();
-      fetchPendingAssignments();
-    }
-  }, [appState.currentUser?.id]);
-
-  const fetchPendingAssignments = async () => {
-    try {
-      // Try RPC function first, fall back to direct query if not available
-      let count = 0;
-      try {
-        const { data, error } = await supabase.rpc("get_pending_assignment_count", {
-          p_student_id: appState.currentUser.id
-        });
-        if (!error && data !== null) {
-          count = data;
-        }
-      } catch (rpcErr) {
-        // RPC not available, use direct query
-        const { data, error } = await supabase
-          .from("quiz_assignments")
-          .select("id", { count: "exact" })
-          .eq("student_id", appState.currentUser.id)
-          .in("status", ["pending", "in_progress"])
-          .gt("deadline", new Date().toISOString());
-
-        if (!error) {
-          count = data?.length || 0;
-        }
-      }
-      setPendingAssignmentCount(count);
-    } catch (err) {
-      console.error("Error fetching pending assignments:", err);
-    }
+    setPinFieldError(null);
+    joinQuiz.joinByPin(parsed.data);
   };
 
-  const checkForActiveSession = async () => {
+  const handleCheckApprovalAgain = async () => {
+    if (!refreshProfile) return;
+    setCheckingApproval(true);
     try {
-      // 1. Check localStorage for saved session
-      const savedSession = getActiveSession();
-
-      if (savedSession?.sessionId) {
-        // 2. Verify session is still active in database
-        const { data: dbSession, error: sessionError } = await supabase
-          .from("quiz_sessions")
-          .select("id, status, pin, quiz_id, quizzes(title)")
-          .eq("id", savedSession.sessionId)
-          .maybeSingle();
-
-        const activeStatuses = ["waiting", "active", "question_active"];
-        if (!sessionError && dbSession && activeStatuses.includes(dbSession.status)) {
-          // 3. Check if student is still a participant
-          const { data: participant } = await supabase
-            .from("session_participants")
-            .select("id, score")
-            .eq("session_id", savedSession.sessionId)
-            .eq("user_id", appState.currentUser.id)
-            .maybeSingle();
-
-          if (participant) {
-            console.log('[StudentDashboard] Active session found via localStorage:', dbSession);
-            setActiveSession({
-              ...dbSession,
-              participantScore: participant.score
-            });
-            setCheckingSession(false);
-            return;
-          }
-        }
-
-        // localStorage session is stale — clear it
-        clearActiveSession();
+      const updated = await refreshProfile();
+      if (updated?.approved) {
+        toast.success(t("student.approvedNow", "Your account has been approved!"));
+        refetch();
+      } else {
+        toast.info(t("student.stillPendingApproval", "Still awaiting teacher approval."));
       }
-
-      // 4. DB fallback: check if student has any active session_participants entry
-      // This catches cases where the student joined (e.g. created a team) but
-      // never made it to StudentQuiz (so localStorage was never set)
-      const { data: activeParticipants } = await supabase
-        .from("session_participants")
-        .select("session_id, score, quiz_sessions(id, status, pin, quiz_id, quizzes(title))")
-        .eq("user_id", appState.currentUser.id)
-        .order("joined_at", { ascending: false })
-        .limit(5);
-
-      if (activeParticipants) {
-        const activeStatuses = ["waiting", "active", "question_active"];
-        const active = activeParticipants.find(
-          (p) => p.quiz_sessions && activeStatuses.includes(p.quiz_sessions.status)
-        );
-
-        if (active) {
-          console.log('[StudentDashboard] Active session found via DB fallback:', active.quiz_sessions);
-          setActiveSession({
-            ...active.quiz_sessions,
-            participantScore: active.score
-          });
-          setCheckingSession(false);
-          return;
-        }
-      }
-
-      setCheckingSession(false);
-    } catch (err) {
-      console.error('[StudentDashboard] Error checking for active session:', err);
-      setCheckingSession(false);
+    } finally {
+      setCheckingApproval(false);
     }
   };
 
   const handleDismissActiveSession = () => {
     clearActiveSession();
-    setActiveSession(null);
+    dismissActiveSession();
   };
 
-  const handleBackToDashboard = () => {
-    setCurrentView("dashboard");
-    setError(null);
-  };
+  if (subView === "create-team") {
+    return (
+      <CreateTeam
+        appState={appState}
+        setView={setView}
+        error={error}
+        setError={setError}
+        onBack={() => {
+          setSubView("dashboard");
+          setError?.(null);
+        }}
+        isApproved={isApproved}
+      />
+    );
+  }
 
-  const handleNavSelection = (nextView, sessionId) => {
-    if (nextView === "student-dashboard") {
-      handleBackToDashboard();
-    }
-    setView(nextView, sessionId);
-  };
+  if (subView === "results") {
+    return (
+      <StudentResults
+        appState={appState}
+        onBack={() => {
+          setSubView("dashboard");
+          setError?.(null);
+        }}
+      />
+    );
+  }
+
+  if (joinQuiz.showJoinTeamByCode && joinQuiz.teamModeSession) {
+    return (
+      <JoinTeam
+        appState={appState}
+        setView={setView}
+        session={joinQuiz.teamModeSession}
+        onBack={() => {
+          joinQuiz.setShowJoinTeamByCode(false);
+          joinQuiz.setShowTeamModeOptions(true);
+        }}
+      />
+    );
+  }
+
+  if (joinQuiz.showTeamModeOptions && joinQuiz.teamModeSession) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12">
+        <Card>
+          <CardBody className="space-y-5 text-center p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Users className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-ink">{t("student.teamModeQuiz")}</h1>
+              <p className="mt-1 text-sm text-ink-muted">{t("student.teamModeDescription")}</p>
+            </div>
+            <div className="space-y-3">
+              <Button
+                className="w-full justify-start p-4 h-auto text-left"
+                onClick={() => {
+                  joinQuiz.setShowTeamModeOptions(false);
+                  setSubView("create-team");
+                }}
+              >
+                <UserPlus className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="font-semibold">{t("student.createNewTeam")}</div>
+                  <div className="text-xs opacity-90">{t("student.createNewTeamDesc")}</div>
+                </div>
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full justify-start p-4 h-auto text-left"
+                onClick={() => {
+                  joinQuiz.setShowTeamModeOptions(false);
+                  joinQuiz.setShowJoinTeamByCode(true);
+                }}
+              >
+                <LinkIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <div className="font-semibold">{t("student.joinExistingTeam")}</div>
+                  <div className="text-xs text-ink-muted">{t("student.joinExistingTeamDesc")}</div>
+                </div>
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={joinQuiz.cancelJoinTeam}>
+                {t("common.cancel")}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (joinQuiz.foundTeam) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12">
+        <Card>
+          <CardBody className="space-y-4 text-center p-6">
+            <h2 className="text-xl font-bold text-ink">{t("student.joinTeam")}</h2>
+            <p className="text-sm text-ink-muted">
+              {t("student.yourTeamIsAlreadyInSession", {
+                teamName:
+                  joinQuiz.foundTeam.teams?.team_name || joinQuiz.foundTeam.teams?.name || "",
+              })}
+            </p>
+            <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+              <p className="font-bold text-brand-800">
+                {joinQuiz.foundTeam.teams?.team_name || joinQuiz.foundTeam.teams?.name}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                loading={joinQuiz.loading}
+                onClick={joinQuiz.confirmJoinTeam}
+              >
+                {t("student.joinAsTeamMember")}
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={joinQuiz.cancelJoinTeam}>
+                {t("common.cancel")}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (joinQuiz.availableTeams.length > 0) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12">
+        <Card>
+          <CardBody className="space-y-4 p-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-ink">{t("student.selectTeam")}</h2>
+              <p className="mt-1 text-sm text-ink-muted">{t("student.selectTeamDescription")}</p>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {joinQuiz.availableTeams.map((teamEntry) => (
+                <Button
+                  key={teamEntry.team_id}
+                  variant="secondary"
+                  className="w-full justify-between"
+                  onClick={() => joinQuiz.handleSelectTeam(teamEntry)}
+                >
+                  <span>
+                    {teamEntry.teams?.name || teamEntry.teams?.team_name || "Team"}
+                  </span>
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              ))}
+            </div>
+            <Button variant="ghost" className="w-full" onClick={joinQuiz.cancelJoinTeam}>
+              {t("common.cancel")}
+            </Button>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Vertical Navigation */}
-      <VerticalNav currentView="student-dashboard" setView={handleNavSelection} appState={appState} />
+    <div className="min-h-screen bg-canvas">
+      <PageHeader
+        title={t("student.welcome", { name: student?.name || t("auth.student") })}
+        description={t("student.studentDashboard")}
+      />
 
-      {/* Main Content */}
-      <div className="flex-1 md:ml-64 pt-16 md:pt-0">
-        {currentView === "dashboard" && (
-          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 min-h-screen flex items-center justify-center p-4 md:p-8">
-            <div className="max-w-6xl w-full">
-              <h1 className="text-2xl md:text-4xl font-bold text-white text-center mb-4 md:mb-6">
-                {t('student.welcome', { name: appState.currentUser?.name })}
-              </h1>
-
-              {!isApproved && (
-                <div className="mb-10 mx-auto max-w-2xl rounded-2xl bg-white/15 border border-white/30 backdrop-blur-sm p-5 text-center text-white">
-                  <div className="flex items-center justify-center gap-3 text-lg font-semibold">
-                    <ShieldAlert size={24} />
-                    {t('student.awaitingTeacherApproval')}
-                  </div>
-                  <p className="mt-2 text-sm text-white/80">
-                    {t('student.approvalMessage')}
-                  </p>
-                </div>
-              )}
-
-              {/* Active Session Rejoin Banner */}
-              {activeSession && (
-                <div className="mb-6 mx-auto max-w-2xl">
-                  <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-center sm:text-left">
-                      <div className="flex items-center justify-center sm:justify-start gap-2">
-                        <RefreshCw size={20} className="text-yellow-700" />
-                        <p className="font-bold text-yellow-800">{t('student.activeQuizFound', 'Active Quiz Found!')}</p>
-                      </div>
-                      <p className="text-yellow-700 mt-1">
-                        {t('student.ongoingQuiz', 'You have an ongoing quiz')}: <span className="font-semibold">{activeSession.quizzes?.title || 'Quiz'}</span>
-                      </p>
-                      <p className="text-sm text-yellow-600">
-                        {t('student.currentScore', 'Your current score')}: {activeSession.participantScore || 0} {t('quiz.points', 'points')}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setView("student-quiz", activeSession.id)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-                      >
-                        {t('student.rejoinQuiz', 'Rejoin Quiz')}
-                      </button>
-                      <button
-                        onClick={handleDismissActiveSession}
-                        className="bg-yellow-200 hover:bg-yellow-300 text-yellow-800 px-4 py-3 rounded-lg font-medium transition-colors"
-                        title={t('student.dismissActiveSession', 'Dismiss')}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {/* Card 1: Join Quiz (Classic Mode) */}
-                <div
-                  onClick={isApproved ? () => setCurrentView("join-classic") : undefined}
-                  className={`bg-white rounded-2xl shadow-2xl p-8 transition-transform duration-200 flex flex-col items-center text-center ${
-                    isApproved
-                      ? "cursor-pointer hover:scale-105"
-                      : "cursor-not-allowed opacity-60"
-                  }`}
-                >
-                  <div className="bg-blue-50 rounded-full p-6 mb-4">
-                    <BookOpen size={48} className="text-blue-700" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    {t('student.joinQuiz')}
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    {isApproved
-                      ? t('student.enterPinToJoinIndividually')
-                      : t('student.disabledUntilApproved')}
-                  </p>
-                  <div className="mt-auto">
-                    <span
-                      className={`inline-block px-6 py-2 rounded-lg font-semibold ${
-                        isApproved
-                          ? "bg-blue-700 text-white hover:bg-blue-800"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      {t('actions.start')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card 2: Team Quiz */}
-                <div
-                  onClick={isApproved ? () => setCurrentView("create-team") : undefined}
-                  className={`bg-white rounded-2xl shadow-2xl p-8 transition-transform duration-200 flex flex-col items-center text-center ${
-                    isApproved
-                      ? "cursor-pointer hover:scale-105"
-                      : "cursor-not-allowed opacity-60"
-                  }`}
-                >
-                  <div className="bg-blue-100 rounded-full p-6 mb-4">
-                    <Users size={48} className="text-blue-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    {t('student.teamQuiz')}
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    {isApproved
-                      ? t('student.teamQuizDescription')
-                      : t('student.disabledUntilApproved')}
-                  </p>
-                  <div className="mt-auto">
-                    <span
-                      className={`inline-block px-6 py-2 rounded-lg font-semibold ${
-                        isApproved
-                          ? "bg-blue-600 text-white hover:bg-blue-700"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      {t('actions.enter')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card 3: View My Results */}
-                <div
-                  onClick={() => setCurrentView("results")}
-                  className="bg-white rounded-2xl shadow-2xl p-8 cursor-pointer hover:scale-105 transition-transform duration-200 flex flex-col items-center text-center"
-                >
-                  <div className="bg-green-100 rounded-full p-6 mb-4">
-                    <Trophy size={48} className="text-green-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    {t('student.viewMyResults')}
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    {t('student.seeQuizHistoryAndScores')}
-                  </p>
-                  <div className="mt-auto">
-                    <span className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700">
-                      {t('common.view')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card 4: Assigned Quizzes */}
-                <div
-                  onClick={isApproved ? () => setView("assigned-quizzes") : undefined}
-                  className={`bg-white rounded-2xl shadow-2xl p-8 transition-transform duration-200 flex flex-col items-center text-center relative ${
-                    isApproved
-                      ? "cursor-pointer hover:scale-105"
-                      : "cursor-not-allowed opacity-60"
-                  }`}
-                >
-                  {pendingAssignmentCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-sm font-bold rounded-full w-7 h-7 flex items-center justify-center animate-pulse">
-                      {pendingAssignmentCount}
-                    </span>
-                  )}
-                  <div className="bg-orange-100 rounded-full p-6 mb-4">
-                    <ClipboardList size={48} className="text-orange-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                    {t('student.assignedQuizzes', 'Assigned Quizzes')}
-                  </h2>
-                  <p className="text-gray-600 mb-4">
-                    {isApproved
-                      ? t('student.completeAssignedQuizzes', 'Complete quizzes assigned by your teacher')
-                      : t('student.disabledUntilApproved')}
-                  </p>
-                  <div className="mt-auto">
-                    <span
-                      className={`inline-block px-6 py-2 rounded-lg font-semibold ${
-                        isApproved
-                          ? "bg-orange-600 text-white hover:bg-orange-700"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      {t('common.view', 'View')}
-                    </span>
-                  </div>
-                </div>
+      <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        {!isApproved ? (
+          <Card className="mx-auto max-w-xl">
+            <CardBody className="space-y-4 p-8 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+                <ShieldAlert className="h-7 w-7" aria-hidden="true" />
               </div>
+              <h2 className="text-xl font-bold text-ink">{t("student.awaitingTeacherApproval")}</h2>
+              <p className="text-sm text-ink-muted">{t("student.approvalMessage")}</p>
+              <p className="text-xs text-ink-muted">
+                {t(
+                  "student.approvalNextSteps",
+                  "Your teacher has been notified of your registration. Once approved, click Check again or refresh to start joining quizzes.",
+                )}
+              </p>
+              {refreshProfile && (
+                <div className="pt-2">
+                  <Button loading={checkingApproval} onClick={handleCheckApprovalAgain}>
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                    {t("student.checkAgain", "Check again")}
+                  </Button>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        ) : (
+          <>
+            {/* Rejoin Active Session Banner */}
+            {summary?.activeSession && (
+              <Card className="border-amber-300 bg-amber-50">
+                <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-4">
+                  <div className="flex items-start gap-3">
+                    <RefreshCw className="mt-0.5 h-5 w-5 text-amber-700 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p className="font-semibold text-amber-950">
+                        {t("student.activeQuizFound")}
+                      </p>
+                      <p className="text-sm text-amber-900">
+                        {t("student.ongoingQuiz")}:{" "}
+                        <span className="font-semibold">{summary.activeSession.quizTitle}</span> ·{" "}
+                        {t("student.currentScore")}: {summary.activeSession.participantScore}{" "}
+                        {t("quiz.points")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      onClick={() => setView("student-quiz", summary.activeSession.id)}
+                    >
+                      {t("student.rejoinQuiz")}
+                    </Button>
+                    <IconButton
+                      aria-label={t("student.dismissActiveSession", "Dismiss")}
+                      variant="secondary"
+                      onClick={handleDismissActiveSession}
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+
+            {/* Task-first Join by PIN hero band */}
+            <Card className="border-brand-200 bg-gradient-to-br from-brand-50 via-surface to-surface">
+              <CardBody className="p-6 sm:p-8">
+                <div className="mx-auto max-w-xl space-y-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-ink">{t("student.joinQuiz")}</h2>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {t("student.enterPinFromTeacher")}
+                    </p>
+                  </div>
+
+                  <form onSubmit={handlePinSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <div className="flex-1">
+                      <Field
+                        label={t("session.enterPin")}
+                        error={displayedPinError}
+                        className="space-y-1"
+                      >
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          value={pin}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                            setPinOverride(digits);
+                            if (pinFieldError) setPinFieldError(null);
+                            if (error) setError?.(null);
+                          }}
+                          placeholder={t("student.enterGamePin", "Enter 6-digit game PIN")}
+                          className="h-12 text-center font-mono text-xl font-bold tracking-widest"
+                        />
+                      </Field>
+                    </div>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      loading={joinQuiz.loading}
+                      className="sm:mt-6 h-12 px-7"
+                    >
+                      {joinQuiz.loading
+                        ? t("student.joining")
+                        : t("student.joinButton", "Join")}
+                    </Button>
+                  </form>
+
+                  <div className="flex items-center justify-between pt-1 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setSubView("create-team")}
+                      className="inline-flex items-center gap-1.5 font-medium text-accent-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded"
+                    >
+                      <Users className="h-4 w-4" aria-hidden="true" />
+                      {t("student.joinAsTeamLink", "Join as a team")}
+                    </button>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Assignments & Recent Results */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5 text-brand-600" aria-hidden="true" />
+                    <h2 className="text-base font-semibold text-ink">
+                      {t("student.dueAssignmentsTitle", "Assigned quizzes")}
+                    </h2>
+                    {(summary?.pendingAssignmentsCount ?? 0) > 0 && (
+                      <Badge variant="warning">
+                        {t("student.dueCount", { count: summary.pendingAssignmentsCount })}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setView("assigned-quizzes")}>
+                    {t("student.viewAll", "View all")}
+                  </Button>
+                </CardHeader>
+                <CardBody className="divide-y divide-line p-0">
+                  {loading ? (
+                    <div className="space-y-3 p-5">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : !summary || summary.dueAssignments.length === 0 ? (
+                    <p className="p-5 text-sm text-ink-muted">{t("assignedQuizzes.noPendingHint")}</p>
+                  ) : (
+                    summary.dueAssignments.map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className="flex items-center justify-between gap-3 px-5 py-3.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-ink">{assignment.quizTitle}</p>
+                          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
+                            <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>
+                              {t("assignedQuizzes.deadline")}:{" "}
+                              {new Date(assignment.deadline).toLocaleDateString()}
+                            </span>
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/student/assignments/${encodeURIComponent(assignment.id)}`)
+                          }
+                        >
+                          {assignment.status === "in_progress"
+                            ? t("assignedQuizzes.continueQuiz")
+                            : t("actions.start")}
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-brand-600" aria-hidden="true" />
+                    <h2 className="text-base font-semibold text-ink">
+                      {t("student.recentResultsTitle", "Recent results")}
+                    </h2>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setView("student-results")}>
+                    {t("student.viewAll", "View all")}
+                  </Button>
+                </CardHeader>
+                <CardBody className="divide-y divide-line p-0">
+                  {loading ? (
+                    <div className="space-y-3 p-5">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : !summary || summary.recentResults.length === 0 ? (
+                    <p className="p-5 text-sm text-ink-muted">
+                      {t(
+                        "student.noRecentResults",
+                        "No completed quizzes yet. Join a live quiz or complete an assignment to see your results.",
+                      )}
+                    </p>
+                  ) : (
+                    summary.recentResults.map((result) => (
+                      <div
+                        key={`${result.source}-${result.id}`}
+                        className="flex items-center justify-between gap-3 px-5 py-3.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-ink">{result.quizTitle}</p>
+                          <p className="text-xs text-ink-muted">
+                            {result.correctCount}/{result.totalCount} ·{" "}
+                            {new Date(result.completedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge
+                            variant={
+                              result.accuracyPct >= 80
+                                ? "success"
+                                : result.accuracyPct >= 60
+                                  ? "warning"
+                                  : "neutral"
+                            }
+                          >
+                            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                            {result.accuracyPct}%
+                          </Badge>
+                          <span className="text-sm font-bold text-ink">{result.score}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardBody>
+              </Card>
             </div>
-          </div>
-        )}
-
-        {currentView === "join-classic" && (
-          <JoinClassicQuiz
-            appState={appState}
-            setView={setView}
-            error={error}
-            setError={setError}
-            onBack={handleBackToDashboard}
-            isApproved={isApproved}
-          />
-        )}
-
-        {currentView === "create-team" && (
-          <CreateTeam
-            appState={appState}
-            setView={setView}
-            error={error}
-            setError={setError}
-            onBack={handleBackToDashboard}
-            isApproved={isApproved}
-          />
-        )}
-
-        {currentView === "results" && (
-          <StudentResults
-            appState={appState}
-            onBack={handleBackToDashboard}
-          />
+          </>
         )}
       </div>
     </div>

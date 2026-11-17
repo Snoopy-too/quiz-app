@@ -303,13 +303,12 @@ export default function ThemeSelector({
 
           <div className="relative z-10 text-center px-2">
             {isEditing ? (
-              <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+              <div role="presentation" className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
                   className="px-2 py-1 text-sm rounded border border-white/50 bg-white/90 text-gray-800 w-full"
-                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSaveEditName(theme.id, e);
                     if (e.key === "Escape") handleCancelEdit(e);
@@ -385,10 +384,10 @@ export default function ThemeSelector({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-3">
+      <p className="block text-sm font-medium mb-3">
         <Palette className="inline mr-2" size={18} />
         Quiz Theme
-      </label>
+      </p>
 
       {/* User's Custom Themes */}
       {userThemes.length > 0 && (
@@ -537,16 +536,16 @@ export default function ThemeSelector({
               )}
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="custom-theme-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Theme Name
                 </label>
                 <input
+                  id="custom-theme-name"
                   type="text"
                   value={themeName}
                   onChange={(e) => setThemeName(e.target.value)}
                   placeholder="e.g., Ocean Sunset, Mountain View..."
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && themeName.trim()) handleSaveCustomTheme();
                     if (e.key === "Escape") handleCancelCustomTheme();

@@ -669,7 +669,15 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
                 {classmates.map((student) => (
                   <div
                     key={student.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => toggleStudent(student.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleStudent(student.id);
+                      }
+                    }}
                     className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center justify-between ${selectedStudents.includes(student.id) ? "bg-blue-50" : ""
                       }`}
                   >

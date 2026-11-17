@@ -44,9 +44,10 @@ export default function ModeSelection({
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               {/* Classic Mode */}
-              <div
+              <button
+                type="button"
                 onClick={() => selectMode("classic")}
-                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-blue-700 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
+                className="text-left border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-blue-700 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
               >
                 <div>
                   <div className="text-6xl mb-4">🎯</div>
@@ -60,12 +61,13 @@ export default function ModeSelection({
                   <li>✓ Personal leaderboard</li>
                   <li>✓ Quick setup</li>
                 </ul>
-              </div>
+              </button>
 
               {/* Defuse Mode */}
-              <div
+              <button
+                type="button"
                 onClick={() => selectMode("defuse")}
-                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-red-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between relative overflow-hidden"
+                className="text-left border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-red-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between relative overflow-hidden"
               >
                 <div>
                   <div className="text-6xl mb-4">💣</div>
@@ -79,7 +81,7 @@ export default function ModeSelection({
                   <li>✓ Incorrect answer penalties</li>
                   <li>✓ Defuse or explode together</li>
                 </ul>
-              </div>
+              </button>
 
               {/* Team Mode */}
               <div
@@ -101,22 +103,26 @@ export default function ModeSelection({
                 <div>
                   {/* Shared Device Toggle */}
                   <label
-                    className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200 cursor-pointer text-left"
-                    onClick={(e) => e.stopPropagation()}
+                    htmlFor="allow-shared-device"
+                    className={`mt-4 flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-left transition ${
+                      allowSharedDevice
+                        ? "border-blue-600 bg-blue-50/70 text-blue-900"
+                        : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100/70"
+                    }`}
                   >
                     <input
+                      id="allow-shared-device"
                       type="checkbox"
                       checked={allowSharedDevice}
                       onChange={(e) => setAllowSharedDevice(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-xs text-gray-600">Allow shared device teams</span>
+                    <span className="text-xs font-medium">Allow shared device teams</span>
                   </label>
 
                   {/* Team Scoring Mode Selector */}
                   <div
                     className="mt-3 pt-3 border-t border-gray-200"
-                    onClick={(e) => e.stopPropagation()}
                   >
                     <p className="text-xs font-medium text-gray-700 mb-1.5 text-left">Team Scoring</p>
                     <div className="flex gap-1.5">
@@ -157,9 +163,10 @@ export default function ModeSelection({
               </div>
 
               {/* Assign Quiz Mode */}
-              <div
+              <button
+                type="button"
                 onClick={() => setShowAssignModal(true)}
-                className="border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-orange-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
+                className="text-left border-2 border-gray-300 rounded-xl p-6 sm:p-8 hover:border-orange-600 hover:shadow-lg transition cursor-pointer group bg-white flex flex-col justify-between"
               >
                 <div>
                   <div className="text-6xl mb-4">📋</div>
@@ -173,42 +180,63 @@ export default function ModeSelection({
                   <li>✓ {t("teacherControl.setDeadline", "Set deadline")}</li>
                   <li>✓ {t("teacherControl.emailNotifications", "Email notifications")}</li>
                 </ul>
-              </div>
+              </button>
             </div>
 
             {/* Randomization Options */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
-                <Shuffle size={20} className="text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-700">Randomization Options</h3>
+            <div className="mt-8 border-t border-gray-200 pt-6 text-left">
+              <div className="mb-1 flex items-center gap-2">
+                <Shuffle size={18} className="text-gray-600" aria-hidden="true" />
+                <h3 className="text-base font-semibold text-gray-800">Randomization Options</h3>
               </div>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="mb-4 text-sm text-gray-500">
                 Prevent students from memorizing answer positions or question order across repeated attempts.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <label className="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 transition rounded-lg p-4 flex-1">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label
+                  htmlFor="randomize-questions"
+                  className={`flex cursor-pointer items-start gap-3.5 rounded-xl border-2 p-4 text-left transition-all ${
+                    randomizeQuestions
+                      ? "border-blue-600 bg-blue-50/70 shadow-sm"
+                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 hover:bg-gray-100/80"
+                  }`}
+                >
                   <input
+                    id="randomize-questions"
                     type="checkbox"
                     checked={randomizeQuestions}
                     onChange={(e) => setRandomizeQuestions(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <div>
-                    <span className="font-medium text-gray-800">Randomize question order</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Questions appear in a different order each session</p>
-                  </div>
+                  <span className="block min-w-0 flex-1 text-sm font-semibold text-gray-900">
+                    Randomize question order
+                    <span className="mt-0.5 block text-xs font-normal text-gray-600">
+                      Questions appear in a different order each session
+                    </span>
+                  </span>
                 </label>
-                <label className="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 transition rounded-lg p-4 flex-1">
+
+                <label
+                  htmlFor="randomize-answers"
+                  className={`flex cursor-pointer items-start gap-3.5 rounded-xl border-2 p-4 text-left transition-all ${
+                    randomizeAnswers
+                      ? "border-blue-600 bg-blue-50/70 shadow-sm"
+                      : "border-gray-200 bg-gray-50/80 hover:border-gray-300 hover:bg-gray-100/80"
+                  }`}
+                >
                   <input
+                    id="randomize-answers"
                     type="checkbox"
                     checked={randomizeAnswers}
                     onChange={(e) => setRandomizeAnswers(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <div>
-                    <span className="font-medium text-gray-800">Randomize answer positions</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Answer choices are shuffled for each question</p>
-                  </div>
+                  <span className="block min-w-0 flex-1 text-sm font-semibold text-gray-900">
+                    Randomize answer positions
+                    <span className="mt-0.5 block text-xs font-normal text-gray-600">
+                      Answer choices are shuffled for each question
+                    </span>
+                  </span>
                 </label>
               </div>
             </div>

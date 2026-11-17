@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, ShieldCheck, Zap, Clock, Flame } from "lucide-react";
 import BombDevice from "./BombDevice";
+import { HAZARD_STRIPE_PENALTY, HAZARD_STRIPE_SAFE } from "../../theme/themeDefaults";
 
 /**
  * CrisisScreen component
@@ -46,8 +47,8 @@ export default function CrisisScreen({
           className="h-3 w-full opacity-70"
           style={{
             backgroundImage: hasPenalty
-              ? "repeating-linear-gradient(45deg, #dc2626, #dc2626 12px, #000 12px, #000 24px)"
-              : "repeating-linear-gradient(45deg, #059669, #059669 12px, #000 12px, #000 24px)",
+              ? HAZARD_STRIPE_PENALTY
+              : HAZARD_STRIPE_SAFE,
           }}
         />
 

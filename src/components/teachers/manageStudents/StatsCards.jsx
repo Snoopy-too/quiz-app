@@ -1,57 +1,53 @@
 import React from "react";
 import { UserCheck, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Card, CardBody } from "../../ui";
 
 export default function StatsCards({ students, pendingStudents }) {
   const { t } = useTranslation();
 
+  const items = [
+    {
+      label: t("manageStudents.totalStudents"),
+      value: students.length,
+      icon: UserCheck,
+      badgeClass: "bg-brand-50 text-brand-600",
+    },
+    {
+      label: t("manageStudents.approved"),
+      value: students.filter((s) => s.approved).length,
+      icon: CheckCircle,
+      badgeClass: "bg-emerald-50 text-success-600",
+    },
+    {
+      label: t("manageStudents.pendingApproval"),
+      value: pendingStudents.length,
+      icon: Clock,
+      badgeClass: "bg-amber-50 text-amber-700",
+    },
+    {
+      label: t("manageStudents.unverifiedEmail"),
+      value: students.filter((s) => !s.verified).length,
+      icon: XCircle,
+      badgeClass: "bg-red-50 text-danger-600",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">{t("manageStudents.totalStudents")}</p>
-            <p className="text-3xl font-bold text-gray-800">{students.length}</p>
-          </div>
-          <UserCheck className="text-blue-600" size={40} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">{t("manageStudents.approved")}</p>
-            <p className="text-3xl font-bold text-green-600">
-              {students.filter((s) => s.approved).length}
-            </p>
-          </div>
-          <CheckCircle className="text-green-600" size={40} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">{t("manageStudents.pendingApproval")}</p>
-            <p className="text-3xl font-bold text-orange-600">
-              {pendingStudents.length}
-            </p>
-          </div>
-          <Clock className="text-orange-600" size={40} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">{t("manageStudents.unverifiedEmail")}</p>
-            <p className="text-3xl font-bold text-red-600">
-              {students.filter((s) => !s.verified).length}
-            </p>
-          </div>
-          <XCircle className="text-red-600" size={40} />
-        </div>
-      </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {items.map(({ label, value, icon: IconComponent, badgeClass }) => (
+        <Card key={label}>
+          <CardBody className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-ink-muted">{label}</p>
+              <p className="mt-1 text-3xl font-bold text-ink">{value}</p>
+            </div>
+            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${badgeClass}`}>
+              <IconComponent className="h-5 w-5" aria-hidden="true" />
+            </span>
+          </CardBody>
+        </Card>
+      ))}
     </div>
   );
 }

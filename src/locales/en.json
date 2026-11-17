@@ -59,7 +59,17 @@
     "globalQuizzes": "Global Quizzes",
     "settings": "Settings",
     "logout": "Logout",
-    "home": "Home"
+    "home": "Home",
+    "newQuiz": "New quiz",
+    "libraryGroup": "Library",
+    "classGroup": "Class",
+    "schoolLibrary": "School library",
+    "communityLibrary": "Community library",
+    "assignments": "Assignments",
+    "results": "Results",
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "auth": {
     "login": "Login",
@@ -138,7 +148,12 @@
     "teacherWillApprove": "Your teacher will review and approve your account. Once approved, you can log in and start taking quizzes!",
     "goToLogin": "Go to Login",
     "accountApproved": "Account Approved!",
-    "youCanNowLogin": "Your teacher has approved your account. You can now log in and start taking quizzes!"
+    "youCanNowLogin": "Your teacher has approved your account. You can now log in and start taking quizzes!",
+    "verifyEmailPrompt": "Please verify your email to continue.",
+    "registrationSuccessDetailed": "Registration successful! Please verify your email, then a superadmin will approve your account.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "tagline": "Classroom quizzes, team challenges, and instant feedback."
   },
   "quiz": {
     "quiz": "Quiz",
@@ -303,7 +318,37 @@
     "manageQuizzesDescription": "Create, edit, and organize quizzes for your classes.",
     "manageStudentsDescription": "View and manage student accounts, approvals, and progress.",
     "reportsDescription": "View quiz performance and student progress reports.",
-    "thinking": "Thinking"
+    "thinking": "Thinking",
+    "greetingMorning": "Good morning, {{name}}",
+    "greetingAfternoon": "Good afternoon, {{name}}",
+    "greetingEvening": "Good evening, {{name}}",
+    "hostQuiz": "Host a quiz",
+    "selectQuizToHost": "Select a quiz to host",
+    "liveNow": "Live now",
+    "livePlayers": "{{count}} active session · {{players}} players",
+    "resumeSession": "Resume",
+    "endSession": "End session",
+    "endSessionConfirmTitle": "End live session?",
+    "endSessionConfirmMessage": "This will end \"{{title}}\" (PIN: {{pin}}) for all connected students.",
+    "sessionEnded": "Live session ended.",
+    "statQuizzes": "Quizzes",
+    "statStudents": "Students",
+    "statPending": "Pending approvals",
+    "statAvgScore": "Avg accuracy (7 days)",
+    "recentQuizzes": "Recently Created Quizzes That Have Not Had A Live Play Yet",
+    "noUnplayedQuizzes": "No unplayed quizzes — all of your quizzes have had a live play.",
+    "dueAssignments": "Assignments due this week",
+    "noDueAssignments": "No assignments due this week.",
+    "hostAction": "Host",
+    "copyInviteLink": "Copy invite link",
+    "inviteLinkCopied": "Invite link copied!",
+    "inviteCodeCopied": "Teacher code copied!",
+    "showQr": "Show QR",
+    "inviteQrTitle": "Student Registration QR Code",
+    "inviteQrDesc": "Students can scan this code to open the registration page with your teacher code pre-filled.",
+    "browseLibrary": "Browse the library",
+    "lastPlayedNever": "Not hosted yet",
+    "noRecentQuizzes": "You have not created any quizzes yet."
   },
   "student": {
     "studentDashboard": "Student Dashboard",
@@ -418,7 +463,19 @@
     "waitingForTeammates": "Waiting for partner to join...",
     "teammatesJoined": "{{count}} member joined",
     "teammatesJoined_plural": "{{count}} members joined",
-    "cancellingTeam": "Cancelling team..."
+    "cancellingTeam": "Cancelling team...",
+    "enterGamePin": "Enter 6-digit game PIN",
+    "joinButton": "Join",
+    "joinAsTeamLink": "Join as a team",
+    "dueAssignmentsTitle": "Assigned quizzes",
+    "recentResultsTitle": "Recent results",
+    "noRecentResults": "No completed quizzes yet. Join a live quiz or complete an assignment to see your results.",
+    "checkAgain": "Check again",
+    "approvalNextSteps": "Your teacher has been notified of your registration. Once approved, click Check again or refresh to start joining quizzes.",
+    "stillPendingApproval": "Still awaiting teacher approval.",
+    "approvedNow": "Your account has been approved!",
+    "dueCount": "{{count}} due",
+    "viewAll": "View all"
   },
   "theme": {
     "themes": "Themes",
@@ -513,7 +570,8 @@
     "profileUpdateFailed": "Profile update failed. Please try again.",
     "googleSignInFailed": "Google sign-in failed",
     "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again.",
-    "studentAlreadyRegistered": "You have already successfully registered with the email {{email}}. Please wait for your teacher to approve your account."
+    "studentAlreadyRegistered": "You have already successfully registered with the email {{email}}. Please wait for your teacher to approve your account.",
+    "registrationSuccessDetailed": "Registration successful! Please verify your email, then a superadmin will approve your account."
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",
@@ -869,5 +927,36 @@
     "completed": "Completed",
     "pending": "Pending",
     "expired": "Expired"
+  },
+  "results": {
+    "answerCount_one": "{{count}} answer",
+    "answerCount_other": "{{count}} answers"
+  },
+  "editor": {
+    "newQuizTitle": "New Quiz",
+    "editQuizTitle": "Edit Quiz",
+    "questionsPane": "Questions",
+    "settingsPane": "Settings",
+    "previewPane": "Preview",
+    "publish": "Save & Exit",
+    "savingStatus": "Saving…",
+    "savedStatus": "Saved · just now",
+    "unsavedStatus": "Unsaved changes",
+    "offlineStatus": "Offline – changes kept locally",
+    "restoreDraftTitle": "Restore unsaved draft?",
+    "restoreDraftMessage": "You have an unsaved quiz draft from an earlier session. Would you like to restore it?",
+    "restoreDraft": "Restore draft",
+    "discardDraft": "Discard",
+    "unsavedLeaveConfirm": "You have unsaved changes. Are you sure you want to leave?",
+    "moveUp": "Move question up",
+    "moveDown": "Move question down",
+    "selectQuestionPrompt": "Select a question from the list or add a new one to start editing.",
+    "previewNotice": "Live student view preview",
+    "validationBlocked": "Fix validation errors before saving"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you requested does not exist or has moved.",
+    "goToDashboard": "Go to dashboard"
   }
 }

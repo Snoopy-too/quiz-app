@@ -12,6 +12,12 @@ import ExplosionAnimation from "../common/ExplosionAnimation";
 import CrisisScreen from "../common/CrisisScreen";
 import { calculateTotalQuizTime, formatBombTime } from "../../utils/defuseMode";
 import { clearActiveSession } from "../../utils/sessionPersistence";
+import {
+  DEFAULT_THEME_GRADIENT,
+  DEFAULT_THEME_PRIMARY,
+  DEFAULT_THEME_TEXT_COLOR,
+  TRACK_RING_BG,
+} from "../../theme/themeDefaults";
 
 export default function StudentQuiz({ sessionId, appState, setView }) {
   const { t } = useTranslation();
@@ -539,6 +545,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     if (submittingRef.current) return;
     submittingRef.current = true;
 
+    try {
+      navigator.vibrate?.(30);
+    } catch {
+      // Ignore vibration API unavailability
+    }
+
     setSelectedOption(optionIndex);
     setHasAnswered(true);
 
@@ -623,9 +635,41 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         backgroundAttachment: "fixed",
       };
     }
-    return { background: "linear-gradient(135deg, #7C3AED, #2563EB)" };
+    return { background: DEFAULT_THEME_GRADIENT };
   }, [theme?.background_image_url, theme?.primary_color, theme?.secondary_color, quiz?.background_image_url]);
-  const textColor = theme?.text_color || "#FFFFFF";
+  const textColor = theme?.text_color || DEFAULT_THEME_TEXT_COLOR;
+
+  const isQuestionInteractive =
+    session?.status === "question_active" &&
+    Boolean(currentQuestion) &&
+    showAnswers &&
+    !hasAnswered &&
+    !(session?.mode === "defuse" ? bombTimeRemaining === 0 : timeRemaining === 0);
+
+  const submitAnswerRef = useRef(submitAnswer);
+  useEffect(() => {
+    submitAnswerRef.current = submitAnswer;
+  });
+
+  useEffect(() => {
+    if (!isQuestionInteractive) return;
+    const handleKeyDown = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const idx = Number(e.key) - 1;
+      if (!Number.isInteger(idx) || idx < 0 || idx > 3) return;
+      const opts = session?.randomize_answers
+        ? buildAnswerShuffleMap(currentQuestion.options, sessionId, currentQuestion.id).shuffledOptions
+        : currentQuestion.options;
+      const chosen = opts?.[idx];
+      if (chosen && (chosen.text || chosen.image_url)) {
+        e.preventDefault();
+        submitAnswerRef.current(idx);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isQuestionInteractive, session?.randomize_answers, currentQuestion, sessionId]);
 
   const renderContent = () => {
   if (loading) {
@@ -812,7 +856,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             <h1 className="text-4xl font-bold text-gray-800 mb-8">{quiz?.title}</h1>
             <div className="mb-4">
               <p className="text-gray-600 mb-4">{t('student.startingIn')}</p>
-              <div className="text-6xl md:text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || "#7C3AED" }}>
+              <div className="text-6xl md:text-8xl font-bold animate-pulse" style={{ color: theme?.primary_color || DEFAULT_THEME_PRIMARY }}>
                 {countdown}
               </div>
             </div>
@@ -837,7 +881,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           <p className="text-gray-600 mb-3 text-sm">
             {t('student.waitingForTeacherToStart')}
           </p>
-          <p className="text-base font-semibold mb-6" style={{ color: theme?.primary_color || "#7C3AED" }}>
+          <p className="text-base font-semibold mb-6" style={{ color: theme?.primary_color || DEFAULT_THEME_PRIMARY }}>
             {quiz?.title}
           </p>
 
@@ -1032,11 +1076,12 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                   return (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => submitAnswer(idx)}
                       disabled={hasAnswered || isTimeOut}
                       className={`${style.bg} ${!hasAnswered && !isTimeOut ? style.hover : ""
                         } ${selectedOption === idx ? `ring-4 ${style.ring}` : ""
-                        } text-white ${opt.image_url ? "p-2" : "p-3 sm:p-4 md:p-6 lg:p-8"} rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col items-center justify-center relative`}
+                        } min-h-16 text-white ${opt.image_url ? "p-2" : "p-3 sm:p-4 md:p-6 lg:p-8"} rounded-lg text-sm sm:text-base md:text-xl lg:text-2xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed flex flex-col items-center justify-center relative focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/80`}
                     >
                       {!opt.image_url && <IconComponent size={28} className="shrink-0" fill="white" />}
                       {opt.image_url ? (
@@ -1061,7 +1106,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke="#e5e7eb"
+                    stroke={TRACK_RING_BG}
                     strokeWidth="8"
                   />
                   <circle
@@ -1069,7 +1114,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke={theme?.primary_color || "#7C3AED"}
+                    stroke={theme?.primary_color || DEFAULT_THEME_PRIMARY}
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray="283"
@@ -1092,7 +1137,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             {/* Feedback after answering */}
             {hasAnswered && (
               quiz?.is_survey ? (
-                <div className="mt-6 p-4 rounded-xl text-center bg-blue-100 text-blue-800">
+                <div aria-live="polite" className="mt-6 p-4 rounded-xl text-center bg-blue-100 text-blue-800">
                   <p className="text-2xl font-bold">✓ {t('student.answerSubmitted', 'Answer Submitted')}</p>
                   <p className="text-sm mt-2 opacity-75">
                     {t('student.waitingForOtherPlayers', 'Waiting for other players...')}
@@ -1100,6 +1145,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 </div>
               ) : (
                 <div
+                  aria-live="polite"
                   className={`mt-6 p-4 rounded-xl text-center ${wasCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                     }`}
                 >
@@ -1119,7 +1165,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
             )}
 
             {!hasAnswered && timeRemaining === 0 && (
-              <div className="mt-6 p-4 rounded-xl text-center bg-gray-100 text-gray-800">
+              <div aria-live="polite" className="mt-6 p-4 rounded-xl text-center bg-gray-100 text-gray-800">
                 <p className="text-2xl font-bold">{t('session.timeUp')}</p>
                 <p className="text-lg">{t('student.waitingForResults')}</p>
               </div>

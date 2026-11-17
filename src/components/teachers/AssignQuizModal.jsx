@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
-import { X, Search, CheckSquare, Square, Users, Calendar, Clock, Loader2 } from "lucide-react";
+import { X, Search, CheckSquare, Square, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Badge, Button, Field, Input, IconButton, Spinner } from "../ui";
 
 export default function AssignQuizModal({
   isOpen,
@@ -171,156 +172,152 @@ export default function AssignQuizModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-line bg-surface shadow-pop overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b flex justify-between items-start">
+        <div className="flex items-start justify-between border-b border-line px-6 py-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-lg font-semibold text-ink">
               {t("assignQuiz.title", "Assign Quiz")}
             </h2>
-            <p className="text-gray-600 mt-1">{quizTitle}</p>
+            <p className="mt-0.5 text-sm text-ink-muted">{quizTitle}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={24} />
-          </button>
+          <IconButton aria-label={t("common.close")} size="sm" onClick={onClose}>
+            <X className="h-4 w-4" aria-hidden="true" />
+          </IconButton>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           {/* Deadline Picker */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              <Calendar size={16} className="inline mr-2" />
-              {t("assignQuiz.deadline", "Deadline")}
-            </label>
-            <input
+          <Field
+            label={t("assignQuiz.deadline", "Deadline")}
+            hint={t("assignQuiz.deadlineHint", "Students must complete the quiz before this date and time")}
+          >
+            <Input
               type="datetime-local"
               value={deadline}
               min={getMinDeadline()}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
             />
-            <p className="text-sm text-gray-500 mt-1">
-              <Clock size={14} className="inline mr-1" />
-              {t("assignQuiz.deadlineHint", "Students must complete the quiz before this date and time")}
-            </p>
-          </div>
+          </Field>
 
           {/* Student Selection */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                <Users size={16} className="inline mr-2" />
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-2 text-sm font-medium text-ink">
+                <Users className="h-4 w-4 text-ink-muted" aria-hidden="true" />
                 {t("assignQuiz.selectStudents", "Select Students")}
-              </label>
-              <span className="text-sm text-orange-600 font-medium">
+              </p>
+              <Badge variant="brand">
                 {selectedStudents.size} {t("assignQuiz.selected", "selected")}
-              </span>
+              </Badge>
             </div>
 
             {/* Search and Select All */}
-            <div className="flex gap-3 mb-3">
-              <div className="flex-1 relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
+            <div className="mb-3 flex gap-2.5">
+              <div className="relative flex-1">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
+                  aria-hidden="true"
+                />
+                <Input
                   type="text"
                   placeholder={t("assignQuiz.searchStudents", "Search students...")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="pl-9"
                 />
               </div>
-              <button
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={toggleSelectAll}
-                className="px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors whitespace-nowrap"
+                className="whitespace-nowrap"
               >
                 {selectedStudents.size === filteredStudents.length && filteredStudents.length > 0
                   ? t("assignQuiz.deselectAll", "Deselect All")
                   : t("assignQuiz.selectAll", "Select All")}
-              </button>
+              </Button>
             </div>
 
             {/* Student List */}
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 size={32} className="animate-spin text-orange-500" />
+                <Spinner />
               </div>
             ) : students.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Users size={48} className="mx-auto mb-3 text-gray-300" />
-                <p>{t("assignQuiz.noStudents", "No approved students found")}</p>
-                <p className="text-sm mt-1">{t("assignQuiz.noStudentsHint", "Make sure you have approved students linked to your account")}</p>
+              <div className="py-10 text-center text-ink-muted">
+                <Users size={40} className="mx-auto mb-3 text-ink-subtle" aria-hidden="true" />
+                <p className="text-sm font-medium text-ink">{t("assignQuiz.noStudents", "No approved students found")}</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {t("assignQuiz.noStudentsHint", "Make sure you have approved students linked to your account")}
+                </p>
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="py-8 text-center text-sm text-ink-muted">
                 <p>{t("assignQuiz.noMatchingStudents", "No students match your search")}</p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
-                {filteredStudents.map((student) => (
-                  <div
-                    key={student.id}
-                    onClick={() => toggleStudent(student.id)}
-                    className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 transition-colors ${selectedStudents.has(student.id) ? "bg-orange-50" : ""
+              <div className="max-h-64 divide-y divide-line overflow-y-auto rounded-xl border border-line bg-surface">
+                {filteredStudents.map((student) => {
+                  const selected = selectedStudents.has(student.id);
+                  return (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => toggleStudent(student.id)}
+                      className={`flex w-full items-center gap-3 p-3 text-left transition-colors ${
+                        selected ? "bg-brand-50/70" : "hover:bg-surface-muted/60"
                       }`}
-                  >
-                    {selectedStudents.has(student.id) ? (
-                      <CheckSquare size={20} className="text-orange-600 flex-shrink-0" />
-                    ) : (
-                      <Square size={20} className="text-gray-400 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-800 truncate">{student.name}</p>
-                      <p className="text-sm text-gray-500 truncate">{student.email}</p>
-                    </div>
-                    {student.student_id && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded flex-shrink-0">
-                        {student.student_id}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                    >
+                      {selected ? (
+                        <CheckSquare size={18} className="shrink-0 text-brand-600" aria-hidden="true" />
+                      ) : (
+                        <Square size={18} className="shrink-0 text-ink-subtle" aria-hidden="true" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink">{student.name}</p>
+                        <p className="truncate text-xs text-ink-muted">{student.email}</p>
+                      </div>
+                      {student.student_id && (
+                        <Badge variant="neutral" className="shrink-0 font-mono">
+                          {student.student_id}
+                        </Badge>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-danger-600">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            disabled={submitting}
-            className="px-6 py-2.5 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
-          >
+        <div className="flex justify-end gap-2 border-t border-line bg-surface-muted/60 px-6 py-4">
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
             {t("actions.cancel", "Cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleAssign}
-            disabled={submitting || selectedStudents.size === 0}
-            className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            loading={submitting}
+            disabled={selectedStudents.size === 0}
           >
-            {submitting ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                {t("assignQuiz.assigning", "Assigning...")}
-              </>
-            ) : (
-              <>
-                {t("assignQuiz.assignToStudents", { count: selectedStudents.size, defaultValue: "Assign to {{count}} Students" })}
-              </>
-            )}
-          </button>
+            {submitting
+              ? t("assignQuiz.assigning", "Assigning...")
+              : t("assignQuiz.assignToStudents", {
+                  count: selectedStudents.size,
+                  defaultValue: "Assign to {{count}} Students",
+                })}
+          </Button>
         </div>
       </div>
     </div>

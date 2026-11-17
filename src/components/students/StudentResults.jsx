@@ -665,6 +665,7 @@ export default function StudentResults({ appState, onBack }) {
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div
+            role="presentation"
             className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
             onClick={closeDetails}
           ></div>

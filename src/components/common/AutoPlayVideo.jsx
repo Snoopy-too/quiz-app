@@ -75,6 +75,8 @@ export default function AutoPlayVideo({ src, className, controls = true, reloadK
       playsInline
       muted={muted}
       {...rest}
-    />
+    >
+      <track kind="captions" />
+    </video>
   );
 }

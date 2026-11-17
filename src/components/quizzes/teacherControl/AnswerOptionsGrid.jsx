@@ -1,14 +1,16 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Heart, Spade, Diamond, Club } from "lucide-react";
 
 const ANSWER_STYLES = [
-  { bg: "bg-red-500", icon: Heart },
-  { bg: "bg-blue-600", icon: Spade },
-  { bg: "bg-orange-500", icon: Diamond },
-  { bg: "bg-green-500", icon: Club },
+  { bg: "bg-answer-1", icon: Heart },
+  { bg: "bg-answer-2", icon: Spade },
+  { bg: "bg-answer-3", icon: Diamond },
+  { bg: "bg-answer-4", icon: Club },
 ];
 
 export default function AnswerOptionsGrid({ options, mode = "display", answerCounts, isSurvey = false }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 gap-4">
       {options?.map((opt, idx) => {
@@ -34,14 +36,14 @@ export default function AnswerOptionsGrid({ options, mode = "display", answerCou
                   />
                   {opt.text && <div className="text-sm font-bold mt-1 text-center bg-black/30 px-2 py-0.5 rounded">{opt.text}</div>}
                   <div className="text-sm font-bold mt-1 text-center bg-black/40 px-3 py-1 rounded-full">
-                    {answerCounts?.[idx] || 0} answer{answerCounts?.[idx] !== 1 ? "s" : ""}
+                    {t("results.answerCount", { count: answerCounts?.[idx] || 0 })}
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="text-xl font-bold mb-2 mt-8">{opt.text}</div>
                   <div className="text-lg">
-                    {answerCounts?.[idx] || 0} answer{answerCounts?.[idx] !== 1 ? "s" : ""}
+                    {t("results.answerCount", { count: answerCounts?.[idx] || 0 })}
                   </div>
                 </>
               )}

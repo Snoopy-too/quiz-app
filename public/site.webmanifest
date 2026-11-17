@@ -1,0 +1,16 @@
+{
+  "name": "QuizMaster",
+  "short_name": "QuizMaster",
+  "description": "Interactive classroom quizzes, live team challenges, and student progress analytics.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f4f5",
+  "theme_color": "#3d6668",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

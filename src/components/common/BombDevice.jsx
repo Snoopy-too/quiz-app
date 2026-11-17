@@ -1,6 +1,7 @@
 import React from "react";
 import { formatBombTime } from "../../utils/defuseMode";
 import { AlertTriangle, PauseCircle, Flame } from "lucide-react";
+import { BOMB_WIRE_COLORS } from "../../theme/themeDefaults";
 
 /**
  * BombDevice component
@@ -95,7 +96,7 @@ export default function BombDevice({
             {/* Blue Wire (curved loop) */}
             <path
               d="M 20,12 C 100,-4 140,48 220,16 C 280,-6 340,40 380,24"
-              stroke="#2563EB"
+              stroke={BOMB_WIRE_COLORS.blue}
               strokeWidth="5"
               strokeLinecap="round"
               className="drop-shadow-[0_2px_4px_rgba(37,99,235,0.6)]"
@@ -103,7 +104,7 @@ export default function BombDevice({
             {/* Red Wire (curved loop) */}
             <path
               d="M 20,36 C 80,48 160,-2 240,32 C 300,52 340,8 380,24"
-              stroke="#DC2626"
+              stroke={BOMB_WIRE_COLORS.red}
               strokeWidth="5"
               strokeLinecap="round"
               className="drop-shadow-[0_2px_4px_rgba(220,38,38,0.6)]"
@@ -111,16 +112,16 @@ export default function BombDevice({
             {/* Yellow Ground Wire */}
             <path
               d="M 40,24 C 120,32 180,12 280,36 C 330,46 360,20 375,24"
-              stroke="#EAB308"
+              stroke={BOMB_WIRE_COLORS.yellow}
               strokeWidth="3"
               strokeDasharray="8 4"
               strokeLinecap="round"
               className="opacity-70"
             />
             {/* Wire Clips */}
-            <rect x="70" y="8" width="8" height="32" rx="2" fill="#404040" stroke="#737373" strokeWidth="1" />
-            <rect x="200" y="8" width="8" height="32" rx="2" fill="#404040" stroke="#737373" strokeWidth="1" />
-            <rect x="330" y="8" width="8" height="32" rx="2" fill="#404040" stroke="#737373" strokeWidth="1" />
+            <rect x="70" y="8" width="8" height="32" rx="2" fill={BOMB_WIRE_COLORS.terminalFill} stroke={BOMB_WIRE_COLORS.terminalStroke} strokeWidth="1" />
+            <rect x="200" y="8" width="8" height="32" rx="2" fill={BOMB_WIRE_COLORS.terminalFill} stroke={BOMB_WIRE_COLORS.terminalStroke} strokeWidth="1" />
+            <rect x="330" y="8" width="8" height="32" rx="2" fill={BOMB_WIRE_COLORS.terminalFill} stroke={BOMB_WIRE_COLORS.terminalStroke} strokeWidth="1" />
           </svg>
         </div>
 

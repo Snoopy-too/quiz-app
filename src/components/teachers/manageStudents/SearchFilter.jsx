@@ -1,6 +1,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Card, CardBody, Input } from "../../ui";
 
 export default function SearchFilter({ searchTerm, setSearchTerm, filterStatus, setFilterStatus }) {
   const { t } = useTranslation();
@@ -14,34 +15,41 @@ export default function SearchFilter({ searchTerm, setSearchTerm, filterStatus, 
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-      <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
+    <Card>
+      <CardBody className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
+            aria-hidden="true"
+          />
+          <Input
             type="text"
             placeholder={t("manageStudents.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-300"
+            className="pl-9"
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {filters.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilterStatus(key)}
-              className={`px-4 py-2 rounded-lg ${
-                filterStatus === key
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          {filters.map(({ key, label }) => {
+            const active = filterStatus === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilterStatus(key)}
+                className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "border border-line bg-surface-muted text-ink-muted hover:bg-canvas hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-      </div>
-    </div>
+      </CardBody>
+    </Card>
   );
 }
