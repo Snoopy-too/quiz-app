@@ -52,7 +52,7 @@ const DEFAULT_METADATA: EditorQuizMetadata = {
   is_template: false,
   is_public: false,
   is_global: false,
-  is_course_material: false,
+  is_course_material: true,
   is_survey: false,
 };
 
@@ -145,11 +145,19 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
   const hydratedRef = useRef<boolean>(false);
   const metadataRef = useRef<EditorQuizMetadata>(metadata);
   const questionsRef = useRef<EditorQuestion[]>(questions);
+  const dirtyRef = useRef<boolean>(false);
   const dirtyMetadataRef = useRef<boolean>(false);
   const dirtyQuestionKeysRef = useRef<Set<string>>(new Set());
   const autosaveTimerRef = useRef<number | null>(null);
   const tRef = useRef(t);
   const toastRef = useRef(toast);
+
+  const setDirtySynced = useCallback((value: boolean) => {
+    dirtyRef.current = value;
+    setDirty(value);
+  }, []);
+
+  const shouldBlockNavigation = useCallback(() => dirtyRef.current, []);
 
   useEffect(() => {
     tRef.current = t;
@@ -184,6 +192,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
   useEffect(() => {
     let cancelled = false;
     hydratedRef.current = false;
+    dirtyRef.current = false;
     dirtyMetadataRef.current = false;
     dirtyQuestionKeysRef.current.clear();
 
@@ -209,7 +218,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           setQuestions(bundle.questions);
           setCurrentTheme(bundle.theme);
           setActiveIndex(0);
-          setDirty(false);
+          setDirtySynced(false);
           setSaveStatus("idle");
           setPendingDraft(null);
         } else {
@@ -224,7 +233,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           setCurrentTheme(defaultTheme);
           setQuestions([createDefaultQuestion("multiple_choice")]);
           setActiveIndex(0);
-          setDirty(false);
+          setDirtySynced(false);
           setSaveStatus("idle");
           setPendingDraft(readLocalDraft());
         }
@@ -285,17 +294,20 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
       const keysToFlush = Array.from(dirtyQuestionKeysRef.current);
 
       const validUpdates: Array<{ key: string; question: EditorQuestion; index: number }> = [];
+      const validInserts: Array<{ key: string; question: EditorQuestion; index: number }> = [];
       currentQuestions.forEach((q, idx) => {
         const key = getQuestionKey(q, idx);
-        if (keysToFlush.includes(key) && q.id) {
-          const res = validateQuestionForEditor(q, { isSurvey: currentMeta.is_survey });
-          if (res.valid) {
-            validUpdates.push({ key, question: q, index: idx });
-          }
+        if (!keysToFlush.includes(key)) return;
+        const res = validateQuestionForEditor(q, { isSurvey: currentMeta.is_survey });
+        if (!res.valid) return;
+        if (q.id) {
+          validUpdates.push({ key, question: q, index: idx });
+        } else {
+          validInserts.push({ key, question: q, index: idx });
         }
       });
 
-      if (!needsMetaSave && validUpdates.length === 0) {
+      if (!needsMetaSave && validUpdates.length === 0 && validInserts.length === 0) {
         return;
       }
 
@@ -307,6 +319,25 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           if (currentMeta.is_survey) {
             await normalizeSurveyQuestionsInDb(quizId, currentQuestions);
           }
+        }
+
+        if (validInserts.length > 0) {
+          const insertedByKey = new Map<string, EditorQuestion>();
+          for (const item of validInserts) {
+            const inserted = await insertQuestionInDb(
+              quizId,
+              item.question,
+              item.index,
+              currentMeta.is_survey,
+            );
+            insertedByKey.set(item.key, inserted);
+            dirtyQuestionKeysRef.current.delete(item.key);
+          }
+          setQuestions((prev) => {
+            const next = prev.map((q, idx) => insertedByKey.get(getQuestionKey(q, idx)) ?? q);
+            questionsRef.current = next;
+            return next;
+          });
         }
 
         for (const item of validUpdates) {
@@ -321,14 +352,14 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
 
         const stillDirty =
           dirtyMetadataRef.current || dirtyQuestionKeysRef.current.size > 0;
-        setDirty(stillDirty);
+        setDirtySynced(stillDirty);
         setSaveStatus(stillDirty ? "unsaved" : "saved");
       } catch (err) {
         console.error("Autosave failed:", err);
         setSaveStatus(navigator.onLine === false ? "offline" : "unsaved");
       }
     }, 1500);
-  }, [quizId]);
+  }, [quizId, setDirtySynced]);
 
   const markDirty = useCallback(
     (metaChanged = false, questionKey?: string) => {
@@ -338,11 +369,11 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
         dirtyQuestionKeysRef.current.add(questionKey);
         setTouchedKeys((prev) => (prev[questionKey] ? prev : { ...prev, [questionKey]: true }));
       }
-      setDirty(true);
+      setDirtySynced(true);
       setSaveStatus(typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "unsaved");
       schedulePersistence();
     },
-    [schedulePersistence],
+    [schedulePersistence, setDirtySynced],
   );
 
   const restoreDraft = useCallback(() => {
@@ -355,7 +386,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
     );
     setActiveIndex(0);
     setPendingDraft(null);
-    setDirty(true);
+    setDirtySynced(true);
     setSaveStatus("unsaved");
     if (pendingDraft.metadata.theme_id) {
       fetchThemeById(pendingDraft.metadata.theme_id)
@@ -421,18 +452,14 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
 
   const updateQuestionAt = useCallback(
     (index: number, updater: (prev: EditorQuestion) => EditorQuestion) => {
-      let targetKey = "";
-      setQuestions((prev) =>
-        prev.map((q, idx) => {
-          if (idx !== index) return q;
-          const updated = updater(q);
-          targetKey = getQuestionKey(updated, idx);
-          return updated;
-        }),
-      );
-      if (targetKey) {
-        markDirty(false, targetKey);
-      }
+      const existing = questionsRef.current[index];
+      const fallbackKey = existing ? getQuestionKey(existing, index) : `idx-${index}`;
+      setQuestions((prev) => {
+        const next = prev.map((q, idx) => (idx === index ? updater(q) : q));
+        questionsRef.current = next;
+        return next;
+      });
+      markDirty(false, fallbackKey);
     },
     [markDirty],
   );
@@ -489,11 +516,19 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
       const source = questionsRef.current[index];
       if (!source) return;
       const suffix = t("quiz.copySuffix") || "(Copy)";
+      const duplicatedQuestionText = source.question_text
+        ? (() => {
+            const candidate = `${source.question_text} ${suffix}`;
+            if (candidate.length <= 500) return candidate;
+            const maxBase = Math.max(0, 500 - suffix.length - 1);
+            return `${source.question_text.slice(0, maxBase)} ${suffix}`.trim().slice(0, 500);
+          })()
+        : "";
       const cloned: EditorQuestion = {
         ...source,
         id: undefined,
         tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        question_text: source.question_text ? `${source.question_text} ${suffix}` : "",
+        question_text: duplicatedQuestionText,
         options: source.options.map((opt) => ({ ...opt })),
       };
 
@@ -653,9 +688,14 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
             : q,
         );
 
-        if (parsed.title && !metadataRef.current.title.trim()) {
-          setMetadata((prev) => ({ ...prev, title: parsed.title }));
-          if (quizId) dirtyMetadataRef.current = true;
+        const shouldUpdateTitle = Boolean(parsed.title && !metadataRef.current.title.trim());
+        const nextMeta = shouldUpdateTitle
+          ? { ...metadataRef.current, title: parsed.title }
+          : metadataRef.current;
+
+        if (shouldUpdateTitle) {
+          metadataRef.current = nextMeta;
+          setMetadata(nextMeta);
         }
 
         const currentList = questionsRef.current;
@@ -666,11 +706,15 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           currentList[0].options.every((o) => !o.text.trim());
 
         if (quizId) {
+          if (shouldUpdateTitle) {
+            await updateQuizMetadata(quizId, nextMeta);
+            dirtyMetadataRef.current = false;
+          }
           const inserted = await insertQuestionsBatchInDb(
             quizId,
             imported,
             onlyEmptyPlaceholder ? 0 : currentList.length,
-            metadataRef.current.is_survey,
+            nextMeta.is_survey,
           );
           const next = onlyEmptyPlaceholder ? inserted : [...currentList, ...inserted];
           setQuestions(next);
@@ -679,7 +723,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           const next = onlyEmptyPlaceholder ? imported : [...currentList, ...imported];
           setQuestions(next);
           setActiveIndex(onlyEmptyPlaceholder ? 0 : currentList.length);
-          markDirty(Boolean(parsed.title && !metadataRef.current.title.trim()));
+          markDirty(shouldUpdateTitle);
         }
 
         toast.success(`${imported.length} ${t("quiz.questions")}`);
@@ -817,7 +861,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
           clearLocalDraft();
           dirtyMetadataRef.current = false;
           dirtyQuestionKeysRef.current.clear();
-          setDirty(false);
+          setDirtySynced(false);
           setSaveStatus("saved");
           toast.success(t("editor.savedStatus"));
 
@@ -861,7 +905,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
         setQuestions(persistedQuestions);
         dirtyMetadataRef.current = false;
         dirtyQuestionKeysRef.current.clear();
-        setDirty(false);
+        setDirtySynced(false);
         setSaveStatus("saved");
         toast.success(t("editor.savedStatus"));
 
@@ -878,7 +922,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
         setSaving(false);
       }
     },
-    [quizId, setView, t, teacherId, toast],
+    [quizId, setDirtySynced, setView, t, teacherId, toast],
   );
 
   return {
@@ -893,6 +937,7 @@ export function useQuizEditor({ quizId, teacherId, setView }: UseQuizEditorOptio
     saving,
     saveStatus,
     dirty,
+    shouldBlockNavigation,
     attemptedSave,
     touchedKeys,
     publishability,

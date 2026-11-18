@@ -176,6 +176,16 @@ export default function QuizAssignmentsModal({
                                                             <CheckCircle className="h-3 w-3" aria-hidden="true" />
                                                             {t("status.completed", "Completed")}
                                                         </Badge>
+                                                    ) : assignment.status === "expired" ? (
+                                                        <Badge variant="neutral">
+                                                            <Clock className="h-3 w-3" aria-hidden="true" />
+                                                            {t("assignedQuizzes.expired", "Expired")}
+                                                        </Badge>
+                                                    ) : assignment.status === "in_progress" ? (
+                                                        <Badge variant="brand">
+                                                            <Clock className="h-3 w-3" aria-hidden="true" />
+                                                            {t("status.inProgress", "In Progress")}
+                                                        </Badge>
                                                     ) : (
                                                         <Badge variant="warning">
                                                             <Clock className="h-3 w-3" aria-hidden="true" />

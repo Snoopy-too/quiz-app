@@ -189,11 +189,17 @@ function RegistrationSuccessRoute() {
 }
 
 function VerifyEmailRoute() {
-  const { setError, setSuccess } = useAppAuth();
+  const { error, success, setError, setSuccess } = useAppAuth();
   const setView = useLegacySetView();
   return (
     <LazyWrap>
-      <VerifyEmail setView={setView} setError={setError} setSuccess={setSuccess} />
+      <VerifyEmail
+        setView={setView}
+        error={error}
+        success={success}
+        setError={setError}
+        setSuccess={setSuccess}
+      />
     </LazyWrap>
   );
 }
@@ -353,9 +359,15 @@ function EditQuizRoute() {
 function PreviewQuizRoute() {
   const setView = useLegacySetView();
   const { quizId } = useParams();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
+  const returnView =
+    returnTo === "public-quizzes" || returnTo === "global-quizzes"
+      ? returnTo
+      : "manage-quizzes";
   return (
     <LazyWrap>
-      <PreviewQuiz quizId={quizId} setView={setView} returnView="manage-quizzes" />
+      <PreviewQuiz quizId={quizId} setView={setView} returnView={returnView} />
     </LazyWrap>
   );
 }
@@ -432,8 +444,7 @@ function StudentReportRoute() {
 
 function PublicQuizzesRoute({ viewType }: { viewType: "public" | "global" }) {
   const { appState } = useAppAuth();
-  const setView = useLegacySetView();
-  return <PublicQuizzes setView={setView} appState={appState} viewType={viewType} />;
+  return <PublicQuizzes appState={appState} viewType={viewType} />;
 }
 
 function SuperAdminDashboardRoute() {

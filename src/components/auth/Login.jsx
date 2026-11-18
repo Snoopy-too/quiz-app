@@ -41,7 +41,7 @@ export default function Login({
         setLoading(true);
         const { data: profile, error: profileError } = await supabase
           .from("users")
-          .select("id, email, name, role, approved, verified, teacher_code, teacher_id")
+          .select("id, email, name, role, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url, school_id, student_id")
           .eq("id", session.user.id)
           .maybeSingle();
 
@@ -136,7 +136,7 @@ export default function Login({
 
       const { data: profile, error: pErr } = await supabase
         .from("users")
-        .select("id, email, name, role, approved, verified, teacher_code, teacher_id")
+        .select("id, email, name, role, approved, verified, teacher_code, teacher_id, teacher_invite_code, avatar_url, school_id, student_id")
         .eq("id", userId)
         .maybeSingle();
 

@@ -623,7 +623,7 @@ export default function useManageStudents(appState) {
     setShowDetails(true);
     setIsEditing(false); // Reset editing state
     const performance = await fetchStudentPerformance(student.id);
-    setSelectedStudent({ ...student, performance });
+    setSelectedStudent((prev) => (prev && prev.id === student.id ? { ...prev, performance } : prev));
   };
 
   const handleUpdateStudent = async (event) => {

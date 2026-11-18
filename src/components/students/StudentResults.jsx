@@ -57,7 +57,8 @@ export default function StudentResults({ appState, onBack }) {
               id,
               title,
               is_course_material,
-              is_survey
+              is_survey,
+              questions ( id )
             )
           )
         `)
@@ -84,7 +85,8 @@ export default function StudentResults({ appState, onBack }) {
             return null;
           }
 
-          const totalQuestions = answers.length;
+          const totalQuestions =
+            participant.quiz_sessions?.quizzes?.questions?.length || answers.length;
           const correctAnswers = answers.filter((a) => a.is_correct).length;
           const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
           const isCourseMaterial = participant.quiz_sessions?.quizzes?.is_course_material !== false;
@@ -112,11 +114,13 @@ export default function StudentResults({ appState, onBack }) {
           score,
           completed_at,
           correct_answers,
+          total_questions,
           quizzes (
             id,
             title,
             is_course_material,
-            is_survey
+            is_survey,
+            questions ( id )
           )
         `)
         .eq("student_id", appState.currentUser.id)
@@ -131,7 +135,7 @@ export default function StudentResults({ appState, onBack }) {
 
       const assignmentHistory = await Promise.all(
         filteredAssignmentData.map(async (assignment) => {
-          // We need total questions count. We can count answers in assignment_answers
+          // We need total questions count, falling back to answer count if needed
           const { count, error: countError } = await supabase
             .from("assignment_answers")
             .select("*", { count: "exact", head: true })
@@ -142,7 +146,11 @@ export default function StudentResults({ appState, onBack }) {
             return null;
           }
 
-          const totalQuestions = count || 0;
+          const totalQuestions =
+            assignment.total_questions ||
+            assignment.quizzes?.questions?.length ||
+            count ||
+            0;
           // assignment.correct_answers is stored, but fallback to calculating from answers if needed? 
           // Relied on stored correct_answers for simplicity as per AssignedQuizTaking implementation
           const correctAnswers = assignment.correct_answers || 0;
@@ -164,11 +172,9 @@ export default function StudentResults({ appState, onBack }) {
         })
       );
 
-      const historyWithDetails = [...sessionHistory, ...assignmentHistory].sort((a, b) =>
-        new Date(b.dateTaken) - new Date(a.dateTaken)
-      );
-
-      const validHistory = historyWithDetails.filter((h) => h !== null);
+      const validHistory = [...sessionHistory, ...assignmentHistory]
+        .filter((h) => h !== null)
+        .sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken));
       setQuizHistory(validHistory);
 
       // Separate course and non-course quizzes

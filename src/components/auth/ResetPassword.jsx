@@ -88,7 +88,10 @@ export default function ResetPassword({ setView, setSuccess }) {
       footer={
         <button
           type="button"
-          onClick={() => setView("login")}
+          onClick={async () => {
+            await supabase.auth.signOut();
+            setView("login");
+          }}
           className="font-semibold text-brand-700 hover:text-brand-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 rounded"
         >
           {t("auth.backToLogin") || "Back to Login"}

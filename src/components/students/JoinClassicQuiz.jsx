@@ -57,6 +57,14 @@ export default function JoinClassicQuiz({
               <Button
                 className="w-full justify-start h-auto p-4 text-left"
                 onClick={() => {
+                  if (joinQuiz.teamModeSession?.id) {
+                    try {
+                      sessionStorage.setItem("quizapp_switch_team_session_id", joinQuiz.teamModeSession.id);
+                      sessionStorage.setItem("quizapp_create_team_direct", "1");
+                    } catch {
+                      // Ignore storage error
+                    }
+                  }
                   joinQuiz.setShowTeamModeOptions(false);
                   setView("create-team");
                 }}

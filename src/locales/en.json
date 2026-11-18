@@ -46,7 +46,13 @@
     "ok": "OK",
     "viewMore": "View More",
     "viewLess": "View Less",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "noAnswer": "-",
+    "unknownOption": "Unknown option",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "remove": "Remove",
+    "image": "Image"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -153,7 +159,13 @@
     "registrationSuccessDetailed": "Registration successful! Please verify your email, then a superadmin will approve your account.",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
-    "tagline": "Classroom quizzes, team challenges, and instant feedback."
+    "tagline": "Classroom quizzes, team challenges, and instant feedback.",
+    "successConnected": "You're all set! You're now connected to {{name}}.",
+    "welcomeTeacher": "Welcome! Your teacher profile is ready.",
+    "teacherPendingApproval": "Your teacher profile has been submitted and is pending administrator approval.",
+    "noEmailForResend": "No email found. Please register again.",
+    "studentIdPlaceholder": "e.g. 12345",
+    "unexpectedError": "An unexpected error occurred. Please try again."
   },
   "quiz": {
     "quiz": "Quiz",
@@ -229,7 +241,11 @@
     "getReady": "Get ready!",
     "revealing": "Revealing",
     "importCSV": "Import CSV",
-    "shuffleQuestions": "Shuffle"
+    "shuffleQuestions": "Shuffle",
+    "survey": "Survey",
+    "surveyUngraded": "Survey (ungraded)",
+    "trueOption": "True",
+    "falseOption": "False"
   },
   "folder": {
     "folder": "Folder",
@@ -267,7 +283,8 @@
     "deleteQuizConfirm": "Are you sure you want to delete this quiz?",
     "deleteQuizzesConfirm": "Delete {{count}} selected quizzes?",
     "cannotMoveIntoItself": "Cannot move a folder into itself",
-    "cannotMoveIntoSubfolder": "Cannot move a folder into its own subfolder"
+    "cannotMoveIntoSubfolder": "Cannot move a folder into its own subfolder",
+    "sortQuizzes": "Sort quizzes"
   },
   "session": {
     "pin": "PIN",
@@ -571,7 +588,8 @@
     "googleSignInFailed": "Google sign-in failed",
     "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again.",
     "studentAlreadyRegistered": "You have already successfully registered with the email {{email}}. Please wait for your teacher to approve your account.",
-    "registrationSuccessDetailed": "Registration successful! Please verify your email, then a superadmin will approve your account."
+    "registrationSuccessDetailed": "Registration successful! Please verify your email, then a superadmin will approve your account.",
+    "errorUnassigning": "Error removing assignment"
   },
   "messages": {
     "quizDuplicatedSuccess": "Quiz duplicated successfully!",
@@ -715,7 +733,17 @@
     "lastLiveNever": "Last Live: Never",
     "actionViewReports": "View Reports",
     "tableHeaderActions": "Actions",
-    "actionViewReport": "View Session Performance"
+    "actionViewReport": "View Session Performance",
+    "surveyQuizzes": "Survey Quizzes",
+    "tableHeaderSurveyTitle": "Survey Title",
+    "tableHeaderLastAdministered": "Last Administered",
+    "tableHeaderTimesAdministered": "Times Administered",
+    "neverAdministered": "Never",
+    "time": "time",
+    "times": "times",
+    "mostPopular": "Most Popular",
+    "studentAnswer": "Answer",
+    "correctAnswer": "Correct Answer"
   },
   "studentReport": {
     "totalQuizzes": "Total Quizzes",
@@ -733,7 +761,8 @@
     "toggleType": "Toggle Type",
     "typeUpdated": "Quiz type changed to {{type}}",
     "typeUpdateError": "Failed to update quiz type",
-    "correctTotal": "Questions"
+    "correctTotal": "Questions",
+    "fetchDetailsError": "Could not load quiz details"
   },
   "manageStudents": {
     "title": "Manage Students",
@@ -840,7 +869,11 @@
     "saveChanges": "Save Changes",
     "passwordHint": "Leave blank to keep current password",
     "updateStudentSuccess": "Student updated successfully!",
-    "errorUpdatingStudent": "Error updating student: "
+    "errorUpdatingStudent": "Error updating student: ",
+    "studentCreatedTitle": "Student Created!",
+    "studentCreatedMessage": "The student account has been successfully created.",
+    "copyCredentialsWarning": "Please copy these credentials now. They won't be shown again.",
+    "createAnother": "Create Another"
   },
   "assignQuiz": {
     "title": "Assign Quiz",
@@ -917,7 +950,8 @@
     "notAnswered": "Not answered",
     "deadlinePassed": "The deadline for this quiz has passed.",
     "noQuestions": "This quiz has no questions or you don't have permission to view them.",
-    "timeUpMessage": "You can no longer answer this question."
+    "timeUpMessage": "You can no longer answer this question.",
+    "readingTime": "Reading Time"
   },
   "teacherControl": {
     "assignQuiz": "Assign Quiz",

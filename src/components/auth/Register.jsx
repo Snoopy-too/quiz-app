@@ -267,8 +267,9 @@ export default function Register({ setView, error, setError, success, setSuccess
       await supabase.auth.signOut();
       sessionStorage.removeItem("quizapp_registration_in_progress");
 
+      sessionStorage.setItem("quizapp_registered_email", formData.email.trim().toLowerCase());
+
       if (formData.role === "student") {
-        sessionStorage.setItem("quizapp_registered_email", formData.email.trim().toLowerCase());
         setView("registration-success");
       } else {
         setSuccess(

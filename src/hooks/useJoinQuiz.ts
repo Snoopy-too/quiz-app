@@ -174,17 +174,14 @@ export function useJoinQuiz({ userId, isApproved, onSuccess, onError }: UseJoinQ
               activeTeamIds.includes(team.team_id),
             );
 
-            let candidateTeams = typedMyTeams;
+            let candidateTeams: TeamCandidate[] = [];
             if (myActiveTeams.length > 0) {
               candidateTeams = myActiveTeams;
             } else if (session.created_at) {
               const sessionTime = new Date(session.created_at).getTime();
-              const recentTeams = typedMyTeams.filter(
+              candidateTeams = typedMyTeams.filter(
                 (team) => team.joined_at && new Date(team.joined_at).getTime() > sessionTime,
               );
-              if (recentTeams.length > 0) {
-                candidateTeams = recentTeams;
-              }
             }
 
             if (candidateTeams.length === 1) {
@@ -204,10 +201,6 @@ export function useJoinQuiz({ userId, isApproved, onSuccess, onError }: UseJoinQ
               setLoading(false);
               return;
             }
-
-            reportError(t("errors.failedToJoinQuiz"));
-            setLoading(false);
-            return;
           }
 
           setTeamModeSession(session);

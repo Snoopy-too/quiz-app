@@ -46,7 +46,7 @@ export default function TeacherControl({ sessionId, setView }) {
   }
 
   const closeSession = (skipConfirm) => {
-    if (skipConfirm) {
+    if (skipConfirm === true) {
       tc.endQuiz("cancelled").then(() => setView("manage-quizzes"));
       return;
     }
@@ -73,6 +73,26 @@ export default function TeacherControl({ sessionId, setView }) {
     }
     if (tc.session.status === "completed") {
       return <QuizCompleted {...screenProps} />;
+    }
+    if (tc.session.status === "cancelled") {
+      return (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-10 text-center max-w-md w-full">
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              {t('session.quizCancelled', 'Quiz Cancelled')}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {t('session.sessionEnded', 'This quiz session has ended.')}
+            </p>
+            <button
+              onClick={() => setView("manage-quizzes")}
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg hover:bg-blue-800 font-semibold"
+            >
+              {t('quiz.backToQuizzes', 'Back to Quizzes')}
+            </button>
+          </div>
+        </div>
+      );
     }
     return null;
   };

@@ -40,6 +40,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [error, setError] = useState(null);
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState(0);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
@@ -94,6 +95,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           setSelectedOption(null);
           setShowCorrectAnswer(false);
           setWasCorrect(false);
+          setPointsEarned(0);
           setShowAnswers(false);
           setAnswerRevealCountdown(4);
         }
@@ -156,6 +158,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           }
           setSelectedOption(displayIndex);
           setWasCorrect(existingAnswer.is_correct);
+          setPointsEarned(existingAnswer.points_earned ?? currentQuestion.points ?? 0);
           // If we've already answered, skip the visual reveal delays
           setShowAnswers(true);
           setAnswerRevealCountdown(0);
@@ -562,12 +565,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
         originalIndex = shuffledToOriginal[optionIndex];
       }
 
-      const isCorrect = currentQuestion.options[originalIndex].is_correct;
+      const isSurvey = Boolean(quiz?.is_survey);
+      const isCorrect = isSurvey ? false : Boolean(currentQuestion.options[originalIndex]?.is_correct);
       setWasCorrect(isCorrect);
 
       // Calculate points based on time remaining
       const timeBonus = Math.floor((timeRemaining / currentQuestion.time_limit) * currentQuestion.points);
-      const points = isCorrect ? currentQuestion.points + timeBonus : 0;
+      const points = !isSurvey && isCorrect ? currentQuestion.points + timeBonus : 0;
+      setPointsEarned(points);
 
       // Submit answer.
       // NOTE: is_correct and points_earned are now validated/overridden server-side
@@ -587,22 +592,24 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
 
       if (answerError) throw answerError;
 
-      // Atomic score increment via SECURITY DEFINER RPC (validates caller,
-      // session status, and delta bounds server-side).
-      const { data: newScore, error: rpcError } = await supabase.rpc(
-        'increment_participant_score',
-        { p_participant_id: participant.id, p_delta: points }
-      );
+      if (!isSurvey && points > 0) {
+        // Atomic score increment via SECURITY DEFINER RPC (validates caller,
+        // session status, and delta bounds server-side).
+        const { data: newScore, error: rpcError } = await supabase.rpc(
+          'increment_participant_score',
+          { p_participant_id: participant.id, p_delta: points }
+        );
 
-      if (rpcError) {
-        // The RPC is SECURITY DEFINER so it should always succeed if deployed.
-        // Direct .update() fallback is intentionally removed — it's blocked by
-        // the guard trigger (fix 7) to prevent client-side score manipulation.
-        console.error('[StudentQuiz] increment RPC failed:', rpcError.message);
-        // Still update local state optimistically so the UI doesn't look broken
-        setParticipant({ ...participant, score: participant.score + points });
-      } else {
-        setParticipant({ ...participant, score: typeof newScore === 'number' ? newScore : participant.score + points });
+        if (rpcError) {
+          // The RPC is SECURITY DEFINER so it should always succeed if deployed.
+          // Direct .update() fallback is intentionally removed — it's blocked by
+          // the guard trigger (fix 7) to prevent client-side score manipulation.
+          console.error('[StudentQuiz] increment RPC failed:', rpcError.message);
+          // Still update local state optimistically so the UI doesn't look broken
+          setParticipant({ ...participant, score: participant.score + points });
+        } else {
+          setParticipant({ ...participant, score: typeof newScore === 'number' ? newScore : participant.score + points });
+        }
       }
     } catch (err) {
       // Submit failed — let the student retry
@@ -995,12 +1002,14 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                   </>
                 )}
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">{t('session.yourScore')}</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {participant?.score || 0}
-                </p>
-              </div>
+              {!quiz?.is_survey && (
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">{t('session.yourScore')}</p>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {participant?.score || 0}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1154,7 +1163,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                   </p>
                   <p className="text-lg">
                     {wasCorrect
-                      ? `+${currentQuestion.points} ${t('quiz.points')}!`
+                      ? `+${pointsEarned || currentQuestion.points} ${t('quiz.points')}!`
                       : t('student.betterLuckNextTime')}
                   </p>
                   <p className="text-sm mt-2 opacity-75">

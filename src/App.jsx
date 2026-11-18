@@ -137,6 +137,11 @@ function AppBootstrapShell() {
         return;
       }
 
+      if (locationRef.current.pathname === "/reset-password") {
+        setAuthReady(true);
+        return;
+      }
+
       const sessionInfo = sessionRes.session;
       const isGoogleUser = isGoogleProviderSession(sessionInfo);
 
@@ -216,6 +221,11 @@ function AppBootstrapShell() {
       if (!session) {
         clearSessionOnSignOut();
         sessionStorage.removeItem("quizapp_logout_initiated");
+        setAuthReady(true);
+        return;
+      }
+
+      if (event === "PASSWORD_RECOVERY" || locationRef.current.pathname === "/reset-password") {
         setAuthReady(true);
         return;
       }

@@ -210,38 +210,40 @@ export default function StudentDetailsModal({
           )}
 
           {/* Actions */}
-          <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row">
-            {!selectedStudent.approved ? (
+          {selectedStudent.teacher_id === currentUserId && (
+            <div className="flex flex-col gap-2 border-t border-line pt-4 sm:flex-row">
+              {!selectedStudent.approved ? (
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => {
+                    handleApprove(selectedStudent.id);
+                    setShowDetails(false);
+                  }}
+                >
+                  {t("manageStudents.approveStudent")}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    handleReject(selectedStudent.id);
+                    setShowDetails(false);
+                  }}
+                >
+                  {t("manageStudents.revokeApproval")}
+                </Button>
+              )}
               <Button
-                variant="primary"
+                variant="danger"
                 className="flex-1"
-                onClick={() => {
-                  handleApprove(selectedStudent.id);
-                  setShowDetails(false);
-                }}
+                onClick={() => handleDelete(selectedStudent.id)}
               >
-                {t("manageStudents.approveStudent")}
+                {t("manageStudents.deleteStudent")}
               </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  handleReject(selectedStudent.id);
-                  setShowDetails(false);
-                }}
-              >
-                {t("manageStudents.revokeApproval")}
-              </Button>
-            )}
-            <Button
-              variant="danger"
-              className="flex-1"
-              onClick={() => handleDelete(selectedStudent.id)}
-            >
-              {t("manageStudents.deleteStudent")}
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

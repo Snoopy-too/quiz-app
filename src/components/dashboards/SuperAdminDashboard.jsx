@@ -1,12 +1,13 @@
 // src/components/dashboards/SuperAdminDashboard.jsx
 
 import React, { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../../supabaseClient";
 import { UserPlus, Edit2, Trash2, Key, Users, UserCheck, UserX, Search, ArrowUpDown, ArrowUp, ArrowDown, School, Plus, BarChart3, CheckSquare, Check } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import BulkEditModal from "./BulkEditModal";
-import { formatTeacherCode } from "../../utils/teacherCode";
+import { formatTeacherCode, generateTeacherCode } from "../../utils/teacherCode";
 
 export default function SuperAdminDashboard({ setView, appState, setSelectedTeacherId }) {
   const [users, setUsers] = useState([]);
@@ -190,8 +191,20 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
     }
 
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Create auth user via a non-persisting client so the SuperAdmin session stays intact
+      const tempClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        }
+      );
+
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
         email: createForm.email,
         password: createForm.password,
         options: {
@@ -203,6 +216,11 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
       });
 
       if (authError) throw authError;
+      if (!authData?.user?.id) {
+        throw new Error("User creation did not return a valid user ID.");
+      }
+
+      const teacherCode = createForm.role === "teacher" ? generateTeacherCode() : null;
 
       // Create user profile
       const { error: profileError } = await supabase.from("users").insert([{
@@ -212,6 +230,7 @@ export default function SuperAdminDashboard({ setView, appState, setSelectedTeac
         role: createForm.role,
         student_id: createForm.student_id || null,
         school_id: createForm.school_id || null,
+        teacher_code: teacherCode,
         verified: true, // Admin-created users are auto-verified
         approved: true  // Admin-created users are auto-approved
       }]);

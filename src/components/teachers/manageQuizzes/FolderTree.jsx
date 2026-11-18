@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, Folder, FolderOpen, FolderPlus, Edit2, Trash2 } from "lucide-react";
 
 export default function FolderTree({
@@ -19,6 +19,15 @@ export default function FolderTree({
   buildFolderTree,
   getQuizzesInFolder,
 }) {
+  const cancelledEditRef = useRef(false);
+  const editInputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingFolder) {
+      editInputRef.current?.focus();
+    }
+  }, [editingFolder]);
+
   const renderFolder = (folder, depth = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
     const subfolders = buildFolderTree(folder.id);
@@ -85,13 +94,27 @@ export default function FolderTree({
 
           {editingFolder === folder.id ? (
             <input
+              ref={editInputRef}
               type="text"
               defaultValue={folder.name}
               onClick={(e) => e.stopPropagation()}
-              onBlur={(e) => renameFolder(folder.id, e.target.value)}
+              onFocus={() => {
+                cancelledEditRef.current = false;
+              }}
+              onBlur={(e) => {
+                if (!cancelledEditRef.current) {
+                  renameFolder(folder.id, e.target.value);
+                }
+                cancelledEditRef.current = false;
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") renameFolder(folder.id, e.target.value);
-                if (e.key === "Escape") setEditingFolder(null);
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                } else if (e.key === "Escape") {
+                  cancelledEditRef.current = true;
+                  setEditingFolder(null);
+                }
               }}
               className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2 py-0.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent-500"
             />

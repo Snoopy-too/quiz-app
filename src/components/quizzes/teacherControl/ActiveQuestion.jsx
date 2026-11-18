@@ -22,6 +22,7 @@ export default function ActiveQuestion({
   showAnswers,
   answerRevealCountdown,
   closeSession,
+  handleShowResults,
   bombTotalTime = 300,
   bombTimeRemaining = 0,
   bombExploded = false,
@@ -183,12 +184,34 @@ export default function ActiveQuestion({
                 </span>
               </div>
               {allStudentsAnswered ? (
-                <div className="bg-green-100 text-green-800 px-6 py-3 rounded-lg font-semibold animate-pulse">
-                  All answered! Showing results...
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 text-green-800 px-6 py-3 rounded-lg font-semibold animate-pulse">
+                    All answered! Showing results...
+                  </div>
+                  {handleShowResults && (
+                    <button
+                      type="button"
+                      onClick={handleShowResults}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Show Results
+                    </button>
+                  )}
                 </div>
               ) : (
-                <div className="text-gray-600 text-sm">
-                  Waiting for all students...
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-600 text-sm">
+                    Waiting for all students...
+                  </span>
+                  {handleShowResults && showAnswers && (
+                    <button
+                      type="button"
+                      onClick={handleShowResults}
+                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    >
+                      End Question Early
+                    </button>
+                  )}
                 </div>
               )}
             </div>

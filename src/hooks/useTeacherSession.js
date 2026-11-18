@@ -61,12 +61,18 @@ export default function useTeacherSession(sessionId) {
   const currentQuestionRef = useRef(null);
   // Ref to hold current session for polling (avoids stale closure)
   const sessionRef = useRef(null);
+  const participantsRef = useRef([]);
+  const questionsRef = useRef([]);
+  const shuffledQuestionsRef = useRef([]);
+  const questionTimeRemainingRef = useRef(0);
+  const showQuestionResultsRef = useRef(null);
   // Debounce timers for realtime event handlers
   const loadParticipantsTimerRef = useRef(null);
   const loadLiveAnswersTimerRef = useRef(null);
   // Quiz-flow timers that must be cleared on unmount so stale callbacks
   // don't write to Supabase after the teacher navigates away.
   const autoAdvanceTimerRef = useRef(null);
+  const earlyAdvanceTimerRef = useRef(null);
   const startQuizTimerRef = useRef(null);
   const thinkingTimerRef = useRef(null);
 
@@ -118,6 +124,7 @@ export default function useTeacherSession(sessionId) {
         clearTimeout(loadParticipantsTimerRef.current);
         clearTimeout(loadLiveAnswersTimerRef.current);
         clearTimeout(autoAdvanceTimerRef.current);
+        clearTimeout(earlyAdvanceTimerRef.current);
         clearTimeout(startQuizTimerRef.current);
         clearTimeout(thinkingTimerRef.current);
       };
@@ -133,6 +140,22 @@ export default function useTeacherSession(sessionId) {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    participantsRef.current = participants;
+  }, [participants]);
+
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+
+  useEffect(() => {
+    shuffledQuestionsRef.current = shuffledQuestions;
+  }, [shuffledQuestions]);
+
+  useEffect(() => {
+    questionTimeRemainingRef.current = questionTimeRemaining;
+  }, [questionTimeRemaining]);
 
   // Keep bomb refs in sync with state
   useEffect(() => {
@@ -217,6 +240,16 @@ export default function useTeacherSession(sessionId) {
     }
   }, [session?.status, currentQuestion, countdownValue]);
 
+  // Thinking time countdown effect (Team & Defuse modes: ticks 5s -> 0s before reveal countdown)
+  useEffect(() => {
+    if (session?.status === "question_active" && isThinkingTime && questionTimeRemaining > 0) {
+      const timer = setTimeout(() => {
+        setQuestionTimeRemaining((prev) => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [session?.status, isThinkingTime, questionTimeRemaining]);
+
   // Question timer countdown effect - only starts after answers are revealed
   useEffect(() => {
     if (session?.status === "question_active" && questionTimeRemaining > 0 && !allStudentsAnswered && showAnswers) {
@@ -234,17 +267,28 @@ export default function useTeacherSession(sessionId) {
     }
   }, [session?.status, questionTimeRemaining, allStudentsAnswered, showAnswers]);
 
-  // Answer reveal countdown effect - show answers after 4 seconds
+  // Answer reveal countdown effect - show answers after 4 seconds (waits for thinking time to finish)
   useEffect(() => {
-    if (session?.status === "question_active" && currentQuestion && !showAnswers && answerRevealCountdown > 0) {
+    if (
+      session?.status === "question_active" &&
+      currentQuestion &&
+      !isThinkingTime &&
+      !showAnswers &&
+      answerRevealCountdown > 0
+    ) {
       const timer = setTimeout(() => {
         setAnswerRevealCountdown(answerRevealCountdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (session?.status === "question_active" && answerRevealCountdown === 0 && !showAnswers) {
+    } else if (
+      session?.status === "question_active" &&
+      !isThinkingTime &&
+      answerRevealCountdown === 0 &&
+      !showAnswers
+    ) {
       setShowAnswers(true);
     }
-  }, [session?.status, currentQuestion, answerRevealCountdown, showAnswers]);
+  }, [session?.status, currentQuestion, isThinkingTime, answerRevealCountdown, showAnswers]);
 
   // Check if all students have answered
   useEffect(() => {
@@ -253,32 +297,41 @@ export default function useTeacherSession(sessionId) {
         liveAnswers.some((a) => a.participant_id === p.id)
       ).length === participants.length;
 
-      // Fix 5: Detect transition from all-answered back to not-all-answered
+      // Detect transition from all-answered back to not-all-answered
       // (e.g., a late joiner increased participant count mid-question).
       // Cancel the pending 2s early-advance timer so results aren't shown prematurely.
-      if (!allAnswered && allStudentsAnswered && autoAdvanceTimerRef.current) {
-        console.warn('[TeacherControl] allAnswered flipped to false — cancelling early advance timer');
-        clearTimeout(autoAdvanceTimerRef.current);
-        autoAdvanceTimerRef.current = null;
+      if (!allAnswered && allStudentsAnswered) {
+        if (earlyAdvanceTimerRef.current) {
+          console.warn('[TeacherControl] allAnswered flipped to false — cancelling early advance timer');
+          clearTimeout(earlyAdvanceTimerRef.current);
+          earlyAdvanceTimerRef.current = null;
+        }
+        if (sessionRef.current?.mode !== 'defuse' && !autoAdvanceTimerRef.current) {
+          const remaining = Math.max(1, questionTimeRemainingRef.current || 5);
+          const cqi = sessionRef.current?.current_question_index ?? 0;
+          autoAdvanceTimerRef.current = setTimeout(() => {
+            showQuestionResultsRef.current?.(cqi);
+          }, remaining * 1000);
+        }
       }
 
       setAllStudentsAnswered(allAnswered);
 
-      if (allAnswered && autoAdvanceTimerRef.current) {
-        // All students have answered - cancel the auto-advance timer
+      if (allAnswered && !earlyAdvanceTimerRef.current) {
+        if (autoAdvanceTimerRef.current) {
+          clearTimeout(autoAdvanceTimerRef.current);
+          autoAdvanceTimerRef.current = null;
+        }
         console.log('[TeacherControl] All students answered! Auto-advancing to results in 2 seconds...');
-        clearTimeout(autoAdvanceTimerRef.current);
-
-        // Auto-advance to results after 2 seconds so everyone can see they've all answered
-        autoAdvanceTimerRef.current = setTimeout(() => {
+        earlyAdvanceTimerRef.current = setTimeout(() => {
+          earlyAdvanceTimerRef.current = null;
           console.log('[TeacherControl] Auto-advancing to results now');
-          // Use ref to avoid stale closure — the critical fix for the Q2-stuck bug
           const cqi = sessionRef.current?.current_question_index ?? 0;
-          showQuestionResults(cqi);
+          showQuestionResultsRef.current?.(cqi);
         }, 2000);
       }
     }
-  }, [liveAnswers, participants, session?.status]);
+  }, [liveAnswers, participants, session?.status, allStudentsAnswered]);
 
   const loadSession = async () => {
     try {
@@ -297,6 +350,7 @@ export default function useTeacherSession(sessionId) {
       }
 
       setSession(session);
+      sessionRef.current = session;
 
       // Load quiz - avoid .single() to prevent 406 errors
       const { data: quizResults, error: quizError } = await supabase
@@ -338,11 +392,13 @@ export default function useTeacherSession(sessionId) {
 
       if (questionsError) throw questionsError;
       setQuestions(questionsData);
+      questionsRef.current = questionsData;
 
       // Check if session already has a question order
+      let orderedQuestions = questionsData;
       if (session.question_order) {
         // Use existing order from session
-        const orderedQuestions = session.question_order
+        orderedQuestions = session.question_order
           .map(id => questionsData.find(q => q.id === id))
           .filter(Boolean);
         setShuffledQuestions(orderedQuestions);
@@ -352,6 +408,7 @@ export default function useTeacherSession(sessionId) {
         setShuffledQuestions(questionsData);
         setQuestionOrder(questionsData.map(q => q.id));
       }
+      shuffledQuestionsRef.current = orderedQuestions;
 
       // Initialize Defuse Mode timer if applicable
       if (session.mode === "defuse") {
@@ -368,7 +425,63 @@ export default function useTeacherSession(sessionId) {
       }
 
       // Load participants - pass session directly since state update may not have completed
-      await loadParticipants(session);
+      const loadedParticipants = await loadParticipants(session);
+
+      // Restore screen state when refreshing / reloading mid-session
+      let modeAlreadySelected = false;
+      try {
+        modeAlreadySelected = sessionStorage.getItem(`quizapp_mode_selected_${sessionId}`) === "1";
+      } catch {
+        // Ignore storage read errors
+      }
+
+      if (session.status === "waiting") {
+        if (
+          modeAlreadySelected ||
+          (session.mode && session.mode !== "classic") ||
+          Boolean(session.question_order) ||
+          Boolean(session.randomize_answers) ||
+          loadedParticipants.length > 0
+        ) {
+          setSelectedMode(session.mode || "classic");
+          setShowModeSelection(false);
+        }
+      } else {
+        setSelectedMode(session.mode || "classic");
+        setShowModeSelection(false);
+
+        if (session.status === "question_active" || session.status === "showing_results") {
+          const idx = session.current_question_index ?? 0;
+          const activeQ = orderedQuestions[idx] || null;
+          setCurrentQuestion(activeQ);
+          currentQuestionRef.current = activeQ;
+
+          if (session.status === "question_active" && activeQ) {
+            setShowResults(false);
+            setIsThinkingTime(false);
+            setShowAnswers(true);
+            setAnswerRevealCountdown(0);
+            const restoredTimeLimit = activeQ.time_limit || 30;
+            setQuestionTimeRemaining(restoredTimeLimit);
+            await loadLiveAnswers(activeQ.id);
+
+            if (session.mode !== "defuse") {
+              clearTimeout(autoAdvanceTimerRef.current);
+              autoAdvanceTimerRef.current = setTimeout(() => {
+                showQuestionResultsRef.current?.(idx);
+              }, restoredTimeLimit * 1000);
+            }
+          } else if (session.status === "showing_results" && activeQ) {
+            const { data: answers } = await supabase
+              .from("quiz_answers")
+              .select("*, session_participants(users(name))")
+              .eq("session_id", sessionId)
+              .eq("question_id", activeQ.id);
+            setQuestionResults(answers || []);
+            setShowResults(true);
+          }
+        }
+      }
 
       setLoading(false);
     } catch (err) {
@@ -378,12 +491,20 @@ export default function useTeacherSession(sessionId) {
   };
 
   const loadParticipants = async (sessionObj = null) => {
+    // Guard against React click events being passed directly via onClick={loadParticipants}
+    const validSessionObj =
+      sessionObj &&
+      typeof sessionObj === "object" &&
+      "status" in sessionObj &&
+      !("nativeEvent" in sessionObj)
+        ? sessionObj
+        : null;
     // Use passed session object, then ref (avoids stale closure), then state
-    const currentSession = sessionObj || sessionRef.current || session;
+    const currentSession = validSessionObj || sessionRef.current || session;
     console.log('[TeacherControl] Loading participants for session:', sessionId, 'mode:', currentSession?.mode);
     let { data, error } = await supabase
       .from("session_participants")
-      .select("*, users(name, avatar_url), teams(id, name, team_name)")
+      .select("*, users(name, avatar_url), teams(id, name, team_name, is_shared_device)")
       .eq("session_id", sessionId)
       .order("score", { ascending: false });
 
@@ -442,6 +563,7 @@ export default function useTeacherSession(sessionId) {
     });
 
     setParticipants(participantsWithTeams);
+    participantsRef.current = participantsWithTeams;
 
     // Group by teams if in team mode
     if (currentSession?.mode === "team") {
@@ -471,25 +593,44 @@ export default function useTeacherSession(sessionId) {
             }
           }
 
-          if (!teamMap[teamName]) {
-            teamMap[teamName] = [];
+          const teamKey = p.team_id || teamName;
+          if (!teamMap[teamKey]) {
+            teamMap[teamKey] = { name: teamName, members: [] };
           }
-          teamMap[teamName].push(p);
+          teamMap[teamKey].members.push(p);
         }
       }
 
       // Determine scoring mode from session state (ref for freshest value)
-      const scoringMode = (sessionObj || sessionRef.current || session)?.team_scoring_mode || 'combined';
+      const scoringMode = currentSession?.team_scoring_mode || 'combined';
 
-      const groupedTeams = Object.entries(teamMap).map(([name, members]) => {
-        const totalScore = members.reduce((sum, m) => sum + (m.score || 0), 0);
-        const memberCount = members.length;
-        const displayScore = scoringMode === 'average' && memberCount > 0
-          ? Math.round(totalScore / memberCount)
-          : totalScore;
+      const groupedTeams = Object.values(teamMap).map(({ name, members }) => {
+        const isSharedDeviceTeam = members.some((m) => m.teams?.is_shared_device === true);
+        const rosterMembers = members.find((m) => Array.isArray(m.teamMembers) && m.teamMembers.length > 0)?.teamMembers;
+        const rosterNames = rosterMembers
+          ? rosterMembers.map((tm) => tm.users?.name || "Student")
+          : members.map((m) => m.users?.name || m.player_name || "Student");
+
+        const memberCount = isSharedDeviceTeam && rosterMembers
+          ? Math.max(members.length, rosterMembers.length)
+          : members.length;
+
+        // Shared device teams replicate the single team score to every teammate row at endQuiz();
+        // take the team's score once instead of multiplying by member count.
+        const totalScore = isSharedDeviceTeam
+          ? Math.max(0, ...members.map((m) => m.score || 0))
+          : members.reduce((sum, m) => sum + (m.score || 0), 0);
+
+        const displayScore = isSharedDeviceTeam
+          ? totalScore
+          : scoringMode === 'average' && memberCount > 0
+            ? Math.round(totalScore / memberCount)
+            : totalScore;
+
         return {
           name,
           members,
+          rosterNames,
           score: displayScore,
           totalScore,      // raw combined score (useful for debugging / reports)
           memberCount,     // so UI can show "(3 members)" context
@@ -499,6 +640,8 @@ export default function useTeacherSession(sessionId) {
 
       setTeams(groupedTeams);
     }
+
+    return participantsWithTeams;
   };
 
   const loadLiveAnswers = async (questionId) => {
@@ -676,6 +819,11 @@ export default function useTeacherSession(sessionId) {
       }
 
       console.log('[TeacherControl] Mode updated successfully to:', mode);
+      try {
+        sessionStorage.setItem(`quizapp_mode_selected_${sessionId}`, "1");
+      } catch {
+        // Ignore storage write errors
+      }
       setSelectedMode(mode);
       setShowModeSelection(false);
 
@@ -695,7 +843,8 @@ export default function useTeacherSession(sessionId) {
       };
       setSession(prev => prev ? { ...prev, ...updatedFields } : prev);
       // Keep a local reference for the immediate loadParticipants call below
-      const updatedSession = { ...session, ...updatedFields };
+      const updatedSession = { ...(sessionRef.current || session), ...updatedFields };
+      sessionRef.current = updatedSession;
 
       // Immediately reload participants with the new mode
       await loadParticipants(updatedSession);
@@ -797,7 +946,8 @@ export default function useTeacherSession(sessionId) {
   };
 
   const showQuestion = async (questionIndex) => {
-    const questionsToUse = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
+    const questionsToUse =
+      shuffledQuestionsRef.current.length > 0 ? shuffledQuestionsRef.current : questionsRef.current;
 
     if (questionIndex >= questionsToUse.length) {
       await endQuiz();
@@ -816,6 +966,7 @@ export default function useTeacherSession(sessionId) {
 
     try {
       const question = questionsToUse[questionIndex];
+      const activeMode = sessionRef.current?.mode || session?.mode;
 
       // Update database with current question with a timeout
       const { error: updateError } = await withTimeout(
@@ -830,13 +981,18 @@ export default function useTeacherSession(sessionId) {
 
       if (updateError) throw updateError;
 
-      // Clear any existing auto-advance timer
+      // Clear any existing auto-advance timers
       if (autoAdvanceTimerRef.current) {
         clearTimeout(autoAdvanceTimerRef.current);
         autoAdvanceTimerRef.current = null;
       }
+      if (earlyAdvanceTimerRef.current) {
+        clearTimeout(earlyAdvanceTimerRef.current);
+        earlyAdvanceTimerRef.current = null;
+      }
 
       setCurrentQuestion(question);
+      currentQuestionRef.current = question;
       setShowResults(false);
       setLiveAnswers([]); // Reset live answers for new question
       setAllStudentsAnswered(false); // Reset for new question
@@ -850,15 +1006,15 @@ export default function useTeacherSession(sessionId) {
         setQuestionTimeRemaining(question.time_limit);
 
         // Auto-advance after time limit + 4 seconds for answer reveal (classic/team only)
-        if (session?.mode !== 'defuse') {
+        if ((sessionRef.current?.mode || activeMode) !== 'defuse') {
           clearTimeout(autoAdvanceTimerRef.current);
           autoAdvanceTimerRef.current = setTimeout(() => {
-            showQuestionResults(questionIndex);
+            showQuestionResultsRef.current?.(questionIndex);
           }, (question.time_limit + 4) * 1000);
         }
       };
 
-      if (session.mode === 'team' || session.mode === 'defuse') {
+      if (activeMode === 'team' || activeMode === 'defuse') {
         // Team Mode & Defuse Mode: 5 second thinking time + 4 second answer reveal
         setIsThinkingTime(true);
         setQuestionTimeRemaining(5);
@@ -869,6 +1025,13 @@ export default function useTeacherSession(sessionId) {
           current_question_index: questionIndex,
           status: "question_active",
         } : prev);
+        if (sessionRef.current) {
+          sessionRef.current = {
+            ...sessionRef.current,
+            current_question_index: questionIndex,
+            status: "question_active",
+          };
+        }
 
         // Load answers
         await loadLiveAnswers(question.id);
@@ -886,6 +1049,13 @@ export default function useTeacherSession(sessionId) {
           current_question_index: questionIndex,
           status: "question_active",
         } : prev);
+        if (sessionRef.current) {
+          sessionRef.current = {
+            ...sessionRef.current,
+            current_question_index: questionIndex,
+            status: "question_active",
+          };
+        }
 
         await loadLiveAnswers(question.id);
         startActualTimer();
@@ -898,15 +1068,18 @@ export default function useTeacherSession(sessionId) {
   };
 
   const handleShowResults = () => {
-    // Button only appears when all students have answered, so proceed directly
     proceedToResults();
   };
 
   const proceedToResults = () => {
-    // Cancel auto-advance timer
+    // Cancel auto-advance timers
     if (autoAdvanceTimerRef.current) {
       clearTimeout(autoAdvanceTimerRef.current);
       autoAdvanceTimerRef.current = null;
+    }
+    if (earlyAdvanceTimerRef.current) {
+      clearTimeout(earlyAdvanceTimerRef.current);
+      earlyAdvanceTimerRef.current = null;
     }
     // Use ref to avoid stale closure
     const cqi = sessionRef.current?.current_question_index ?? session?.current_question_index ?? 0;
@@ -927,7 +1100,8 @@ export default function useTeacherSession(sessionId) {
         return;
       }
 
-      const questionsToUse = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
+      const questionsToUse =
+        shuffledQuestionsRef.current.length > 0 ? shuffledQuestionsRef.current : questionsRef.current;
 
       // Get all answers for this question
       const { data: answers, error } = await supabase
@@ -941,10 +1115,11 @@ export default function useTeacherSession(sessionId) {
       // Prepare session update payload
       const updatePayload = { status: "showing_results" };
 
-      if (session?.mode === "defuse") {
-        const totalTakers = participants.length > 0 ? participants.length : (answers || []).length;
+      if (currentSession.mode === "defuse") {
+        const currentParticipants = participantsRef.current;
+        const totalTakers = currentParticipants.length > 0 ? currentParticipants.length : (answers || []).length;
         const incorrectCount = (answers || []).filter((a) => !a.is_correct).length;
-        const totalTime = bombTotalTimeRef.current || calculateTotalQuizTime(questions);
+        const totalTime = bombTotalTimeRef.current || calculateTotalQuizTime(questionsRef.current);
         const penalty = calculateDefusePenalty(totalTakers, incorrectCount, totalTime);
         const currentRemaining = bombTimeRemainingRef.current;
         const updatedRemaining = Math.max(0, currentRemaining - penalty.deductionSeconds);
@@ -977,6 +1152,8 @@ export default function useTeacherSession(sessionId) {
     }
   };
 
+  showQuestionResultsRef.current = showQuestionResults;
+
   const nextQuestion = async () => {
     // Re-read current_question_index from DB to avoid stale-closure drift
     try {
@@ -1004,7 +1181,7 @@ export default function useTeacherSession(sessionId) {
         .eq("id", sessionId);
 
       // Handle shared device mode - attribute results to all team members
-      if (session.mode === 'team') {
+      if ((sessionRef.current?.mode || session?.mode) === 'team') {
         try {
           console.log('[TeacherControl] Checking for shared device teams...');
 
@@ -1094,7 +1271,7 @@ export default function useTeacherSession(sessionId) {
       title: "End Session",
       message: "Are you sure you want to end this session? This will cancel the quiz for all students.",
       onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, isOpen: false });
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         await endQuiz("cancelled");
         if (onComplete) onComplete();
       }

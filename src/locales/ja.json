@@ -46,7 +46,13 @@
     "ok": "OK",
     "viewMore": "もっと見る",
     "viewLess": "閉じる",
-    "refresh": "更新"
+    "refresh": "更新",
+    "noAnswer": "-",
+    "unknownOption": "不明な選択肢",
+    "correct": "正解",
+    "incorrect": "不正解",
+    "remove": "削除",
+    "image": "画像"
   },
   "nav": {
     "dashboard": "ダッシュボード",
@@ -153,7 +159,13 @@
     "registrationSuccessDetailed": "登録が完了しました！メールを確認してアカウントを有効にしてください。その後、スーパー管理者がアカウントを承認します。",
     "showPassword": "パスワードを表示",
     "hidePassword": "パスワードを隠す",
-    "tagline": "授業用クイズ、チーム対抗戦、リアルタイムな学習分析。"
+    "tagline": "授業用クイズ、チーム対抗戦、リアルタイムな学習分析。",
+    "successConnected": "準備完了！{{name}}先生のクラスに接続されました。",
+    "welcomeTeacher": "ようこそ！教師プロフィールの準備ができました。",
+    "teacherPendingApproval": "教師プロフィールが送信されました。管理者の承認をお待ちください。",
+    "noEmailForResend": "メールアドレスが見つかりません。もう一度登録してください。",
+    "studentIdPlaceholder": "例: 12345",
+    "unexpectedError": "予期しないエラーが発生しました。もう一度お試しください。"
   },
   "quiz": {
     "quiz": "クイズ",
@@ -229,7 +241,11 @@
     "getReady": "準備して！",
     "revealing": "表示中",
     "importCSV": "CSVをインポート",
-    "shuffleQuestions": "シャッフル"
+    "shuffleQuestions": "シャッフル",
+    "survey": "アンケート",
+    "surveyUngraded": "アンケート（採点なし）",
+    "trueOption": "正しい",
+    "falseOption": "誤り"
   },
   "folder": {
     "folder": "フォルダー",
@@ -267,7 +283,8 @@
     "deleteQuizConfirm": "このクイズを削除してもよろしいですか？",
     "deleteQuizzesConfirm": "選択した{{count}}個のクイズを削除しますか？",
     "cannotMoveIntoItself": "フォルダーを自分自身に移動することはできません",
-    "cannotMoveIntoSubfolder": "フォルダーを自分のサブフォルダーに移動することはできません"
+    "cannotMoveIntoSubfolder": "フォルダーを自分のサブフォルダーに移動することはできません",
+    "sortQuizzes": "クイズを並び替え"
   },
   "session": {
     "pin": "PIN",
@@ -571,7 +588,8 @@
     "googleSignInFailed": "Googleサインインに失敗しました",
     "failedToInitiateGoogleSignIn": "Googleサインインの開始に失敗しました。もう一度お試しください。",
     "registrationSuccessDetailed": "登録が完了しました！メールを確認してアカウントを有効にしてください。その後、スーパー管理者がアカウントを承認します。",
-    "studentAlreadyRegistered": "すでに {{email}} というメールアドレスで正常に登録されています。先生がアカウントを承認するまでお待ちください。"
+    "studentAlreadyRegistered": "すでに {{email}} というメールアドレスで正常に登録されています。先生がアカウントを承認するまでお待ちください。",
+    "errorUnassigning": "課題の解除中にエラーが発生しました"
   },
   "messages": {
     "quizDuplicatedSuccess": "クイズが正常に複製されました！",
@@ -715,7 +733,17 @@
     "lastLiveNever": "最終ライブ実施日: 未実施",
     "actionViewReports": "レポートを表示",
     "tableHeaderActions": "操作",
-    "actionViewReport": "セッションパフォーマンスを表示"
+    "actionViewReport": "セッションパフォーマンスを表示",
+    "surveyQuizzes": "アンケート",
+    "tableHeaderSurveyTitle": "アンケートタイトル",
+    "tableHeaderLastAdministered": "最終実施日",
+    "tableHeaderTimesAdministered": "実施回数",
+    "neverAdministered": "未実施",
+    "time": "回",
+    "times": "回",
+    "mostPopular": "最多回答",
+    "studentAnswer": "回答",
+    "correctAnswer": "正解"
   },
   "studentReport": {
     "totalQuizzes": "総クイズ数",
@@ -733,7 +761,8 @@
     "toggleType": "タイプを切り替え",
     "typeUpdated": "クイズのタイプが{{type}}に変更されました",
     "typeUpdateError": "クイズタイプの更新に失敗しました",
-    "correctTotal": "正解数"
+    "correctTotal": "正解数",
+    "fetchDetailsError": "クイズの詳細を読み込めませんでした"
   },
   "manageStudents": {
     "title": "学生管理",
@@ -840,7 +869,11 @@
     "saveChanges": "変更を保存",
     "passwordHint": "現在のパスワードを維持する場合は空欄のままにしてください",
     "updateStudentSuccess": "学生情報が更新されました！",
-    "errorUpdatingStudent": "学生情報の更新中にエラーが発生しました： "
+    "errorUpdatingStudent": "学生情報の更新中にエラーが発生しました： ",
+    "studentCreatedTitle": "学生アカウントを作成しました！",
+    "studentCreatedMessage": "学生アカウントが正常に作成されました。",
+    "copyCredentialsWarning": "この認証情報は今すぐコピーしてください。再表示されません。",
+    "createAnother": "続けて作成"
   },
   "assignQuiz": {
     "title": "クイズを割り当て",
@@ -917,7 +950,8 @@
     "notAnswered": "未回答",
     "deadlinePassed": "このクイズの締め切りは過ぎています。",
     "noQuestions": "このクイズには問題がないか、表示する権限がありません。",
-    "timeUpMessage": "この質問にはもう回答できません。"
+    "timeUpMessage": "この質問にはもう回答できません。",
+    "readingTime": "問題閲覧タイム"
   },
   "teacherControl": {
     "assignQuiz": "クイズを割り当て",

@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { ArrowLeft, Users, Check } from "lucide-react";
 import { normalizeTeamCode } from "../../utils/teamCode";
 import { leaveTeamAndSession } from "../../utils/teamCleanup";
+import { saveActiveSession } from "../../utils/sessionPersistence";
 
 export default function JoinTeam({ appState, setView, session, onBack }) {
   const { t } = useTranslation();
@@ -57,12 +58,14 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
       if (existingParticipant) {
         if (existingParticipant.team_id === team.id) {
           // Already in this exact team — rejoin directly
+          saveActiveSession(session.id, { pin: session.pin });
           setView("student-quiz", session.id);
           return;
         }
 
         if (session.status !== "waiting") {
           // Quiz already started — cannot switch teams mid-game
+          saveActiveSession(session.id, { pin: session.pin });
           setView("student-quiz", session.id);
           return;
         }
@@ -135,6 +138,7 @@ export default function JoinTeam({ appState, setView, session, onBack }) {
       }
 
       // Navigate to quiz
+      saveActiveSession(session.id, { pin: session.pin });
       setView("student-quiz", session.id);
     } catch (err) {
       console.error("Error joining team:", err);

@@ -23,6 +23,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
   const [error, setError] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
+  const [lastPointsEarned, setLastPointsEarned] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(true);
@@ -95,8 +96,17 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
     }
   };
 
-  // Helper function to get background style
+  // Helper function to get background style (custom quiz background takes precedence over theme)
   const getBackgroundStyle = () => {
+    if (quiz?.background_image_url) {
+      return {
+        backgroundImage: `url(${quiz.background_image_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      };
+    }
+
     if (theme?.background_image_url) {
       return {
         backgroundImage: `url(${theme.background_image_url})`,
@@ -109,15 +119,6 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
     if (theme) {
       return {
         background: `linear-gradient(135deg, ${theme.primary_color}, ${theme.secondary_color})`,
-      };
-    }
-
-    if (quiz?.background_image_url) {
-      return {
-        backgroundImage: `url(${quiz.background_image_url})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
       };
     }
 
@@ -177,14 +178,21 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
     setSelectedOption(optionIndex);
     setHasAnswered(true);
 
-    const isCorrect = currentQuestion.options[optionIndex].is_correct;
+    const isSurvey = Boolean(quiz?.is_survey);
+    const isCorrect = isSurvey ? false : Boolean(currentQuestion.options[optionIndex]?.is_correct);
     setWasCorrect(isCorrect);
 
     if (isCorrect) {
       // Calculate points based on time remaining
-      const timeBonus = Math.floor((timeRemaining / currentQuestion.time_limit) * 100);
-      const points = currentQuestion.points + timeBonus;
+      const basePoints = currentQuestion.points || 0;
+      const timeBonus = currentQuestion.time_limit > 0
+        ? Math.floor((timeRemaining / currentQuestion.time_limit) * basePoints)
+        : 0;
+      const points = basePoints + timeBonus;
+      setLastPointsEarned(points);
       setScore(score + points);
+    } else {
+      setLastPointsEarned(0);
     }
 
     setShowResults(true);
@@ -197,6 +205,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
       setHasAnswered(false);
       setShowResults(false);
       setWasCorrect(false);
+      setLastPointsEarned(0);
       setTimeRemaining(questions[currentQuestionIndex + 1].time_limit);
       // Reset answer reveal for next question
       setShowAnswers(false);
@@ -442,7 +451,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                   // Skip empty options (no text and no image)
                   if (!opt.text && !opt.image_url) return null;
 
-                  const style = answerStyles[idx];
+                  const style = answerStyles[idx % answerStyles.length];
                   const IconComponent = style.icon;
 
                   return (
@@ -511,7 +520,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                   // Skip empty options (no text and no image)
                   if (!opt.text && !opt.image_url) return null;
 
-                  const style = answerStyles[idx];
+                  const style = answerStyles[idx % answerStyles.length];
                   const IconComponent = style.icon;
                   const isCorrect = !quiz?.is_survey && opt.is_correct;
                   const highlight = quiz?.is_survey ? selectedOption === idx : isCorrect;
@@ -573,7 +582,7 @@ export default function PreviewQuiz({ quizId, setView, returnView = "manage-quiz
                   {quiz?.is_survey
                     ? "Thank you for your response."
                     : wasCorrect
-                    ? `+${currentQuestion.points} points!`
+                    ? `+${lastPointsEarned} points!`
                     : "Better luck next time!"}
                 </p>
               </div>

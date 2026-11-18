@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { ArrowLeft, Users, Check, Copy, Monitor, Smartphone, UserPlus, Link, AlertTriangle } from "lucide-react";
 import { generateTeamCode } from "../../utils/teamCode";
 import { leaveTeamAndSession } from "../../utils/teamCleanup";
+import { saveActiveSession } from "../../utils/sessionPersistence";
 import JoinTeam from "./JoinTeam";
 
 export default function CreateTeam({ appState, setView, error, setError, onBack, isApproved }) {
@@ -33,16 +34,18 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
   const [teamMembers, setTeamMembers] = useState([]);
   const [cancellingTeam, setCancellingTeam] = useState(false);
 
-  // Check if returning from StudentQuiz waiting room via "Leave / Switch Team"
+  // Check if returning from StudentQuiz waiting room via "Leave / Switch Team" or handed off from PIN entry
   useEffect(() => {
     const switchSessionId = sessionStorage.getItem('quizapp_switch_team_session_id');
+    const directCreate = sessionStorage.getItem('quizapp_create_team_direct') === '1';
     if (switchSessionId) {
       sessionStorage.removeItem('quizapp_switch_team_session_id');
-      loadSessionForTeamSwitch(switchSessionId);
+      sessionStorage.removeItem('quizapp_create_team_direct');
+      loadSessionForTeamSwitch(switchSessionId, directCreate);
     }
   }, []);
 
-  const loadSessionForTeamSwitch = async (sessionId) => {
+  const loadSessionForTeamSwitch = async (sessionId, directCreate = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -53,10 +56,15 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
         .single();
 
       if (sErr) throw sErr;
-      if (foundSession && foundSession.status !== 'completed' && foundSession.mode === 'team') {
+      if (
+        foundSession &&
+        foundSession.status !== 'completed' &&
+        foundSession.status !== 'cancelled' &&
+        foundSession.mode === 'team'
+      ) {
         setSession(foundSession);
         setQuizPin(foundSession.pin || "");
-        setShowTeamOptions(true);
+        setShowTeamOptions(!directCreate);
       }
     } catch (err) {
       console.error("[CreateTeam] Error loading session for team switch:", err);
@@ -186,7 +194,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
       const foundSession = sessions[0];
 
-      if (foundSession.status === 'completed') {
+      if (foundSession.status === 'completed' || foundSession.status === 'cancelled') {
         setError(t('errors.quizAlreadyEnded'));
         setLoading(false);
         return;
@@ -210,6 +218,7 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
       if (existingParticipant) {
         // Already in session — rejoin directly
+        saveActiveSession(foundSession.id, { pin: foundSession.pin });
         setView("student-quiz", foundSession.id);
         return;
       }
@@ -310,6 +319,8 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
       setCreatedTeam(team);
       setTeamCreated(true);
+
+      saveActiveSession(session.id, { pin: session.pin });
 
       // For separate devices mode, show team code screen
       // For shared device mode, navigate directly to quiz
@@ -501,7 +512,10 @@ export default function CreateTeam({ appState, setView, error, setError, onBack,
 
           <div className="space-y-2">
             <button
-              onClick={() => setView("student-quiz", session.id)}
+              onClick={() => {
+                saveActiveSession(session.id, { pin: session.pin });
+                setView("student-quiz", session.id);
+              }}
               className="w-full bg-blue-600 text-white p-3.5 rounded-xl hover:bg-blue-700 text-lg font-semibold shadow-md transition-colors"
             >
               {t('student.continueToQuiz')}

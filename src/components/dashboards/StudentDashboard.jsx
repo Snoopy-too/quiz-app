@@ -193,6 +193,14 @@ export default function StudentDashboard({
               <Button
                 className="w-full justify-start p-4 h-auto text-left"
                 onClick={() => {
+                  if (joinQuiz.teamModeSession?.id) {
+                    try {
+                      sessionStorage.setItem("quizapp_switch_team_session_id", joinQuiz.teamModeSession.id);
+                      sessionStorage.setItem("quizapp_create_team_direct", "1");
+                    } catch {
+                      // Ignore storage error
+                    }
+                  }
                   joinQuiz.setShowTeamModeOptions(false);
                   setSubView("create-team");
                 }}

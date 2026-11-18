@@ -7,6 +7,9 @@ import { supabase } from "../supabaseClient";
  * Preserves PNG format for transparency
  */
 const resizeImage = (file) => {
+  if (file.type === 'image/gif' || file.type === 'image/webp') {
+    return Promise.resolve(file);
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);

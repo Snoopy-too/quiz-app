@@ -22,19 +22,24 @@ export default function AssignQuizModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Calculate minimum deadline (1 hour from now)
+  const toLocalDateTimeInputValue = (date) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  // Calculate minimum deadline (1 hour from now) in local wall-clock time
   const getMinDeadline = () => {
     const now = new Date();
     now.setHours(now.getHours() + 1);
-    return now.toISOString().slice(0, 16);
+    return toLocalDateTimeInputValue(now);
   };
 
-  // Calculate default deadline (1 week from now)
+  // Calculate default deadline (1 week from now at 23:59 local time)
   const getDefaultDeadline = () => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
     date.setHours(23, 59, 0, 0);
-    return date.toISOString().slice(0, 16);
+    return toLocalDateTimeInputValue(date);
   };
 
   useEffect(() => {
@@ -79,14 +84,6 @@ export default function AssignQuizModal({
     setSelectedStudents(newSelected);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedStudents.size === filteredStudents.length) {
-      setSelectedStudents(new Set());
-    } else {
-      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
-    }
-  };
-
   const filteredStudents = students
     .filter(student => {
       const term = searchTerm.toLowerCase();
@@ -107,6 +104,20 @@ export default function AssignQuizModal({
       }
       return (a.name || "").localeCompare(b.name || "");
     });
+
+  const allFilteredSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((s) => selectedStudents.has(s.id));
+
+  const toggleSelectAll = () => {
+    const newSelected = new Set(selectedStudents);
+    if (allFilteredSelected) {
+      filteredStudents.forEach((s) => newSelected.delete(s.id));
+    } else {
+      filteredStudents.forEach((s) => newSelected.add(s.id));
+    }
+    setSelectedStudents(newSelected);
+  };
 
   const handleAssign = async () => {
     if (selectedStudents.size === 0) {
@@ -131,6 +142,11 @@ export default function AssignQuizModal({
       if (questionsError) throw questionsError;
 
       const totalQuestions = questions?.length || 0;
+      if (totalQuestions === 0) {
+        setError(t("errors.noQuestions", "This quiz has no questions yet."));
+        setSubmitting(false);
+        return;
+      }
       const questionOrder = questions?.map(q => q.id) || [];
 
       // Shuffle question order for each assignment
@@ -258,7 +274,7 @@ export default function AssignQuizModal({
                 onClick={toggleSelectAll}
                 className="whitespace-nowrap"
               >
-                {selectedStudents.size === filteredStudents.length && filteredStudents.length > 0
+                {allFilteredSelected
                   ? t("assignQuiz.deselectAll", "Deselect All")
                   : t("assignQuiz.selectAll", "Select All")}
               </Button>
@@ -326,7 +342,7 @@ export default function AssignQuizModal({
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-line bg-surface-muted/60 px-6 py-4">
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            {t("actions.cancel", "Cancel")}
+            {t("common.cancel", "Cancel")}
           </Button>
           <Button
             variant="primary"

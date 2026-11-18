@@ -47,7 +47,7 @@ export async function fetchTeacherDashboardSummary(
       .order("deadline", { ascending: true }),
     supabase
       .from("quiz_sessions")
-      .select("id, quiz_answers(is_correct)")
+      .select("id, quizzes(is_survey), quiz_answers(is_correct)")
       .eq("host_id", teacherId)
       .eq("status", "completed")
       .gte("created_at", sevenDaysAgo),
@@ -142,9 +142,11 @@ export async function fetchTeacherDashboardSummary(
     let totalAnswers = 0;
     let totalCorrect = 0;
     const rows = recentSessionsRes.data as Array<{
+      quizzes?: { is_survey?: boolean | null } | null;
       quiz_answers?: Array<{ is_correct: boolean | null }> | null;
     }>;
     for (const s of rows) {
+      if (s.quizzes?.is_survey) continue;
       for (const ans of s.quiz_answers || []) {
         totalAnswers += 1;
         if (ans.is_correct) totalCorrect += 1;
@@ -169,7 +171,7 @@ export async function fetchTeacherDashboardSummary(
 }
 
 async function detectActiveStudentSession(studentId: string): Promise<ActiveRejoinSession | null> {
-  const rejoinStatuses = ["waiting", "active", "question_active"];
+  const rejoinStatuses = ["waiting", "active", "question_active", "showing_results"];
   const savedSession = getActiveSession() as { sessionId?: string } | null;
 
   if (savedSession?.sessionId) {
@@ -260,7 +262,7 @@ export async function fetchStudentDashboardSummary(
       supabase
         .from("session_participants")
         .select(
-          "id, score, joined_at, quiz_sessions(status, quizzes(title, is_survey)), quiz_answers(is_correct)",
+          "id, score, joined_at, quiz_sessions(status, quizzes(title, is_survey, questions(id))), quiz_answers(is_correct)",
         )
         .eq("user_id", studentId)
         .order("joined_at", { ascending: false })
@@ -306,7 +308,11 @@ export async function fetchStudentDashboardSummary(
       joined_at: string | null;
       quiz_sessions?: {
         status?: string;
-        quizzes?: { title?: string | null; is_survey?: boolean | null } | null;
+        quizzes?: {
+          title?: string | null;
+          is_survey?: boolean | null;
+          questions?: Array<{ id: string }> | null;
+        } | null;
       } | null;
       quiz_answers?: Array<{ is_correct: boolean | null }> | null;
     }>
@@ -315,7 +321,7 @@ export async function fetchStudentDashboardSummary(
     .map((p) => {
       const answers = p.quiz_answers || [];
       const correctCount = answers.filter((a) => a.is_correct).length;
-      const totalCount = answers.length;
+      const totalCount = p.quiz_sessions?.quizzes?.questions?.length || answers.length;
       return {
         id: p.id,
         source: "session" as const,

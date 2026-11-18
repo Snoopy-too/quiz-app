@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import {
@@ -38,8 +39,9 @@ import {
   DEFAULT_THEME_TEXT_COLOR,
 } from "../../theme/themeDefaults";
 
-export default function PublicQuizzes({ setView, appState, viewType = "public" }) {
+export default function PublicQuizzes({ appState, viewType = "public" }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [publicQuizzes, setPublicQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,7 +80,8 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
         .from("quizzes")
         .select("id, source_quiz_id, imported_at")
         .eq("created_by", user.user.id)
-        .not("source_quiz_id", "is", null);
+        .not("source_quiz_id", "is", null)
+        .order("imported_at", { ascending: true });
 
       if (fetchError) throw fetchError;
 
@@ -212,34 +215,73 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
 
       if (questionsError) throw questionsError;
 
-      // Create new quiz in user's account
-      const { data: newQuiz, error: newQuizError } = await supabase
-        .from("quizzes")
-        .insert([
-          {
+      const nowIso = new Date().toISOString();
+      const existingImport = importedQuizzes[quizId];
+      let savedQuiz = null;
+
+      if (existingImport?.importedQuizId) {
+        const { data: updatedQuiz, error: updateError } = await supabase
+          .from("quizzes")
+          .update({
             title: `${quiz.title} (Imported)`,
             theme_id: quiz.theme_id || null,
             category_id: quiz.category_id,
-            created_by: appState.currentUser.id,
             background_image_url: quiz.background_image_url || null,
             randomize_questions: quiz.randomize_questions,
             randomize_answers: quiz.randomize_answers,
-            is_template: false,
-            is_public: false, // Imported quizzes are private by default
-            folder_id: null,
-            source_quiz_id: quizId, // Track which public quiz this was imported from
-            imported_at: new Date().toISOString() // Track when it was imported
-          },
-        ])
-        .select()
-        .single();
+            is_survey: quiz.is_survey || false,
+            is_course_material: quiz.is_course_material ?? true,
+            imported_at: nowIso,
+          })
+          .eq("id", existingImport.importedQuizId)
+          .eq("created_by", appState.currentUser.id)
+          .select()
+          .maybeSingle();
 
-      if (newQuizError) throw newQuizError;
+        if (updateError) throw updateError;
+        if (updatedQuiz) {
+          savedQuiz = updatedQuiz;
+          const { error: deleteQuestionsError } = await supabase
+            .from("questions")
+            .delete()
+            .eq("quiz_id", savedQuiz.id);
+          if (deleteQuestionsError) throw deleteQuestionsError;
+        }
+      }
+
+      if (!savedQuiz) {
+        // Create new quiz in user's account
+        const { data: insertedQuiz, error: newQuizError } = await supabase
+          .from("quizzes")
+          .insert([
+            {
+              title: `${quiz.title} (Imported)`,
+              theme_id: quiz.theme_id || null,
+              category_id: quiz.category_id,
+              created_by: appState.currentUser.id,
+              background_image_url: quiz.background_image_url || null,
+              randomize_questions: quiz.randomize_questions,
+              randomize_answers: quiz.randomize_answers,
+              is_template: false,
+              is_public: false, // Imported quizzes are private by default
+              folder_id: null,
+              is_survey: quiz.is_survey || false,
+              is_course_material: quiz.is_course_material ?? true,
+              source_quiz_id: quizId, // Track which public quiz this was imported from
+              imported_at: nowIso // Track when it was imported
+            },
+          ])
+          .select()
+          .single();
+
+        if (newQuizError) throw newQuizError;
+        savedQuiz = insertedQuiz;
+      }
 
       // Copy questions
       if (questions && questions.length > 0) {
         const newQuestions = questions.map((q) => ({
-          quiz_id: newQuiz.id,
+          quiz_id: savedQuiz.id,
           question_text: q.question_text,
           question_type: q.question_type,
           time_limit: q.time_limit,
@@ -262,8 +304,8 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
       setImportedQuizzes(prev => ({
         ...prev,
         [quizId]: {
-          importedQuizId: newQuiz.id,
-          importedAt: newQuiz.imported_at
+          importedQuizId: savedQuiz.id,
+          importedAt: savedQuiz.imported_at
         }
       }));
 
@@ -285,13 +327,14 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
 
   // Get filtered and sorted quizzes
   const getDisplayedQuizzes = () => {
-    let displayed = publicQuizzes;
+    let displayed = [...publicQuizzes];
 
     // Apply search
     if (searchQuery) {
+      const qLower = searchQuery.toLowerCase();
       displayed = displayed.filter((quiz) =>
-        quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        quiz.creatorName.toLowerCase().includes(searchQuery.toLowerCase())
+        (quiz.title || "").toLowerCase().includes(qLower) ||
+        (quiz.creatorName || "").toLowerCase().includes(qLower)
       );
     }
 
@@ -299,9 +342,9 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
     if (sortBy === "created_at") {
       displayed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortBy === "title") {
-      displayed.sort((a, b) => a.title.localeCompare(b.title));
+      displayed.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     } else if (sortBy === "creator") {
-      displayed.sort((a, b) => a.creatorName.localeCompare(b.creatorName));
+      displayed.sort((a, b) => (a.creatorName || "").localeCompare(b.creatorName || ""));
     }
 
     return displayed;
@@ -571,7 +614,13 @@ export default function PublicQuizzes({ setView, appState, viewType = "public" }
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setView("preview-quiz", quiz.id)}
+              onClick={() =>
+                navigate(
+                  `/teacher/quizzes/${quiz.id}/preview?returnTo=${
+                    viewType === "global" ? "global-quizzes" : "public-quizzes"
+                  }`
+                )
+              }
               title={t("actions.preview")}
             >
               <Eye className="h-3.5 w-3.5" aria-hidden="true" />

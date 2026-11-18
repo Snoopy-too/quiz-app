@@ -68,13 +68,54 @@ function generateTempId() {
 }
 
 /**
+ * Split raw CSV text into logical records while preserving newlines inside quoted fields.
+ * @param {string} csvContent
+ * @returns {string[]}
+ */
+function splitCSVRecords(csvContent) {
+  const text = csvContent.replace(/^\uFEFF/, '');
+  const records = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        current += '""';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+        current += char;
+      }
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && text[i + 1] === '\n') {
+        i++;
+      }
+      if (current.trim() !== '') {
+        records.push(current);
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim() !== '') {
+    records.push(current);
+  }
+
+  return records;
+}
+
+/**
  * Parse CSV content into quiz data
  * @param {string} csvContent - Raw CSV file content
  * @param {string} [fileName] - Original file name (used for title when CSV has no title row)
  * @returns {{ title: string, questions: Array }} Parsed quiz data
  */
 export function parseKahootCSV(csvContent, fileName) {
-  const lines = csvContent.split(/\r?\n/).filter(line => line.trim() !== '');
+  const lines = splitCSVRecords(csvContent);
 
   if (lines.length < 2) {
     throw new Error('CSV file must have at least a header and one question');
@@ -107,6 +148,9 @@ export function parseKahootCSV(csvContent, fileName) {
     }
   }
 
+  const headerFields = parseCSVLine(lines[headerIndex]).map(h => h.toLowerCase());
+  const headerHasTimeCol = headerFields.some(h => h.includes('time'));
+
   const questions = [];
 
   // Parse question rows (everything after header)
@@ -115,6 +159,7 @@ export function parseKahootCSV(csvContent, fileName) {
     if (!line.trim()) continue;
 
     const fields = parseCSVLine(line);
+    if (fields.every(f => !f)) continue;
 
     // Expect at least: Question Number, Question, 2 Options, Correct Answer
     if (fields.length < 5) {
@@ -122,37 +167,58 @@ export function parseKahootCSV(csvContent, fileName) {
       continue;
     }
 
-    // Detect True/False vs Multiple Choice based on field count
-    const isTrueFalse = fields.length < 7;
-    let questionText, options, correctIndices;
+    const qText = fields[1] || '';
+    const opt1 = fields[2] || '';
+    const opt2 = fields[3] || '';
+    let opt3 = '';
+    let opt4 = '';
+    let rawCorrect = '';
+    let timeLimit = 30;
+    let isTrueFalse = false;
 
-    if (isTrueFalse) {
-      const [, qText, opt1, opt2, correctAnswer] = fields;
-      questionText = qText;
-      const numOptions = 2;
-      correctIndices = correctAnswer
-        .split(/[,;]/)
-        .map(s => parseInt(s.trim(), 10) - 1)
-        .filter(n => !isNaN(n) && n >= 0 && n < numOptions);
-      options = [opt1, opt2].map((text, index) => ({
-        text: text || '',
-        is_correct: correctIndices.includes(index),
-        image_url: ''
-      }));
+    if (fields.length >= 8 || (headerHasTimeCol && fields.length >= 7)) {
+      opt3 = fields[4] || '';
+      opt4 = fields[5] || '';
+      const parsedTime = parseInt(fields[6], 10);
+      if (!isNaN(parsedTime) && parsedTime >= 5 && parsedTime <= 300) {
+        timeLimit = parsedTime;
+      }
+      rawCorrect = fields[7] || '';
+      isTrueFalse = !opt3.trim() && !opt4.trim();
+    } else if (fields.length === 7) {
+      opt3 = fields[4] || '';
+      opt4 = fields[5] || '';
+      rawCorrect = fields[6] || '';
+      isTrueFalse = !opt3.trim() && !opt4.trim();
+    } else if (fields.length === 6) {
+      isTrueFalse = true;
+      const fourthVal = (fields[4] || '').trim();
+      const parsedTime = parseInt(fourthVal, 10);
+      if (headerHasTimeCol || (fields[5] && /^\d+$/.test(fourthVal) && parsedTime >= 5)) {
+        if (!isNaN(parsedTime) && parsedTime >= 5 && parsedTime <= 300) {
+          timeLimit = parsedTime;
+        }
+        rawCorrect = fields[5] || '';
+      } else {
+        rawCorrect = fields[4] || '';
+      }
     } else {
-      const [, qText, opt1, opt2, opt3, opt4, correctAnswer] = fields;
-      questionText = qText;
-      const numOptions = 4;
-      correctIndices = correctAnswer
-        .split(/[,;]/)
-        .map(s => parseInt(s.trim(), 10) - 1)
-        .filter(n => !isNaN(n) && n >= 0 && n < numOptions);
-      options = [opt1, opt2, opt3, opt4].map((text, index) => ({
-        text: text || '',
-        is_correct: correctIndices.includes(index),
-        image_url: ''
-      }));
+      isTrueFalse = true;
+      rawCorrect = fields[4] || '';
     }
+
+    const optionTexts = isTrueFalse ? [opt1, opt2] : [opt1, opt2, opt3, opt4];
+    const numOptions = optionTexts.length;
+    const correctIndices = rawCorrect
+      .split(/[,;]/)
+      .map(s => parseInt(s.trim(), 10) - 1)
+      .filter(n => !isNaN(n) && n >= 0 && n < numOptions);
+
+    const options = optionTexts.map((text, index) => ({
+      text: text || '',
+      is_correct: correctIndices.includes(index),
+      image_url: ''
+    }));
 
     // Validate that at least one correct answer exists
     if (!options.some(opt => opt.is_correct)) {
@@ -162,9 +228,9 @@ export function parseKahootCSV(csvContent, fileName) {
 
     questions.push({
       tempId: generateTempId(),
-      question_text: questionText || '',
+      question_text: qText,
       question_type: isTrueFalse ? 'true_false' : 'multiple_choice',
-      time_limit: 30,
+      time_limit: timeLimit,
       points: 100,
       image_url: '',
       video_url: '',

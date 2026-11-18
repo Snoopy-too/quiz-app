@@ -145,7 +145,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      editor.dirty && currentLocation.pathname !== nextLocation.pathname,
+      editor.shouldBlockNavigation() && currentLocation.pathname !== nextLocation.pathname,
   );
 
   const activeQuestion: EditorQuestion | undefined = editor.questions[editor.activeIndex];
@@ -534,7 +534,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                       {t("quiz.question")} {editor.activeIndex + 1}
                     </Badge>
                     {editor.metadata.is_survey && (
-                      <Badge variant="neutral">Survey</Badge>
+                      <Badge variant="neutral">{t("quiz.survey", "Survey")}</Badge>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -964,7 +964,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                               editor.updateMetadata({ is_survey: e.target.checked })
                             }
                           />
-                          <span>Survey (ungraded)</span>
+                          <span>{t("quiz.surveyUngraded", "Survey (ungraded)")}</span>
                         </label>
                       </div>
                     </div>

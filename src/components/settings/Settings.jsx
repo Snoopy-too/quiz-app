@@ -177,7 +177,6 @@ export default function Settings({ setView, appState, setAppState }) {
         .from("users")
         .update({
           name: profileForm.name,
-          email: profileForm.email,
           avatar_url: profileForm.avatar_url
         })
         .eq("id", appState.currentUser.id);
@@ -190,7 +189,6 @@ export default function Settings({ setView, appState, setAppState }) {
         currentUser: {
           ...prev.currentUser,
           name: profileForm.name,
-          email: profileForm.email,
           avatar_url: profileForm.avatar_url
         }
       }));
@@ -317,12 +315,12 @@ export default function Settings({ setView, appState, setAppState }) {
                   </label>
                   <input
                     type="email"
-                    required
+                    readOnly
+                    disabled
                     placeholder="your.email@example.com"
                     title="Email Address"
                     value={profileForm.email}
-                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   />
                 </div>
 

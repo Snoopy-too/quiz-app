@@ -128,6 +128,7 @@ export default function StudentReport({
             quizId: p.quiz_sessions.quizzes.id,
             title: p.quiz_sessions.quizzes.title,
             date: new Date(p.quiz_sessions.created_at).toLocaleDateString(),
+            rawDate: p.quiz_sessions.created_at,
             score: p.score,
             correctAnswers,
             totalQuestions,
@@ -152,6 +153,7 @@ export default function StudentReport({
           quizId: a.quizzes?.id,
           title: a.quizzes?.title || 'Unknown Quiz',
           date: new Date(a.completed_at).toLocaleDateString(),
+          rawDate: a.completed_at,
           score: a.score,
           correctAnswers,
           totalQuestions,
@@ -161,7 +163,7 @@ export default function StudentReport({
       });
 
       const quizzesTaken = [...sessionQuizzes, ...assignmentQuizzes].sort((a, b) =>
-        new Date(b.date) - new Date(a.date)
+        new Date(b.rawDate || 0) - new Date(a.rawDate || 0)
       );
 
       // Separate course and non-course quizzes
@@ -414,7 +416,7 @@ export default function StudentReport({
           isCorrect: isCorrect,
           points: answer?.points_earned || 0,
           timeTaken: answer?.time_taken || 0,
-          type: question.type
+          type: question.question_type || question.type
         };
       });
 
@@ -493,11 +495,11 @@ export default function StudentReport({
               <div className="flex items-center gap-3 text-danger-600">
                 <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm font-medium">
-                  {t("error")}: {error}
+                  {t("common.error")}: {error}
                 </p>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setView("reports")}>
-                {t("back_to_reports")}
+                {t("common.back_to_reports")}
               </Button>
             </CardBody>
           </Card>
@@ -530,7 +532,7 @@ export default function StudentReport({
             className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            {t("back_to_reports")}
+            {t("common.back_to_reports")}
           </button>
         }
         title={student?.name || t("reports.student")}

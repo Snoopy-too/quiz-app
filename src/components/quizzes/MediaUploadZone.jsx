@@ -65,6 +65,7 @@ export default function MediaUploadZone({ type, accept, currentUrl, onFileSelect
     const handleInputChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
             onFileSelect(e.target.files[0], type);
+            e.target.value = "";
         }
     };
 

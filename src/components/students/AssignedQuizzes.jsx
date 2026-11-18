@@ -34,6 +34,7 @@ export default function AssignedQuizzes({ setView, appState, onStartAssignment }
           quizzes (
             id,
             title,
+            is_survey,
             category_id,
             categories (
               name
@@ -280,7 +281,9 @@ export default function AssignedQuizzes({ setView, appState, onStartAssignment }
                             <div className="flex items-center gap-2 text-green-600">
                               <CheckCircle size={18} />
                               <span className="font-medium">
-                                {t("assignedQuizzes.completedOn", "Completed")} - {t("assignedQuizzes.score", "Score")}: {assignment.score}/{assignment.total_questions * 100}
+                                {assignment.quizzes?.is_survey
+                                  ? t("assignedQuizzes.completedOn", "Completed")
+                                  : `${t("assignedQuizzes.completedOn", "Completed")} - ${t("assignedQuizzes.score", "Score")}: ${assignment.score ?? 0} ${t("quiz.points", "pts")} (${assignment.correct_answers ?? 0}/${assignment.total_questions || 0})`}
                               </span>
                             </div>
                           ) : assignment.status === "expired" ? (
@@ -298,11 +301,17 @@ export default function AssignedQuizzes({ setView, appState, onStartAssignment }
                               <span>
                                 <span className="font-medium">{t("assignedQuizzes.deadline", "Deadline")}:</span> {formatDeadline(assignment.deadline)}
                               </span>
-                              <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${
-                                isUrgent(assignment.deadline) ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
-                              }`}>
-                                {getTimeRemaining(assignment.deadline)} {t("assignedQuizzes.left", "left")}
-                              </span>
+                              {getTimeRemaining(assignment.deadline) ? (
+                                <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${
+                                  isUrgent(assignment.deadline) ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
+                                }`}>
+                                  {getTimeRemaining(assignment.deadline)} {t("assignedQuizzes.left", "left")}
+                                </span>
+                              ) : (
+                                <span className="ml-2 px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">
+                                  {t("assignedQuizzes.expired", "Expired")}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -336,12 +345,12 @@ export default function AssignedQuizzes({ setView, appState, onStartAssignment }
                       <div className="mt-4 pt-4 border-t">
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                           <span>{t("assignedQuizzes.progress", "Progress")}</span>
-                          <span>{assignment.current_question_index}/{assignment.total_questions}</span>
+                          <span>{assignment.current_question_index || 0}/{assignment.total_questions || 0}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-orange-500 h-2 rounded-full transition-all"
-                            style={{ width: `${(assignment.current_question_index / assignment.total_questions) * 100}%` }}
+                            style={{ width: `${Math.min(100, Math.round(((assignment.current_question_index || 0) / Math.max(1, assignment.total_questions || 1)) * 100))}%` }}
                           />
                         </div>
                       </div>

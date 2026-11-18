@@ -9,7 +9,7 @@ export const sanitizeInput = (input) => {
     // Remove HTML tags and script content
     return input
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<[^>]*>/g, '')
+        .replace(/<\/?[a-zA-Z][^>]*>/g, '')
         .trim();
 };
 

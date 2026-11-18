@@ -88,7 +88,7 @@ export default function WaitingLobby({
                     <p className="text-3xl font-bold">{teams.length}</p>
                     <p className="text-xl text-gray-600">teams joined</p>
                     <button
-                      onClick={loadParticipants}
+                      onClick={() => loadParticipants()}
                       className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Refresh participant count"
                     >
@@ -96,14 +96,18 @@ export default function WaitingLobby({
                     </button>
                   </div>
                   <p className="text-sm text-gray-500">
-                    👤 {teams.reduce((sum, team) => sum + (team.members?.length || 0), 0)} total participants
+                    👤 {teams.reduce((sum, team) => sum + (team.memberCount ?? team.members?.length ?? 0), 0)} total participants
                   </p>
                 </div>
 
                 {teams.length > 0 && (
                   <div className="mb-6 max-h-60 overflow-y-auto">
                     <div className="space-y-3">
-                      {teams.map((team, idx) => (
+                      {teams.map((team, idx) => {
+                        const rosterNames = team.rosterNames && team.rosterNames.length > 0
+                          ? team.rosterNames
+                          : team.members.map(m => m.users?.name || m.player_name || "Student");
+                        return (
                         <div
                           key={idx}
                           className="bg-blue-50 border border-blue-200 rounded-lg p-4"
@@ -112,10 +116,11 @@ export default function WaitingLobby({
                             {team.name}
                           </div>
                           <div className="text-sm text-gray-600">
-                            Members: {team.members.map(m => m.users?.name || m.player_name).join(", ")}
+                            Members: {rosterNames.join(", ")}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -131,7 +136,7 @@ export default function WaitingLobby({
                       : "players"}
                   </p>
                   <button
-                    onClick={loadParticipants}
+                    onClick={() => loadParticipants()}
                     className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                     title={t("common.refresh", "Refresh")}
                   >

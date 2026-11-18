@@ -170,10 +170,20 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
           setView?.("student-dashboard");
         }
       } else if (role === "teacher") {
-        setSuccess?.(
-          t("auth.welcomeTeacher") || "Welcome! Your teacher profile is ready.",
-        );
-        setView?.("teacher-dashboard");
+        if (!updatedUser.approved) {
+          sessionStorage.setItem("quizapp_registered_email", updatedUser.email);
+          await supabase.auth.signOut();
+          setSuccess?.(
+            t("auth.teacherPendingApproval") ||
+              "Your teacher profile has been submitted and is pending administrator approval.",
+          );
+          setView?.("login");
+        } else {
+          setSuccess?.(
+            t("auth.welcomeTeacher") || "Welcome! Your teacher profile is ready.",
+          );
+          setView?.("teacher-dashboard");
+        }
       } else if (role === "superadmin") {
         setSuccess?.(t("messages.profileUpdatedSuccess") || "Profile updated successfully.");
         setView?.("superadmin-dashboard");

@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
 import { ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle, Send, Loader2, Heart, Spade, Diamond, Club, Calendar } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
+import AutoPlayVideo from "../common/AutoPlayVideo";
 
 // Answer button styles (same as StudentQuiz)
 const answerStyles = [
@@ -21,11 +22,21 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { questionId: { optionIndex, isCorrect, timeTaken } }
   const submittingRef = useRef({});
+  const submitQuizRef = useRef(null);
+  const [expiredQuestions, setExpiredQuestions] = useState(() => {
+    if (!assignmentId) return {};
+    try {
+      const saved = sessionStorage.getItem(`quizapp_expired_assignment_q_${assignmentId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [startTime, setStartTime] = useState(null);
-  const [questionStartTime, setQuestionStartTime] = useState(null);
+  const [, setQuestionStartTime] = useState(null);
   const [showResults, setShowResults] = useState(viewResults);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
@@ -35,14 +46,21 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
 
   useEffect(() => {
     if (assignmentId) {
+      try {
+        const saved = sessionStorage.getItem(`quizapp_expired_assignment_q_${assignmentId}`);
+        setExpiredQuestions(saved ? JSON.parse(saved) : {});
+      } catch {
+        setExpiredQuestions({});
+      }
       loadAssignment();
     }
   }, [assignmentId]);
 
   // Deadline countdown timer
   useEffect(() => {
-    if (!assignment?.deadline) return;
+    if (loading || !assignment?.deadline || showResults || submitting) return;
 
+    let timerId = null;
     const updateRemaining = () => {
       const now = new Date();
       const deadline = new Date(assignment.deadline);
@@ -50,27 +68,32 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
 
       if (diff <= 0) {
         setDeadlineRemaining(0);
-        // Auto-submit if deadline passed
-        if (!showResults && !submitting) {
-          handleSubmit(true);
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
         }
+        // Auto-submit using ref so latest answers/questions/startTime are used
+        submitQuizRef.current?.();
       } else {
         setDeadlineRemaining(diff);
       }
     };
 
     updateRemaining();
-    const interval = setInterval(updateRemaining, 1000);
-    return () => clearInterval(interval);
-  }, [assignment?.deadline, showResults, submitting]);
+    timerId = setInterval(updateRemaining, 1000);
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
+  }, [loading, assignment?.deadline, showResults, submitting]);
 
   // Question timer & Reading Delay Logic
   useEffect(() => {
     if (questions.length > 0 && currentQuestionIndex >= 0) {
       const currentQ = questions[currentQuestionIndex];
-      const isAnswered = currentQ && answers[currentQ.id];
+      const isAnswered = Boolean(currentQ && answers[currentQ.id]);
+      const isExpired = Boolean(currentQ && expiredQuestions[currentQ.id]);
 
-      if (currentQ && !isAnswered) {
+      if (currentQ && !isAnswered && !isExpired) {
         // Start reading phase
         setShowOptions(false);
         setTimeLeft(currentQ.time_limit || 20); // Initialize timer but don't count down yet
@@ -81,23 +104,26 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
         }, 3000); // 3 seconds reading time
 
         return () => clearTimeout(delay);
+      } else if (currentQ && isExpired && !isAnswered) {
+        // Already expired — keep options disabled and time at 0
+        setShowOptions(true);
+        setTimeLeft(0);
       } else {
         // Already answered or invalid
         setShowOptions(true);
         setTimeLeft(null);
       }
     }
-  }, [currentQuestionIndex, questions, answers]); // Re-run when current question changes
+  }, [currentQuestionIndex, questions, answers, expiredQuestions]);
 
-  // Countdown Effect
+  // Countdown Effect (does not tear down on every tick)
+  const countdownActive = showOptions && !showResults && timeLeft !== null && timeLeft > 0;
   useEffect(() => {
-    if (!showOptions) return; // Don't count down during reading phase
-    if (timeLeft === null || timeLeft <= 0 || showResults) return;
+    if (!countdownActive) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Time's up!
+        if (prev === null || prev <= 1) {
           clearInterval(timer);
           return 0;
         }
@@ -106,7 +132,23 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, showResults, showOptions]);
+  }, [countdownActive]);
+
+  // Record question expiration in sessionStorage so navigating away/back cannot reset timer
+  useEffect(() => {
+    if (!showOptions || showResults || timeLeft !== 0) return;
+    const qId = questions[currentQuestionIndex]?.id;
+    if (!qId || answers[qId] || expiredQuestions[qId]) return;
+    setExpiredQuestions((prev) => {
+      const next = { ...prev, [qId]: true };
+      try {
+        sessionStorage.setItem(`quizapp_expired_assignment_q_${assignmentId}`, JSON.stringify(next));
+      } catch {
+        // Ignore storage error
+      }
+      return next;
+    });
+  }, [showOptions, showResults, timeLeft, questions, currentQuestionIndex, answers, expiredQuestions, assignmentId]);
 
   const loadAssignment = async () => {
     setLoading(true);
@@ -119,6 +161,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
           quizzes (
             id,
             title,
+            is_survey,
             category_id,
             theme_id,
             categories (
@@ -175,7 +218,8 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
         const { data: allQuestions, error: fallbackError } = await supabase
           .from("questions")
           .select("*")
-          .eq("quiz_id", assignmentData.quiz_id);
+          .eq("quiz_id", assignmentData.quiz_id)
+          .order("order_index", { ascending: true });
 
         if (!fallbackError && allQuestions?.length > 0) {
           sortedQuestions = allQuestions;
@@ -219,16 +263,18 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
           .eq("id", assignmentId);
       }
 
-      // Set start times
+      // Set start times and clamp currentQuestionIndex within valid bounds
+      const safeIndex = Math.min(
+        Math.max(0, assignmentData.current_question_index || 0),
+        Math.max(0, sortedQuestions.length - 1)
+      );
       setStartTime(assignmentData.started_at ? new Date(assignmentData.started_at) : new Date());
       setQuestionStartTime(Date.now());
-      setCurrentQuestionIndex(assignmentData.current_question_index || 0);
+      setCurrentQuestionIndex(safeIndex);
 
       // Initialize timeLeft for the first loaded question if not answered
-      const firstQ = sortedQuestions[assignmentData.current_question_index || 0];
+      const firstQ = sortedQuestions[safeIndex];
       if (firstQ) {
-        // Check if already answered in the just-loaded map
-        // NOTE: 'answers' state isn't set yet (closure), so we check 'existingAnswers'
         const isAnswered = existingAnswers?.some(a => a.question_id === firstQ.id);
         if (!isAnswered) {
           setShowOptions(false);
@@ -254,9 +300,20 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
       .select("*")
       .in("id", questionOrder);
 
-    const sortedQuestions = questionOrder
+    let sortedQuestions = questionOrder
       .map(id => questionsData?.find(q => q.id === id))
       .filter(Boolean);
+
+    if (sortedQuestions.length === 0 && assignmentData.quiz_id) {
+      const { data: allQuestions } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("quiz_id", assignmentData.quiz_id)
+        .order("order_index", { ascending: true });
+      if (allQuestions?.length > 0) {
+        sortedQuestions = allQuestions;
+      }
+    }
 
     setQuestions(sortedQuestions);
 
@@ -282,8 +339,8 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const handleSelectOption = async (questionId, optionIndex) => {
     if (showResults) return;
 
-    // Block if time ran out
-    if (timeLeft === 0 && !answers[questionId]) return;
+    // Block if time ran out or question already expired
+    if ((timeLeft === 0 || expiredQuestions[questionId]) && !answers[questionId]) return;
     // Block if options are hidden
     if (!showOptions) return;
     // Prevent spam-tapping: block re-entry before React state updates
@@ -291,9 +348,13 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
     submittingRef.current[questionId] = true;
 
     const question = questions.find(q => q.id === questionId);
-    if (!question) return;
+    if (!question) {
+      submittingRef.current[questionId] = false;
+      return;
+    }
 
-    const isCorrect = question.options[optionIndex]?.is_correct || false;
+    const isSurvey = Boolean(quiz?.is_survey);
+    const isCorrect = isSurvey ? false : (question.options[optionIndex]?.is_correct || false);
 
     // Calculate time taken for this question
     // If strict timer, valid time taken is (TimeLimit - timeLeft)
@@ -301,7 +362,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
     const validTimeLeft = timeLeft === null ? 0 : timeLeft;
     const timeTaken = Math.max(0, timeLimit - validTimeLeft);
 
-    const points = isCorrect ? (question.points || 100) : 0;
+    const points = !isSurvey && isCorrect ? (question.points || 100) : 0;
 
     const newAnswer = {
       optionIndex,
@@ -310,6 +371,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
       pointsEarned: points
     };
 
+    const previousAnswer = answers[questionId];
     setAnswers(prev => ({ ...prev, [questionId]: newAnswer }));
 
     // Stop the timer
@@ -331,9 +393,22 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
           onConflict: "assignment_id,question_id"
         });
 
-      if (upsertError) console.error("Error saving answer:", upsertError);
+      if (upsertError) throw upsertError;
     } catch (err) {
       console.error("Error saving answer:", err);
+      submittingRef.current[questionId] = false;
+      setAnswers(prev => {
+        const next = { ...prev };
+        if (previousAnswer) next[questionId] = previousAnswer;
+        else delete next[questionId];
+        return next;
+      });
+      setAlertModal({
+        isOpen: true,
+        title: t("common.error", "Error"),
+        message: t("errors.errorSubmittingAnswer", "Error submitting answer") + ": " + (err?.message || ""),
+        type: "error"
+      });
     }
   };
 
@@ -359,7 +434,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
           title: t("assignedQuiz.unansweredQuestions", "Unanswered Questions"),
           message: t("assignedQuiz.unansweredWarning", { count: unansweredCount, defaultValue: "You have {{count}} unanswered questions. Are you sure you want to submit?" }),
           onConfirm: () => {
-            setConfirmModal({ ...confirmModal, isOpen: false });
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
             submitQuiz();
           }
         });
@@ -373,21 +448,26 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const submitQuiz = async () => {
     setSubmitting(true);
     try {
+      const isSurvey = Boolean(quiz?.is_survey);
       // Calculate final score.
       // Defensive: if pointsEarned is missing (e.g. from a legacy resume), derive
       // it from isCorrect and the question's base points so the score is never 0
       // for correctly answered questions.
-      const totalScore = Object.entries(answers).reduce((sum, [qId, a]) => {
-        if (typeof a.pointsEarned === 'number') return sum + a.pointsEarned;
-        // Fallback: look up the question's base points
-        if (a.isCorrect) {
-          const q = questions.find(q => q.id === qId);
-          return sum + (q?.points || 100);
-        }
-        return sum;
-      }, 0);
-      const correctAnswers = Object.values(answers).filter(a => a.isCorrect).length;
-      const totalTime = Math.floor((Date.now() - startTime.getTime()) / 1000);
+      const totalScore = isSurvey
+        ? 0
+        : Object.entries(answers).reduce((sum, [qId, a]) => {
+            if (typeof a.pointsEarned === 'number') return sum + a.pointsEarned;
+            // Fallback: look up the question's base points
+            if (a.isCorrect) {
+              const q = questions.find(q => q.id === qId);
+              return sum + (q?.points || 100);
+            }
+            return sum;
+          }, 0);
+      const correctAnswers = isSurvey
+        ? 0
+        : Object.values(answers).filter(a => a.isCorrect).length;
+      const totalTime = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000) : 0;
 
       // Update assignment as completed
       const { error: updateError } = await supabase
@@ -403,6 +483,12 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
 
       if (updateError) throw updateError;
 
+      try {
+        sessionStorage.removeItem(`quizapp_expired_assignment_q_${assignmentId}`);
+      } catch {
+        // Ignore storage error
+      }
+
       setAssignment(prev => ({
         ...prev,
         status: "completed",
@@ -414,13 +500,17 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
       setShowResults(true);
       setAlertModal({
         isOpen: true,
-        title: t("assignedQuiz.quizCompleted", "Quiz Completed!"),
-        message: t("assignedQuiz.scoreMessage", {
-          score: totalScore,
-          correct: correctAnswers,
-          total: questions.length,
-          defaultValue: "You scored {{score}} points with {{correct}}/{{total}} correct answers."
-        }),
+        title: isSurvey
+          ? t("student.surveyComplete", "Survey Complete!")
+          : t("assignedQuiz.quizCompleted", "Quiz Completed!"),
+        message: isSurvey
+          ? t("student.thankYouForParticipation", "Thank you for your participation!")
+          : t("assignedQuiz.scoreMessage", {
+              score: totalScore,
+              correct: correctAnswers,
+              total: questions.length,
+              defaultValue: "You scored {{score}} points with {{correct}}/{{total}} correct answers."
+            }),
         type: "success"
       });
     } catch (err) {
@@ -435,6 +525,12 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    submitQuizRef.current = () => {
+      handleSubmit(true);
+    };
+  });
 
   const formatTime = (ms) => {
     if (ms <= 0) return "0:00";
@@ -480,12 +576,14 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
   const answeredCount = Object.keys(answers).length;
-  const progress = (answeredCount / questions.length) * 100;
+  const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
 
   // Results View
   if (showResults) {
-    const totalScore = assignment?.score || Object.values(answers).reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
-    const correctAnswers = assignment?.correct_answers || Object.values(answers).filter(a => a.isCorrect).length;
+    const totalScore = assignment?.score ?? Object.values(answers).reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
+    const correctAnswers = assignment?.correct_answers ?? Object.values(answers).filter(a => a.isCorrect).length;
+    const accuracyPercent = questions.length > 0 ? Math.round((correctAnswers / questions.length) * 100) : 0;
+    const isSurvey = Boolean(quiz?.is_survey);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-500 to-orange-600 p-4">
@@ -498,20 +596,22 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
             </h1>
             <p className="text-gray-600 mb-6">{quiz?.title}</p>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-orange-50 rounded-xl p-4">
-                <p className="text-3xl font-bold text-orange-600">{totalScore}</p>
-                <p className="text-sm text-gray-600">{t("assignedQuiz.points", "Points")}</p>
+            {!isSurvey && (
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-orange-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-orange-600">{totalScore}</p>
+                  <p className="text-sm text-gray-600">{t("assignedQuiz.points", "Points")}</p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-green-600">{correctAnswers}/{questions.length}</p>
+                  <p className="text-sm text-gray-600">{t("assignedQuiz.correct", "Correct")}</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4">
+                  <p className="text-3xl font-bold text-blue-600">{accuracyPercent}%</p>
+                  <p className="text-sm text-gray-600">{t("assignedQuiz.accuracy", "Accuracy")}</p>
+                </div>
               </div>
-              <div className="bg-green-50 rounded-xl p-4">
-                <p className="text-3xl font-bold text-green-600">{correctAnswers}/{questions.length}</p>
-                <p className="text-sm text-gray-600">{t("assignedQuiz.correct", "Correct")}</p>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-4">
-                <p className="text-3xl font-bold text-blue-600">{Math.round((correctAnswers / questions.length) * 100)}%</p>
-                <p className="text-sm text-gray-600">{t("assignedQuiz.accuracy", "Accuracy")}</p>
-              </div>
-            </div>
+            )}
 
             <button
               onClick={() => setView("assigned-quizzes")}
@@ -529,26 +629,47 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
             <div className="space-y-4">
               {questions.map((q, idx) => {
                 const answer = answers[q.id];
+                const selectedOpt = answer ? q.options?.[answer.optionIndex] : null;
+                const correctOpt = q.options?.find(o => o.is_correct);
+                const cardClass = isSurvey
+                  ? "border-gray-200 bg-gray-50"
+                  : answer?.isCorrect
+                    ? "border-green-200 bg-green-50"
+                    : "border-red-200 bg-red-50";
+                const badgeClass = isSurvey
+                  ? "bg-orange-500"
+                  : answer?.isCorrect
+                    ? "bg-green-500"
+                    : "bg-red-500";
                 return (
-                  <div key={q.id} className={`p-4 rounded-lg border-2 ${answer?.isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+                  <div key={q.id} className={`p-4 rounded-lg border-2 ${cardClass}`}>
                     <div className="flex items-start gap-3">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${answer?.isCorrect ? "bg-green-500" : "bg-red-500"}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${badgeClass}`}>
                         {idx + 1}
                       </span>
                       <div className="flex-1">
                         <p className="font-medium text-gray-800">{q.question_text}</p>
                         {answer ? (
-                          <p className="text-sm mt-2">
-                            <span className="text-gray-600">{t("assignedQuiz.yourAnswer", "Your answer")}: </span>
-                            <span className={answer.isCorrect ? "text-green-600 font-semibold" : "text-red-600"}>
-                              {q.options[answer.optionIndex]?.text}
-                            </span>
-                            {!answer.isCorrect && (
-                              <span className="text-green-600 ml-2">
-                                ({t("assignedQuiz.correctAnswer", "Correct")}: {q.options.find(o => o.is_correct)?.text})
+                          <div className="text-sm mt-2 space-y-1">
+                            <p>
+                              <span className="text-gray-600">{t("assignedQuiz.yourAnswer", "Your answer")}: </span>
+                              <span className={isSurvey ? "text-gray-800 font-semibold" : answer.isCorrect ? "text-green-600 font-semibold" : "text-red-600"}>
+                                {selectedOpt?.text || (selectedOpt?.image_url ? `[${t("common.image", "Image")}]` : "")}
                               </span>
+                              {!isSurvey && !answer.isCorrect && (
+                                <span className="text-green-600 ml-2">
+                                  ({t("assignedQuiz.correctAnswer", "Correct")}: {correctOpt?.text || (correctOpt?.image_url ? `[${t("common.image", "Image")}]` : "")})
+                                </span>
+                              )}
+                            </p>
+                            {selectedOpt?.image_url && (
+                              <img
+                                src={selectedOpt.image_url}
+                                alt={selectedOpt.text || t("assignedQuiz.yourAnswer", "Your answer")}
+                                className="max-h-20 rounded object-contain mt-1"
+                              />
                             )}
-                          </p>
+                          </div>
                         ) : (
                           <p className="text-sm mt-2 text-gray-500 italic">{t("assignedQuiz.notAnswered", "Not answered")}</p>
                         )}
@@ -641,6 +762,22 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                     />
                   </div>
                 )}
+                {currentQuestion.video_url && (
+                  <AutoPlayVideo
+                    src={currentQuestion.video_url}
+                    className="max-w-[min(100%,28rem)] mx-auto rounded-lg shadow-lg mt-4"
+                    reloadKey={currentQuestion.id}
+                  />
+                )}
+                {currentQuestion.gif_url && (
+                  <div className="mt-4 flex justify-center">
+                    <img
+                      src={currentQuestion.gif_url}
+                      alt="Question GIF"
+                      className="max-h-48 sm:max-h-64 rounded-lg object-contain"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Time's Up Message */}
@@ -657,7 +794,7 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                   {currentQuestion.options?.map((opt, idx) => {
                     if (!opt.text && !opt.image_url) return null;
 
-                    const style = answerStyles[idx];
+                    const style = answerStyles[idx % answerStyles.length];
                     const IconComponent = style.icon;
                     const isSelected = currentAnswer?.optionIndex === idx;
                     const isDisabled = (timeLeft === 0 && !isSelected) || (currentAnswer !== undefined);
@@ -672,11 +809,14 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                       >
                         {!opt.image_url && <IconComponent size={24} fill="white" className="shrink-0" />}
                         {opt.image_url ? (
-                          <img
-                            src={opt.image_url}
-                            alt={opt.text || `Option ${idx + 1}`}
-                            className="max-h-32 sm:max-h-48 w-full object-contain rounded"
-                          />
+                          <>
+                            <img
+                              src={opt.image_url}
+                              alt={opt.text || `Option ${idx + 1}`}
+                              className="max-h-32 sm:max-h-48 w-full object-contain rounded"
+                            />
+                            {opt.text && <span className="text-center mt-1 text-base">{opt.text}</span>}
+                          </>
                         ) : (
                           <span className="text-center">{opt.text}</span>
                         )}
@@ -692,7 +832,9 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                   {/* Placeholder for reading time, keep layout stable or just empty */}
                   <div className="flex flex-col items-center text-gray-400 animate-pulse">
                     <Clock size={48} className="mb-2 opacity-50" />
-                    <p className="text-sm font-medium tracking-widest uppercase">Reading Time</p>
+                    <p className="text-sm font-medium tracking-widest uppercase">
+                      {t("assignedQuiz.readingTime", "Reading Time")}
+                    </p>
                   </div>
                 </div>
               )}

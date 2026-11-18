@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const noHTML = z.string().refine((val) => !/<[^>]*>/g.test(val), {
+const noHTML = z.string().refine((val) => !/<\/?[a-zA-Z][^>]*>/g.test(val), {
   message: "HTML tags or scripts are not allowed.",
 });
 
@@ -82,7 +82,7 @@ export const EditorQuizMetadataSchema = z.object({
   is_template: z.boolean().default(false),
   is_public: z.boolean().default(false),
   is_global: z.boolean().default(false),
-  is_course_material: z.boolean().default(false),
+  is_course_material: z.boolean().default(true),
   is_survey: z.boolean().default(false),
 });
 
@@ -197,13 +197,18 @@ export function validateQuestionForEditor(
     }
   }
 
-  const hasNonEmptyOptions = (question.options || []).every((opt) => Boolean((opt.text || "").trim()));
-  if (!hasNonEmptyOptions) {
-    errors.push("Every answer option must have text.");
+  const hasOptionContent = (opt: QuestionOption) =>
+    Boolean((opt.text || "").trim() || (opt.image_url || "").trim());
+  const nonEmptyOptionCount = (question.options || []).filter(hasOptionContent).length;
+  if (nonEmptyOptionCount < 2) {
+    errors.push("At least 2 options must have text or an image.");
   }
 
-  if (!options.isSurvey && !(question.options || []).some((opt) => Boolean(opt.is_correct))) {
+  const markedCorrectOptions = (question.options || []).filter((opt) => Boolean(opt.is_correct));
+  if (!options.isSurvey && markedCorrectOptions.length === 0) {
     errors.push("Please mark at least one answer as correct.");
+  } else if (!options.isSurvey && markedCorrectOptions.some((opt) => !hasOptionContent(opt))) {
+    errors.push("Every marked correct answer must have text or an image.");
   }
 
   return {

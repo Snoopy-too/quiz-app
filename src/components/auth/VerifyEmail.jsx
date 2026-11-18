@@ -5,7 +5,7 @@ import { supabase } from "../../supabaseClient";
 import AuthLayout from "./AuthLayout";
 import { Button, Spinner } from "../ui";
 
-export default function VerifyEmail({ setView, setError, setSuccess }) {
+export default function VerifyEmail({ setView, error, success, setError, setSuccess }) {
   const { t } = useTranslation();
   const [checking, setChecking] = useState(true);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -38,23 +38,27 @@ export default function VerifyEmail({ setView, setError, setSuccess }) {
   }, [setView, setSuccess]);
 
   const handleResendEmail = async () => {
+    setError?.(null);
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session?.user?.email) {
-        setError("No email found. Please register again.");
+      const emailToResend =
+        session?.user?.email || sessionStorage.getItem("quizapp_registered_email");
+
+      if (!emailToResend) {
+        setError(t("auth.noEmailForResend") || "No email found. Please register again.");
         return;
       }
 
-      const { error } = await supabase.auth.resend({
+      const { error: resendErr } = await supabase.auth.resend({
         type: "signup",
-        email: session.user.email,
+        email: emailToResend,
       });
 
-      if (error) {
-        setError(`Failed to resend email: ${error.message}`);
+      if (resendErr) {
+        setError(`Failed to resend email: ${resendErr.message}`);
       } else {
         setResendSuccess(true);
         setTimeout(() => setResendSuccess(false), 5000);
@@ -79,7 +83,8 @@ export default function VerifyEmail({ setView, setError, setSuccess }) {
     <AuthLayout
       title={t("auth.checkYourEmail")}
       subtitle={t("auth.verificationLinkSent")}
-      success={resendSuccess ? t("auth.verificationEmailResent") : null}
+      error={error}
+      success={resendSuccess ? t("auth.verificationEmailResent") : success}
     >
       <div className="flex justify-center">
         <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-700">

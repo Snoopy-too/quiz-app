@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const noHTML = z.string().refine((val) => !/<[^>]*>/g.test(val), {
+const noHTML = z.string().refine((val) => !/<\/?[a-zA-Z][^>]*>/g.test(val), {
   message: "HTML tags or scripts are not allowed.",
 });
 
@@ -40,7 +40,7 @@ export const registrationSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: "Student number is required.",
       });
-    } else if (/<[^>]*>/g.test(data.studentId)) {
+    } else if (/<\/?[a-zA-Z][^>]*>/g.test(data.studentId)) {
       ctx.addIssue({
         path: ["studentId"],
         code: z.ZodIssueCode.custom,
@@ -54,7 +54,7 @@ export const registrationSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: "Teacher code is required for students.",
       });
-    } else if (/<[^>]*>/g.test(data.teacherCode)) {
+    } else if (/<\/?[a-zA-Z][^>]*>/g.test(data.teacherCode)) {
       ctx.addIssue({
         path: ["teacherCode"],
         code: z.ZodIssueCode.custom,

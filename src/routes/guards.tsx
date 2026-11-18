@@ -25,6 +25,9 @@ export function RequireGuest({ children }: { children: ReactNode }) {
     if (!user.role) {
       return <Navigate to="/complete-profile" replace />;
     }
+    if (user.role === "teacher" && !user.approved) {
+      return <>{children}</>;
+    }
     const next = sanitizeNextPath(new URLSearchParams(location.search).get("next"));
     return <Navigate to={next || resolveLandingPath(user)} replace />;
   }
@@ -81,6 +84,10 @@ export function RequireRole({
 
   if (!user.role) {
     return <Navigate to="/complete-profile" replace />;
+  }
+
+  if (user.role === "teacher" && !user.approved) {
+    return <Navigate to="/login" replace />;
   }
 
   if (!roles.includes(user.role)) {

@@ -230,6 +230,7 @@ export default function useManageQuizzes(appState) {
           if (deleteError) throw deleteError;
 
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          setActiveFolder(prev => (prev === folderId ? null : prev));
           await fetchFolders();
           await fetchQuizzes();
           setFolderContextMenu(null);
@@ -352,6 +353,12 @@ export default function useManageQuizzes(appState) {
 
           if (deleteError) throw deleteError;
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          setSelectedQuizzes((prev) => {
+            if (!prev.has(quizId)) return prev;
+            const next = new Set(prev);
+            next.delete(quizId);
+            return next;
+          });
           await fetchQuizzes();
         } catch (err) {
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -399,6 +406,9 @@ export default function useManageQuizzes(appState) {
             randomize_answers: quiz.randomize_answers,
             is_template: quiz.is_template,
             is_public: quiz.is_public,
+            folder_id: quiz.folder_id || null,
+            is_survey: quiz.is_survey || false,
+            is_course_material: quiz.is_course_material ?? true,
           },
         ])
         .select()
@@ -533,7 +543,7 @@ export default function useManageQuizzes(appState) {
     // Apply search
     if (searchQuery) {
       displayed = displayed.filter((quiz) =>
-        quiz.title.toLowerCase().includes(searchQuery.toLowerCase())
+        (quiz.title || "").toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -542,14 +552,15 @@ export default function useManageQuizzes(appState) {
       displayed = displayed.filter((quiz) => quiz.category_id === filterCategory);
     }
 
-    // Apply sort
+    // Apply sort (copy before sorting to avoid mutating state when activeFolder is null)
+    const sorted = [...displayed];
     if (sortBy === "created_at") {
-      displayed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortBy === "title") {
-      displayed.sort((a, b) => a.title.localeCompare(b.title));
+      sorted.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
     }
 
-    return displayed;
+    return sorted;
   };
 
   // Toggle quiz selection

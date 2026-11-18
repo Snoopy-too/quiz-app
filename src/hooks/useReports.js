@@ -17,7 +17,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
   const [studentPerformance, setStudentPerformance] = useState([]);
   const [studentPerformanceLoading, setStudentPerformanceLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
-  const [studentSortConfig, setStudentSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [studentSortConfig, setStudentSortConfig] = useState({ key: 'student', direction: 'asc' });
   const [quizStudentSortConfig, setQuizStudentSortConfig] = useState({ key: 'score', direction: 'desc' });
   const [reportTab, setReportTab] = useState('all'); // 'all' | 'course' | 'non-course' | 'survey'
   const [showStudentPerformance, setShowStudentPerformance] = useState(false);
@@ -89,7 +89,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
           quiz_sessions (
             quiz_id,
             status,
-            quizzes ( is_course_material )
+            quizzes ( is_course_material, is_survey, questions ( id ) )
           )
         `)
         .in('user_id', studentIds);
@@ -102,8 +102,9 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
         .select(`
            id,
            student_id,
+           total_questions,
            assignment_answers ( is_correct ),
-           quizzes ( is_course_material )
+           quizzes ( is_course_material, is_survey, questions ( id ) )
         `)
         .in('student_id', studentIds)
         .eq('status', 'completed');
@@ -111,13 +112,16 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
       if (assignmentsError) throw assignmentsError;
 
       const completedParticipations = participations.filter(
-        p => p.quiz_sessions?.status === 'completed'
+        p => p.quiz_sessions?.status === 'completed' && !p.quiz_sessions?.quizzes?.is_survey
+      );
+      const completedAssignments = assignments.filter(
+        a => !a.quizzes?.is_survey
       );
 
       // 3. Process the data
       const performanceData = students.map(student => {
         const studentParticipations = completedParticipations.filter(p => p.user_id === student.id);
-        const studentAssignments = assignments.filter(a => a.student_id === student.id);
+        const studentAssignments = completedAssignments.filter(a => a.student_id === student.id);
 
         const quizzesParticipated = new Set(studentParticipations.map(p => p.session_id)).size + studentAssignments.length;
 
@@ -131,7 +135,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
         studentParticipations.forEach(p => {
           const isCourseMaterial = p.quiz_sessions?.quizzes?.is_course_material !== false;
           const correct = p.quiz_answers.filter(a => a.is_correct).length;
-          const answered = p.quiz_answers.length;
+          const answered = p.quiz_sessions?.quizzes?.questions?.length || p.quiz_answers.length;
 
           totalCorrect += correct;
           totalAnswered += answered;
@@ -148,7 +152,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
         studentAssignments.forEach(a => {
           const isCourseMaterial = a.quizzes?.is_course_material !== false;
           const correct = a.assignment_answers.filter(ans => ans.is_correct).length;
-          const answered = a.assignment_answers.length;
+          const answered = a.total_questions || a.quizzes?.questions?.length || a.assignment_answers.length;
 
           totalCorrect += correct;
           totalAnswered += answered;
@@ -270,6 +274,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
         .select(`
           id,
           user_id,
+          session_id,
           score,
           joined_at,
           users(name, email, student_id)
@@ -411,10 +416,11 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
         };
       }) || [];
 
+      const totalQuizQuestions = questions?.length || 0;
       const studentPerformanceData = unifiedParticipants.map(p => {
         const studentAnswers = unifiedAnswers.filter(a => a.participant_id === p.id);
         const correct = studentAnswers.filter(a => a.is_correct).length;
-        const total = studentAnswers.length;
+        const total = totalQuizQuestions || studentAnswers.length;
 
         return {
           id: p.id,
@@ -543,8 +549,8 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
 
       switch (sortConfig.key) {
         case 'title':
-          aValue = a.title.toLowerCase();
-          bValue = b.title.toLowerCase();
+          aValue = (a.title || '').toLowerCase();
+          bValue = (b.title || '').toLowerCase();
           break;
         case 'date':
           aValue = a.latestSession ? new Date(a.latestSession.created_at).getTime() : new Date(a.created_at).getTime();
@@ -584,8 +590,8 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
 
       switch (studentSortConfig.key) {
         case 'student':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
           break;
         case 'studentId':
           aValue = (a.studentIdNo || '').toLowerCase();
@@ -630,8 +636,8 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
           bValue = b.rank;
           break;
         case 'student':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
           break;
         case 'studentId':
           aValue = (a.studentIdNo || '').toLowerCase();
@@ -650,6 +656,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
           bValue = parseFloat(b.accuracy);
           break;
         case 'takenAt':
+        case 'date':
           aValue = a.takenAt ? new Date(a.takenAt).getTime() : 0;
           bValue = b.takenAt ? new Date(b.takenAt).getTime() : 0;
           break;
@@ -668,6 +675,7 @@ export function useReports({ setView, initialQuizId, onClearInitialQuizId, teach
     selectedQuiz,
     setSelectedQuiz,
     quizStats,
+    setQuizStats,
     loading,
     error,
     expandedQuestion,
