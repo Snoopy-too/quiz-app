@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "../../supabaseClient";
-import { ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle, Send, Loader2, Heart, Spade, Diamond, Club, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, AlertTriangle, CheckCircle, XCircle, Send, Loader2, Heart, Spade, Diamond, Club, Calendar } from "lucide-react";
 import AlertModal from "../common/AlertModal";
 import ConfirmModal from "../common/ConfirmModal";
 import AutoPlayVideo from "../common/AutoPlayVideo";
@@ -575,6 +575,8 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
+  const isSurvey = Boolean(quiz?.is_survey);
+  const correctOpt = currentQuestion?.options?.find((o) => o.is_correct) || null;
   const answeredCount = Object.keys(answers).length;
   const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
 
@@ -788,6 +790,47 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                 </div>
               )}
 
+              {/* Answer Feedback Banner */}
+              {currentAnswer && !isSurvey && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={`mb-6 p-4 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-center gap-3 text-center ${
+                    currentAnswer.isCorrect
+                      ? "bg-green-50 border-green-300 text-green-800"
+                      : "bg-red-50 border-red-300 text-red-800"
+                  }`}
+                >
+                  {currentAnswer.isCorrect ? (
+                    <CheckCircle size={28} className="text-green-600 shrink-0" />
+                  ) : (
+                    <XCircle size={28} className="text-red-600 shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-bold text-lg">
+                      {currentAnswer.isCorrect
+                        ? t("session.correctAnswer", "Correct!")
+                        : t("student.incorrect", "Incorrect")}
+                    </p>
+                    {correctOpt && (
+                      <div className="text-sm mt-1 flex flex-wrap items-center justify-center gap-2">
+                        <span>{t("student.theCorrectAnswerWas", "The correct answer was:")}</span>
+                        {correctOpt.text && (
+                          <span className="font-bold text-green-700">{correctOpt.text}</span>
+                        )}
+                        {correctOpt.image_url && (
+                          <img
+                            src={correctOpt.image_url}
+                            alt={correctOpt.text || t("assignedQuiz.correctAnswer", "Correct")}
+                            className="max-h-16 rounded object-contain inline-block border border-green-300"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Answer Options - Hidden during read time if not answering/answered */}
               {showOptions ? (
                 <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 fade-in`} style={{ animation: 'fadeIn 0.5s ease-in' }}>
@@ -798,14 +841,31 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                     const IconComponent = style.icon;
                     const isSelected = currentAnswer?.optionIndex === idx;
                     const isDisabled = (timeLeft === 0 && !isSelected) || (currentAnswer !== undefined);
+                    const showFeedback = Boolean(currentAnswer && !isSurvey);
+                    const isCorrectOption = Boolean(opt.is_correct);
+
+                    let stateClasses = !isDisabled ? style.hover : "opacity-50 cursor-not-allowed";
+                    let ringClasses = isSelected ? `ring-4 ${style.ring} scale-105` : "";
+
+                    if (showFeedback) {
+                      if (isCorrectOption) {
+                        stateClasses = "opacity-100 cursor-not-allowed";
+                        ringClasses = isSelected ? "ring-4 ring-green-400 scale-105" : "ring-4 ring-green-400";
+                      } else if (isSelected) {
+                        stateClasses = "opacity-90 cursor-not-allowed";
+                        ringClasses = "ring-4 ring-red-400 scale-105";
+                      } else {
+                        stateClasses = "opacity-40 cursor-not-allowed";
+                        ringClasses = "";
+                      }
+                    }
 
                     return (
                       <button
                         key={idx}
                         onClick={() => handleSelectOption(currentQuestion.id, idx)}
                         disabled={isDisabled}
-                        className={`${style.bg} ${!isDisabled ? style.hover : "opacity-50 cursor-not-allowed"} ${isSelected ? `ring-4 ${style.ring} scale-105` : ""
-                          } text-white ${opt.image_url ? "p-2" : "p-4 sm:p-6"} rounded-lg text-lg font-bold transition-all flex flex-col items-center justify-center relative`}
+                        className={`${style.bg} ${stateClasses} ${ringClasses} text-white ${opt.image_url ? "p-2" : "p-4 sm:p-6"} rounded-lg text-lg font-bold transition-all flex flex-col items-center justify-center relative`}
                       >
                         {!opt.image_url && <IconComponent size={24} fill="white" className="shrink-0" />}
                         {opt.image_url ? (
@@ -820,8 +880,16 @@ export default function AssignedQuizTaking({ assignmentId, appState, setView, vi
                         ) : (
                           <span className="text-center">{opt.text}</span>
                         )}
-                        {isSelected && (
-                          <CheckCircle size={24} className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-0.5" />
+                        {showFeedback ? (
+                          isCorrectOption ? (
+                            <CheckCircle size={24} className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-0.5" />
+                          ) : isSelected ? (
+                            <XCircle size={24} className="absolute top-2 right-2 bg-white text-red-600 rounded-full p-0.5" />
+                          ) : null
+                        ) : (
+                          isSelected && (
+                            <CheckCircle size={24} className="absolute top-2 right-2 bg-white text-green-600 rounded-full p-0.5" />
+                          )
                         )}
                       </button>
                     );
