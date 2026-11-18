@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import { X, Search, CheckSquare, Square, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Badge, Button, Field, Input, IconButton, Spinner } from "../ui";
+import { Badge, Button, Field, Input, IconButton, Select, Spinner } from "../ui";
 
 export default function AssignQuizModal({
   isOpen,
@@ -16,6 +16,7 @@ export default function AssignQuizModal({
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +43,7 @@ export default function AssignQuizModal({
       setDeadline(getDefaultDeadline());
       setSelectedStudents(new Set());
       setSearchTerm("");
+      setSortBy("name");
       setError(null);
     }
   }, [isOpen, teacherId]);
@@ -85,14 +87,26 @@ export default function AssignQuizModal({
     }
   };
 
-  const filteredStudents = students.filter(student => {
-    const term = searchTerm.toLowerCase();
-    return (
-      student.name?.toLowerCase().includes(term) ||
-      student.email?.toLowerCase().includes(term) ||
-      student.student_id?.toLowerCase().includes(term)
-    );
-  });
+  const filteredStudents = students
+    .filter(student => {
+      const term = searchTerm.toLowerCase();
+      return (
+        student.name?.toLowerCase().includes(term) ||
+        student.email?.toLowerCase().includes(term) ||
+        student.student_id?.toLowerCase().includes(term)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === "student_id") {
+        const aId = a.student_id?.trim() || "";
+        const bId = b.student_id?.trim() || "";
+        if (!aId && bId) return 1;
+        if (aId && !bId) return -1;
+        const idCmp = aId.localeCompare(bId, undefined, { numeric: true, sensitivity: "base" });
+        if (idCmp !== 0) return idCmp;
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
 
   const handleAssign = async () => {
     if (selectedStudents.size === 0) {
@@ -214,9 +228,9 @@ export default function AssignQuizModal({
               </Badge>
             </div>
 
-            {/* Search and Select All */}
-            <div className="mb-3 flex gap-2.5">
-              <div className="relative flex-1">
+            {/* Search, Sort, and Select All */}
+            <div className="mb-3 flex flex-wrap gap-2.5">
+              <div className="relative min-w-[180px] flex-1">
                 <Search
                   className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
                   aria-hidden="true"
@@ -229,6 +243,15 @@ export default function AssignQuizModal({
                   className="pl-9"
                 />
               </div>
+              <Select
+                aria-label={t("assignQuiz.sortBy", "Sort students by")}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-auto min-w-[160px]"
+              >
+                <option value="name">{t("assignQuiz.sortByName", "Sort: Name")}</option>
+                <option value="student_id">{t("assignQuiz.sortByStudentId", "Sort: Student Number")}</option>
+              </Select>
               <Button
                 variant="secondary"
                 size="md"

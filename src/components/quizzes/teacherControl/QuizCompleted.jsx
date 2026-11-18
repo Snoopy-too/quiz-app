@@ -4,6 +4,7 @@ import PodiumAnimation from "../../animations/PodiumAnimation";
 
 export default function QuizCompleted({
   quiz,
+  questions,
   session,
   participants,
   teams,
@@ -34,7 +35,9 @@ export default function QuizCompleted({
                 <h3 className="font-semibold text-gray-800 mb-4 border-b pb-2">Survey Overview</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                   <div className="font-medium">Total Questions:</div>
-                  <div className="font-bold text-gray-900 text-right">{quiz.questions?.length || 'N/A'}</div>
+                  <div className="font-bold text-gray-900 text-right">
+                    {questions?.length ?? quiz.questions?.length ?? "N/A"}
+                  </div>
                   <div className="font-medium">Total Respondents:</div>
                   <div className="font-bold text-gray-900 text-right">{participants.length}</div>
                 </div>
