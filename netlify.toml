@@ -2,7 +2,14 @@
   command = "npm run build"
   publish = "dist"
 
-# Redirect all requests to index.html for SPA routing
+# Return 404 for missing hashed assets instead of rewriting them to index.html (prevents stale-deploy MIME/module errors)
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+  force = false
+
+# Redirect all other requests to index.html for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -17,7 +24,7 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    Cache-Control = "public, max-age=3600, must-revalidate"
+    Cache-Control = "public, max-age=0, must-revalidate"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.dicebear.com https://apis.google.com https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
 
 # Cache static assets (JS, CSS, images)

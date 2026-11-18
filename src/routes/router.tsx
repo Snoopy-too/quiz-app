@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import {
   createBrowserRouter,
   Navigate,
@@ -13,42 +13,44 @@ import AppShell from "../components/layout/AppShell";
 import { Spinner } from "../components/ui";
 import { resolveLandingPath } from "../domain/auth";
 import { supabase } from "../supabaseClient";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import { useAppAuth } from "./authContext";
 import { RequireAuth, RequireGuest, RequireRole } from "./guards";
 import { pathToView, useLegacySetView } from "./legacyNavigation";
 import NotFoundPage from "./NotFoundPage";
+import RouteErrorFallback from "./RouteErrorFallback";
 
-const Login = lazy(() => import("../components/auth/Login"));
-const Register = lazy(() => import("../components/auth/Register"));
-const RegistrationSuccess = lazy(() => import("../components/auth/RegistrationSuccess"));
-const VerifyEmail = lazy(() => import("../components/auth/VerifyEmail"));
-const ForgotPassword = lazy(() => import("../components/auth/ForgotPassword"));
-const ResetPassword = lazy(() => import("../components/auth/ResetPassword"));
-const CompleteProfile = lazy(() => import("../components/auth/CompleteProfile"));
+const Login = lazyWithRetry(() => import("../components/auth/Login"));
+const Register = lazyWithRetry(() => import("../components/auth/Register"));
+const RegistrationSuccess = lazyWithRetry(() => import("../components/auth/RegistrationSuccess"));
+const VerifyEmail = lazyWithRetry(() => import("../components/auth/VerifyEmail"));
+const ForgotPassword = lazyWithRetry(() => import("../components/auth/ForgotPassword"));
+const ResetPassword = lazyWithRetry(() => import("../components/auth/ResetPassword"));
+const CompleteProfile = lazyWithRetry(() => import("../components/auth/CompleteProfile"));
 
-const StudentDashboard = lazy(() => import("../components/dashboards/StudentDashboard"));
-const TeacherDashboard = lazy(() => import("../components/dashboards/TeacherDashboard"));
-const SuperAdminDashboard = lazy(() => import("../components/dashboards/SuperAdminDashboard"));
+const StudentDashboard = lazyWithRetry(() => import("../components/dashboards/StudentDashboard"));
+const TeacherDashboard = lazyWithRetry(() => import("../components/dashboards/TeacherDashboard"));
+const SuperAdminDashboard = lazyWithRetry(() => import("../components/dashboards/SuperAdminDashboard"));
 
-const CreateQuiz = lazy(() => import("../components/quizzes/CreateQuiz"));
-const EditQuiz = lazy(() => import("../components/quizzes/EditQuiz"));
-const PreviewQuiz = lazy(() => import("../components/quizzes/PreviewQuiz"));
-const TeacherControl = lazy(() => import("../components/quizzes/TeacherControl"));
+const CreateQuiz = lazyWithRetry(() => import("../components/quizzes/CreateQuiz"));
+const EditQuiz = lazyWithRetry(() => import("../components/quizzes/EditQuiz"));
+const PreviewQuiz = lazyWithRetry(() => import("../components/quizzes/PreviewQuiz"));
+const TeacherControl = lazyWithRetry(() => import("../components/quizzes/TeacherControl"));
 
-const ManageQuizzes = lazy(() => import("../components/teachers/ManageQuizzes"));
-const ManageStudents = lazy(() => import("../components/teachers/ManageStudents"));
-const Reports = lazy(() => import("../components/teachers/Reports"));
-const StudentReport = lazy(() => import("../components/teachers/StudentReport"));
-const PublicQuizzes = lazy(() => import("../components/teachers/PublicQuizzes"));
+const ManageQuizzes = lazyWithRetry(() => import("../components/teachers/ManageQuizzes"));
+const ManageStudents = lazyWithRetry(() => import("../components/teachers/ManageStudents"));
+const Reports = lazyWithRetry(() => import("../components/teachers/Reports"));
+const StudentReport = lazyWithRetry(() => import("../components/teachers/StudentReport"));
+const PublicQuizzes = lazyWithRetry(() => import("../components/teachers/PublicQuizzes"));
 
-const StudentQuiz = lazy(() => import("../components/students/StudentQuiz"));
-const AssignedQuizzes = lazy(() => import("../components/students/AssignedQuizzes"));
-const AssignedQuizTaking = lazy(() => import("../components/students/AssignedQuizTaking"));
-const StudentResults = lazy(() => import("../components/students/StudentResults"));
-const CreateTeam = lazy(() => import("../components/students/CreateTeam"));
+const StudentQuiz = lazyWithRetry(() => import("../components/students/StudentQuiz"));
+const AssignedQuizzes = lazyWithRetry(() => import("../components/students/AssignedQuizzes"));
+const AssignedQuizTaking = lazyWithRetry(() => import("../components/students/AssignedQuizTaking"));
+const StudentResults = lazyWithRetry(() => import("../components/students/StudentResults"));
+const CreateTeam = lazyWithRetry(() => import("../components/students/CreateTeam"));
 
-const Settings = lazy(() => import("../components/settings/Settings"));
-const UiGallery = lazy(() => import("./dev/UiGallery"));
+const Settings = lazyWithRetry(() => import("../components/settings/Settings"));
+const UiGallery = lazyWithRetry(() => import("./dev/UiGallery"));
 
 function RouteFallback() {
   return (
@@ -483,6 +485,7 @@ export function createAppRouter(RootComponent: React.ComponentType) {
     {
       path: "/",
       element: <RootComponent />,
+      errorElement: <RouteErrorFallback />,
       children: [
         { index: true, element: <RootRedirect /> },
         {

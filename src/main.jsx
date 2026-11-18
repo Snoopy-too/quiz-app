@@ -6,8 +6,17 @@ import "@fontsource/noto-sans-jp/500.css";
 import "@fontsource/noto-sans-jp/700.css";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
+import { attemptChunkRecoveryReload } from "./utils/lazyWithRetry";
 import "./index.css";
 import "./i18n";
+
+if (typeof window !== "undefined") {
+  window.addEventListener("vite:preloadError", (event) => {
+    if (attemptChunkRecoveryReload(event.payload)) {
+      event.preventDefault();
+    }
+  });
+}
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

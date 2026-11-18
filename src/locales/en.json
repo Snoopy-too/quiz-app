@@ -995,5 +995,13 @@
     "title": "Page not found",
     "description": "The page you requested does not exist or has moved.",
     "goToDashboard": "Go to dashboard"
+  },
+  "routeError": {
+    "updateTitle": "Update available",
+    "updateDescription": "A newer version of the app is available or this page could not finish loading. Reload to get the latest version.",
+    "genericTitle": "Something went wrong",
+    "genericDescription": "This screen hit an unexpected error. Your quiz data and session are still safe on the server.",
+    "reloadPage": "Reload page",
+    "goHome": "Go to dashboard"
   }
 }
