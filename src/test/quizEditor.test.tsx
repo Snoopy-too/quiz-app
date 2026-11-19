@@ -270,13 +270,18 @@ describe("QuizEditor & Publishability Validation", () => {
     // Settings/Themes right pane is collapsed by default
     expect(screen.queryByTestId("theme-selector")).not.toBeInTheDocument();
 
-    // Clicking Settings opens the right pane with ThemeSelector visible
+    // Clicking Settings opens the right pane with ThemeSelector visible and synced title field
     const settingsBtn = screen.getByRole("button", { name: "Settings" });
     expect(settingsBtn).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(settingsBtn);
 
     expect(screen.getByTestId("theme-selector")).toBeInTheDocument();
     expect(settingsBtn).toHaveAttribute("aria-pressed", "true");
+
+    const titleInputs = screen.getAllByPlaceholderText("Enter quiz title");
+    expect(titleInputs).toHaveLength(2);
+    fireEvent.change(titleInputs[0], { target: { value: "Updated From Header" } });
+    expect(titleInputs[1]).toHaveValue("Updated From Header");
 
     // Clicking Settings again collapses it
     fireEvent.click(settingsBtn);

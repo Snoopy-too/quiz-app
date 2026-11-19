@@ -11,6 +11,7 @@ import {
   Copy,
   Eye,
   ImagePlus,
+  Pencil,
   Plus,
   Save,
   Settings,
@@ -164,6 +165,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
   const [applyBulkPoints, setApplyBulkPoints] = useState<boolean>(true);
 
   const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const headerTitleInputRef = useRef<HTMLInputElement | null>(null);
   const optionImageRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const bulkTimeId = useId();
@@ -203,6 +205,13 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
     }
   };
 
+  const handleSave = (exitAfterSave: boolean) => {
+    if (!editor.metadata.title.trim()) {
+      headerTitleInputRef.current?.focus();
+    }
+    void editor.saveQuiz({ exitAfterSave });
+  };
+
   const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await editor.bulkUpdateTimeAndPoints({
@@ -240,7 +249,10 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
   if (editor.loading) {
     return (
       <div className="min-h-screen bg-canvas">
-        <PageHeader title={quizId ? t("editor.editQuizTitle") : t("editor.newQuizTitle")} />
+        <PageHeader
+          containerClassName="max-w-[1600px]"
+          title={quizId ? t("editor.editQuizTitle") : t("editor.newQuizTitle")}
+        />
         <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6">
           <Skeleton className="h-[460px] w-full rounded-xl" />
           <Skeleton className="h-[460px] w-full rounded-xl" />
@@ -249,10 +261,46 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
     );
   }
 
+  const titleError = editor.attemptedSave ? editor.publishability.titleError : null;
+
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
       <PageHeader
-        title={editor.metadata.title.trim() || (editor.isEditMode ? t("editor.editQuizTitle") : t("editor.newQuizTitle"))}
+        containerClassName="max-w-[1600px]"
+        title={
+          <div className="max-w-xl">
+            <div className="group relative flex items-center">
+              <input
+                ref={headerTitleInputRef}
+                type="text"
+                aria-label={t("quiz.title")}
+                aria-invalid={Boolean(titleError) || undefined}
+                value={editor.metadata.title}
+                maxLength={200}
+                placeholder={t("quiz.enterQuizTitle")}
+                onChange={(e) => editor.updateMetadata({ title: e.target.value })}
+                className={cn(
+                  "w-full rounded-lg border bg-transparent px-2.5 py-1 pr-8 -ml-2.5 text-xl sm:text-2xl font-bold text-ink",
+                  "placeholder:text-ink-muted/60 placeholder:font-semibold transition-colors",
+                  "hover:border-line hover:bg-surface-muted/50",
+                  "focus:border-accent-500 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent-500",
+                  titleError
+                    ? "border-danger-600 focus:border-danger-600 focus:ring-danger-600"
+                    : "border-transparent",
+                )}
+              />
+              <Pencil
+                className="pointer-events-none absolute right-2 h-4 w-4 text-ink-muted/50 transition-colors group-hover:text-ink-muted group-focus-within:opacity-0"
+                aria-hidden="true"
+              />
+            </div>
+            {titleError && (
+              <p role="alert" className="mt-1 text-xs font-medium text-danger-600">
+                {titleError}
+              </p>
+            )}
+          </div>
+        }
         breadcrumbs={
           <button
             type="button"
@@ -332,7 +380,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
               variant="secondary"
               size="sm"
               loading={editor.saving}
-              onClick={() => editor.saveQuiz({ exitAfterSave: false })}
+              onClick={() => handleSave(false)}
             >
               <Save className="h-4 w-4" aria-hidden="true" />
               <span>{t("common.save")}</span>
@@ -341,7 +389,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
               variant="primary"
               size="sm"
               loading={editor.saving}
-              onClick={() => editor.saveQuiz({ exitAfterSave: true })}
+              onClick={() => handleSave(true)}
             >
               <span>{t("editor.publish")}</span>
             </Button>
@@ -548,26 +596,6 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
               mobileTab !== "editor" && "hidden lg:block",
             )}
           >
-            {/* Quiz Title Bar inside workspace so user never hunts for title */}
-            <Card>
-              <CardBody className="p-4">
-                <Field
-                  label={t("quiz.title")}
-                  required
-                  error={
-                    editor.attemptedSave ? editor.publishability.titleError : null
-                  }
-                >
-                  <Input
-                    value={editor.metadata.title}
-                    maxLength={200}
-                    placeholder={t("quiz.enterQuizTitle")}
-                    onChange={(e) => editor.updateMetadata({ title: e.target.value })}
-                  />
-                </Field>
-              </CardBody>
-            </Card>
-
             {!activeQuestion ? (
               <Card>
                 <CardBody>
@@ -939,6 +967,15 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      <Field label={t("quiz.title")} required error={titleError}>
+                        <Input
+                          value={editor.metadata.title}
+                          maxLength={200}
+                          placeholder={t("quiz.enterQuizTitle")}
+                          onChange={(e) => editor.updateMetadata({ title: e.target.value })}
+                        />
+                      </Field>
+
                       <Field label={t("folder.folder")}>
                         <Select
                           value={editor.metadata.folder_id || ""}
