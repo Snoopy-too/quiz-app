@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,6 +13,7 @@ import {
   ImagePlus,
   Plus,
   Save,
+  Settings,
   SlidersHorizontal,
   Trash2,
   Upload,
@@ -107,6 +108,43 @@ function SaveStatusBadge({ status }: { status: SaveStatus }) {
   return <Badge variant="neutral">{t("editor.unsavedStatus")}</Badge>;
 }
 
+function AutoGrowTextarea({
+  value,
+  className,
+  ...rest
+}: React.ComponentProps<typeof Textarea>) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  const resize = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  useLayoutEffect(() => {
+    resize();
+  }, [value]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => resize());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <Textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      className={cn("resize-none overflow-hidden min-h-[40px] leading-snug", className)}
+      {...rest}
+    />
+  );
+}
+
 export default function QuizEditor({ quizId, setView, appState }: QuizEditorProps) {
   const { t } = useTranslation();
   const teacherId = appState?.currentUser?.id ?? null;
@@ -115,7 +153,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
 
   const [mobileTab, setMobileTab] = useState<"questions" | "editor" | "settings">("editor");
   const [rightPaneTab, setRightPaneTab] = useState<"settings" | "preview">("settings");
-  const [showRightPane, setShowRightPane] = useState<boolean>(true);
+  const [showRightPane, setShowRightPane] = useState<boolean>(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const [showGlobalConfirm, setShowGlobalConfirm] = useState<boolean>(false);
@@ -203,8 +241,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
     return (
       <div className="min-h-screen bg-canvas">
         <PageHeader title={quizId ? t("editor.editQuizTitle") : t("editor.newQuizTitle")} />
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_320px] gap-6">
-          <Skeleton className="h-[460px] w-full rounded-xl" />
+        <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6">
           <Skeleton className="h-[460px] w-full rounded-xl" />
           <Skeleton className="h-[460px] w-full rounded-xl" />
         </div>
@@ -258,16 +295,34 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
               <span className="hidden sm:inline">{t("quiz.timeLimit")} / {t("quiz.points")}</span>
             </Button>
             <Button
-              variant="ghost"
+              variant={showRightPane && rightPaneTab === "settings" ? "secondary" : "ghost"}
               size="sm"
               className="hidden lg:inline-flex"
-              aria-pressed={showRightPane}
+              aria-pressed={showRightPane && rightPaneTab === "settings"}
               onClick={() => {
-                setShowRightPane((prev) => {
-                  const next = !prev;
-                  if (next) setRightPaneTab("preview");
-                  return next;
-                });
+                if (showRightPane && rightPaneTab === "settings") {
+                  setShowRightPane(false);
+                } else {
+                  setRightPaneTab("settings");
+                  setShowRightPane(true);
+                }
+              }}
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              <span>{t("editor.settingsPane")}</span>
+            </Button>
+            <Button
+              variant={showRightPane && rightPaneTab === "preview" ? "secondary" : "ghost"}
+              size="sm"
+              className="hidden lg:inline-flex"
+              aria-pressed={showRightPane && rightPaneTab === "preview"}
+              onClick={() => {
+                if (showRightPane && rightPaneTab === "preview") {
+                  setShowRightPane(false);
+                } else {
+                  setRightPaneTab("preview");
+                  setShowRightPane(true);
+                }
               }}
             >
               <Eye className="h-4 w-4" aria-hidden="true" />
@@ -325,14 +380,14 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
         ))}
       </div>
 
-      {/* Main 3-pane workspace */}
-      <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+      {/* Main workspace */}
+      <div className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
         <div
           className={cn(
             "grid grid-cols-1 gap-6 items-start",
             showRightPane
-              ? "lg:grid-cols-[260px_minmax(0,1fr)_320px]"
-              : "lg:grid-cols-[260px_minmax(0,1fr)]",
+              ? "lg:grid-cols-[240px_minmax(0,1fr)_320px]"
+              : "lg:grid-cols-[240px_minmax(0,1fr)]",
           )}
         >
           {/* Left Pane: Question List */}
@@ -675,7 +730,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {activeQuestion.options.map((opt, optIdx) => {
                         const stripeClass =
                           ANSWER_STRIPE_CLASSES[optIdx % ANSWER_STRIPE_CLASSES.length];
@@ -691,16 +746,16 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                               stripeClass,
                             )}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-start gap-2.5">
                               <span
                                 className={cn(
-                                  "inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold shrink-0",
+                                  "mt-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold shrink-0",
                                   badgeClass,
                                 )}
                               >
                                 {optIdx + 1}
                               </span>
-                              <Input
+                              <AutoGrowTextarea
                                 aria-label={`${t("quiz.option")} ${optIdx + 1}`}
                                 value={opt.text}
                                 maxLength={200}
@@ -730,7 +785,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                                     }))
                                   }
                                   className={cn(
-                                    "h-9 w-9 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
+                                    "mt-0.5 h-9 w-9 rounded-lg border flex items-center justify-center shrink-0 transition-colors",
                                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500",
                                     opt.is_correct
                                       ? "bg-success-600 border-success-600 text-white"
@@ -808,7 +863,7 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
               )}
             >
               <Card>
-                <div className="border-b border-line px-3 flex gap-1">
+                <div className="border-b border-line px-3 flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setRightPaneTab("settings")}
@@ -833,6 +888,14 @@ export default function QuizEditor({ quizId, setView, appState }: QuizEditorProp
                   >
                     {t("editor.previewPane")}
                   </button>
+                  <IconButton
+                    size="sm"
+                    className="hidden lg:inline-flex ml-auto"
+                    aria-label={t("common.close")}
+                    onClick={() => setShowRightPane(false)}
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </IconButton>
                 </div>
 
                 <CardBody className="p-4 space-y-4">

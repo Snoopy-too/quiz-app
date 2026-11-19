@@ -252,4 +252,34 @@ describe("QuizEditor & Publishability Validation", () => {
     expect(reorderedItems[0]).toHaveTextContent("Second Question");
     expect(reorderedItems[1]).toHaveTextContent("First Question");
   });
+
+  it("renders answer options as multi-line textareas and collapses the settings pane by default", async () => {
+    renderQuizEditor();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Enter question text")).toBeInTheDocument();
+    });
+
+    const option1 = screen.getByLabelText("Option 1");
+    expect(option1.tagName).toBe("TEXTAREA");
+
+    const longAnswer = "100 years in the future to see how humanity has evolved and what cities look like";
+    fireEvent.change(option1, { target: { value: longAnswer } });
+    expect(option1).toHaveValue(longAnswer);
+
+    // Settings/Themes right pane is collapsed by default
+    expect(screen.queryByTestId("theme-selector")).not.toBeInTheDocument();
+
+    // Clicking Settings opens the right pane with ThemeSelector visible
+    const settingsBtn = screen.getByRole("button", { name: "Settings" });
+    expect(settingsBtn).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(settingsBtn);
+
+    expect(screen.getByTestId("theme-selector")).toBeInTheDocument();
+    expect(settingsBtn).toHaveAttribute("aria-pressed", "true");
+
+    // Clicking Settings again collapses it
+    fireEvent.click(settingsBtn);
+    expect(screen.queryByTestId("theme-selector")).not.toBeInTheDocument();
+  });
 });
