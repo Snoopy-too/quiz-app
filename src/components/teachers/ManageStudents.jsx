@@ -123,6 +123,14 @@ export default function ManageStudents({ setView, appState }) {
           currentUserId={appState.currentUser.id}
           quizCounts={ms.quizCounts}
           filterStatus={ms.filterStatus}
+          selectedStudentIds={ms.selectedStudentIds}
+          selectionState={ms.selectionState}
+          onToggleSelectStudent={ms.toggleSelectStudent}
+          onToggleSelectAll={ms.toggleSelectAllVisible}
+          onClearSelection={ms.clearStudentSelection}
+          onBulkUnlink={ms.handleBulkUnlink}
+          onBulkLink={ms.handleBulkLink}
+          isBulkProcessing={ms.isBulkProcessing}
         />
       </div>
 
@@ -165,9 +173,10 @@ export default function ManageStudents({ setView, appState }) {
         isOpen={ms.confirmModal.isOpen}
         title={ms.confirmModal.title}
         message={ms.confirmModal.message}
+        confirmText={ms.confirmModal.confirmText || undefined}
         onConfirm={ms.confirmModal.onConfirm}
         onCancel={() => ms.setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-        confirmStyle="danger"
+        confirmStyle={ms.confirmModal.confirmStyle || "danger"}
       />
     </div>
   );

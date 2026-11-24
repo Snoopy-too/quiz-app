@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
+import {
+  getLinkableStudentIds,
+  getSelectableStudentIds,
+  getSelectionState,
+  getUnlinkableStudentIds,
+  pruneSelectedIds,
+  toggleSelectAllVisible as toggleSelectAllVisibleDomain,
+  toggleStudentRangeSelection,
+  toggleStudentSelection,
+} from "../domain/studentSelection";
+import { linkStudentsBatch, unlinkStudentsBatch } from "../infrastructure/studentRepository";
 
 const VALID_STUDENT_FILTERS = new Set(["my_students", "approved", "pending", "unverified", "unlinked"]);
 
@@ -23,13 +34,23 @@ export default function useManageStudents(appState) {
   const [students, setStudents] = useState([]);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(readInitialStudentFilter); // my_students, approved, pending, rejected, unlinked
+  const [filterStatus, setFilterStatusState] = useState(readInitialStudentFilter); // my_students, approved, pending, rejected, unlinked
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "",
+    confirmStyle: "danger",
+    onConfirm: null,
+  });
+  const [selectedStudentIds, setSelectedStudentIds] = useState(() => new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const lastSelectedIdRef = useRef(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newStudentForm, setNewStudentForm] = useState({
     name: "",
@@ -80,6 +101,12 @@ export default function useManageStudents(appState) {
       fetchStudents();
     }
   }, [appState.currentUser]);
+
+  const setFilterStatus = (nextStatus) => {
+    setFilterStatusState(nextStatus);
+    setSelectedStudentIds(new Set());
+    lastSelectedIdRef.current = null;
+  };
 
   // Realtime subscription + lightweight fallback poll
   useEffect(() => {
@@ -276,6 +303,8 @@ export default function useManageStudents(appState) {
       isOpen: true,
       title: t("manageStudents.confirmLinkTitle"),
       message: t("manageStudents.confirmLinkMessage", { name: student.name }),
+      confirmText: t("manageStudents.actionLink"),
+      confirmStyle: "primary",
       onConfirm: async () => {
         try {
           const { error } = await supabase
@@ -284,6 +313,12 @@ export default function useManageStudents(appState) {
             .eq("id", student.id);
 
           if (error) throw error;
+          setSelectedStudentIds((prev) => {
+            if (!prev.has(student.id)) return prev;
+            const next = new Set(prev);
+            next.delete(student.id);
+            return next;
+          });
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
           setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.linkStudentSuccess"), type: "success" });
           await fetchStudents();
@@ -295,11 +330,72 @@ export default function useManageStudents(appState) {
     });
   };
 
+  const handleBulkLink = () => {
+    const teacherId = appState.currentUser?.id;
+    const schoolId = appState.currentUser?.school_id ?? null;
+    if (!teacherId) return;
+
+    const validUnlinkedIds = new Set(getLinkableStudentIds(students, schoolId));
+    const idsToLink = Array.from(selectedStudentIds).filter((id) => validUnlinkedIds.has(id));
+    if (idsToLink.length === 0) return;
+
+    const count = idsToLink.length;
+    setConfirmModal({
+      isOpen: true,
+      title: t("manageStudents.confirmBulkLinkTitle"),
+      message:
+        count === 1
+          ? t("manageStudents.confirmBulkLinkMessageOne")
+          : t("manageStudents.confirmBulkLinkMessage", { count }),
+      confirmText: t("manageStudents.actionLink"),
+      confirmStyle: "primary",
+      onConfirm: async () => {
+        setIsBulkProcessing(true);
+        try {
+          const { linkedCount } = await linkStudentsBatch({
+            teacherId,
+            schoolId,
+            studentIds: idsToLink,
+          });
+          setSelectedStudentIds(new Set());
+          lastSelectedIdRef.current = null;
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setAlertModal({
+            isOpen: true,
+            title: t("manageStudents.successTitle"),
+            message:
+              linkedCount === 1
+                ? t("manageStudents.bulkLinkSuccessOne")
+                : t("manageStudents.bulkLinkSuccess", { count: linkedCount }),
+            type: "success",
+          });
+        } catch (err) {
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          const isPermissionError =
+            err?.code === "42501" || err?.message?.includes("policy");
+          setAlertModal({
+            isOpen: true,
+            title: t("manageStudents.errorTitle"),
+            message: isPermissionError
+              ? t("manageStudents.permissionDenied")
+              : t("manageStudents.errorBulkLinkingStudents") + (err?.message || ""),
+            type: "error",
+          });
+        } finally {
+          setIsBulkProcessing(false);
+          await fetchStudents();
+        }
+      },
+    });
+  };
+
   const handleUnlink = async (student) => {
     setConfirmModal({
       isOpen: true,
       title: t("manageStudents.confirmUnlinkTitle"),
       message: t("manageStudents.confirmUnlinkMessage", { name: student.name }),
+      confirmText: t("manageStudents.actionUnlink"),
+      confirmStyle: "danger",
       onConfirm: async () => {
         try {
           const { error } = await supabase
@@ -308,6 +404,12 @@ export default function useManageStudents(appState) {
             .eq("id", student.id);
 
           if (error) throw error;
+          setSelectedStudentIds((prev) => {
+            if (!prev.has(student.id)) return prev;
+            const next = new Set(prev);
+            next.delete(student.id);
+            return next;
+          });
           setConfirmModal(prev => ({ ...prev, isOpen: false }));
           setAlertModal({ isOpen: true, title: t("manageStudents.successTitle"), message: t("manageStudents.unlinkStudentSuccess"), type: "success" });
           await fetchStudents();
@@ -316,6 +418,63 @@ export default function useManageStudents(appState) {
           setAlertModal({ isOpen: true, title: t("manageStudents.errorTitle"), message: err.message, type: "error" });
         }
       }
+    });
+  };
+
+  const handleBulkUnlink = () => {
+    const teacherId = appState.currentUser?.id;
+    if (!teacherId) return;
+
+    const validLinkedIds = new Set(getUnlinkableStudentIds(students, teacherId));
+    const idsToUnlink = Array.from(selectedStudentIds).filter((id) => validLinkedIds.has(id));
+    if (idsToUnlink.length === 0) return;
+
+    const count = idsToUnlink.length;
+    setConfirmModal({
+      isOpen: true,
+      title: t("manageStudents.confirmBulkUnlinkTitle"),
+      message:
+        count === 1
+          ? t("manageStudents.confirmBulkUnlinkMessageOne")
+          : t("manageStudents.confirmBulkUnlinkMessage", { count }),
+      confirmText: t("manageStudents.actionUnlink"),
+      confirmStyle: "danger",
+      onConfirm: async () => {
+        setIsBulkProcessing(true);
+        try {
+          const { unlinkedCount } = await unlinkStudentsBatch({
+            teacherId,
+            studentIds: idsToUnlink,
+          });
+          setSelectedStudentIds(new Set());
+          lastSelectedIdRef.current = null;
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setAlertModal({
+            isOpen: true,
+            title: t("manageStudents.successTitle"),
+            message:
+              unlinkedCount === 1
+                ? t("manageStudents.bulkUnlinkSuccessOne")
+                : t("manageStudents.bulkUnlinkSuccess", { count: unlinkedCount }),
+            type: "success",
+          });
+        } catch (err) {
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          const isPermissionError =
+            err?.code === "42501" || err?.message?.includes("policy");
+          setAlertModal({
+            isOpen: true,
+            title: t("manageStudents.errorTitle"),
+            message: isPermissionError
+              ? t("manageStudents.permissionDenied")
+              : t("manageStudents.errorBulkUnlinkingStudents") + (err?.message || ""),
+            type: "error",
+          });
+        } finally {
+          setIsBulkProcessing(false);
+          await fetchStudents();
+        }
+      },
     });
   };
 
@@ -753,6 +912,46 @@ export default function useManageStudents(appState) {
     s.school_id === appState.currentUser?.school_id
   );
 
+  const validSelectableIds = new Set(
+    getSelectableStudentIds(
+      students,
+      filterStatus,
+      appState.currentUser?.id,
+      appState.currentUser?.school_id,
+    ),
+  );
+  const effectiveSelectedStudentIds = pruneSelectedIds(selectedStudentIds, validSelectableIds);
+
+  const visibleSelectableIds = getSelectableStudentIds(
+    filteredStudents,
+    filterStatus,
+    appState.currentUser?.id,
+    appState.currentUser?.school_id,
+  );
+  const selectionState = getSelectionState(effectiveSelectedStudentIds, visibleSelectableIds);
+
+  const toggleSelectStudent = (studentId, options = {}) => {
+    setSelectedStudentIds((prev) => {
+      const pruned = pruneSelectedIds(prev, validSelectableIds);
+      return options.shiftKey
+        ? toggleStudentRangeSelection(pruned, visibleSelectableIds, lastSelectedIdRef.current, studentId)
+        : toggleStudentSelection(pruned, studentId);
+    });
+    lastSelectedIdRef.current = studentId;
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedStudentIds((prev) =>
+      toggleSelectAllVisibleDomain(pruneSelectedIds(prev, validSelectableIds), visibleSelectableIds)
+    );
+    lastSelectedIdRef.current = null;
+  };
+
+  const clearStudentSelection = () => {
+    setSelectedStudentIds(new Set());
+    lastSelectedIdRef.current = null;
+  };
+
   return {
     students, myStudents, unlinkedStudents, pendingStudents, quizCounts, searchTerm, setSearchTerm,
     filterStatus, setFilterStatus, loading, error,
@@ -764,7 +963,9 @@ export default function useManageStudents(appState) {
     sortColumn, sortDirection, isEditing, setIsEditing,
     editForm, setEditForm, updatingStudent, highlightedIds,
     filteredStudents,
-    fetchStudents, handleLink, handleUnlink, handleApprove, handleReject,
+    selectedStudentIds: effectiveSelectedStudentIds, selectionState, isBulkProcessing,
+    toggleSelectStudent, toggleSelectAllVisible, clearStudentSelection,
+    fetchStudents, handleLink, handleBulkLink, handleUnlink, handleBulkUnlink, handleApprove, handleReject,
     handleDelete, resetCreateStudentState, closeCreateStudentModal,
     handleCreateStudent, fetchStudentPerformance, viewStudentDetails,
     handleUpdateStudent, handleSort,
