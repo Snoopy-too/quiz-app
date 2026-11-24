@@ -1023,5 +1023,28 @@
     "genericDescription": "This screen hit an unexpected error. Your quiz data and session are still safe on the server.",
     "reloadPage": "Reload page",
     "goHome": "Go to dashboard"
+  },
+  "pwa": {
+    "bannerTitle": "Add QuizMaster to your home screen",
+    "bannerSubtitle": "Open it in one tap next time — no QR code needed.",
+    "addNow": "Add",
+    "showHow": "How to add",
+    "dismiss": "Not now",
+    "navAction": "Add to Home Screen",
+    "installedToast": "QuizMaster has been added to your home screen!",
+    "guideTitle": "Add to Home Screen",
+    "guideSubtitle": "Just 3 quick taps — then open QuizMaster like a regular app.",
+    "iconPreviewLabel": "This icon will appear on your home screen",
+    "iosSafariStep1": "Tap the Share button at the bottom of Safari.",
+    "iosSafariStep2": "Scroll down and tap \"Add to Home Screen\".",
+    "iosSafariStep3": "Tap \"Add\" in the top-right corner.",
+    "iosOtherStep1": "Open this page in Safari (or tap the Share button in your browser).",
+    "iosOtherStep2": "Tap \"Add to Home Screen\".",
+    "iosOtherStep3": "Tap \"Add\" to finish.",
+    "inAppNotice": "You opened this link inside another app. First tap the menu and choose \"Open in Safari\" or \"Open in Chrome\".",
+    "androidStep1": "Tap the menu button (⋮) in the top-right corner of your browser.",
+    "androidStep2": "Tap \"Add to Home screen\" or \"Install app\".",
+    "androidStep3": "Tap \"Add\" or \"Install\" to finish.",
+    "gotIt": "Got it"
   }
 }

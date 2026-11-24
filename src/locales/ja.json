@@ -1023,5 +1023,28 @@
     "genericDescription": "この画面で予期しないエラーが発生しました。クイズデータとセッションはサーバーに安全に保存されています。",
     "reloadPage": "ページを再読み込み",
     "goHome": "ダッシュボードへ戻る"
+  },
+  "pwa": {
+    "bannerTitle": "ホーム画面に追加できます",
+    "bannerSubtitle": "次回からQRコードなしで、アイコンからすぐ開けます。",
+    "addNow": "追加する",
+    "showHow": "やり方を見る",
+    "dismiss": "あとで",
+    "navAction": "ホーム画面に追加",
+    "installedToast": "ホーム画面にQuizMasterを追加しました！",
+    "guideTitle": "ホーム画面に追加する方法",
+    "guideSubtitle": "かんたん3ステップ！次からアプリのように1タップで開けます。",
+    "iconPreviewLabel": "このアイコンがホーム画面に追加されます",
+    "iosSafariStep1": "画面の下にある「共有」ボタンをタップします。",
+    "iosSafariStep2": "下にスクロールして「ホーム画面に追加」をタップします。",
+    "iosSafariStep3": "右上の「追加」をタップして完了です！",
+    "iosOtherStep1": "Safariでこのページを開くか、ブラウザの「共有」ボタンをタップします。",
+    "iosOtherStep2": "「ホーム画面に追加」をタップします。",
+    "iosOtherStep3": "「追加」をタップして完了です！",
+    "inAppNotice": "別のアプリ内で開いています。先にメニューから「Safariで開く」または「Chromeで開く」を選んでください。",
+    "androidStep1": "画面の右上にあるメニュー（⋮）をタップします。",
+    "androidStep2": "「ホーム画面に追加」または「アプリをインストール」をタップします。",
+    "androidStep3": "「追加」または「インストール」をタップして完了です！",
+    "gotIt": "わかりました"
   }
 }

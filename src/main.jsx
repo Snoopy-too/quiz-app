@@ -6,11 +6,14 @@ import "@fontsource/noto-sans-jp/500.css";
 import "@fontsource/noto-sans-jp/700.css";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
+import { initPwaInstallCapture, registerPwaServiceWorker } from "./hooks/usePwaInstall";
 import { attemptChunkRecoveryReload } from "./utils/lazyWithRetry";
 import "./index.css";
 import "./i18n";
 
 if (typeof window !== "undefined") {
+  initPwaInstallCapture();
+  registerPwaServiceWorker();
   window.addEventListener("vite:preloadError", (event) => {
     if (attemptChunkRecoveryReload(event.payload)) {
       event.preventDefault();

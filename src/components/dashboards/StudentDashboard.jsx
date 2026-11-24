@@ -34,6 +34,7 @@ import { clearActiveSession } from "../../utils/sessionPersistence";
 import CreateTeam from "../students/CreateTeam";
 import JoinTeam from "../students/JoinTeam";
 import StudentResults from "../students/StudentResults";
+import InstallAppBanner from "../common/InstallAppBanner";
 
 export default function StudentDashboard({
   appState,
@@ -433,6 +434,9 @@ export default function StudentDashboard({
                 </div>
               </CardBody>
             </Card>
+
+            {/* Gentle, dismissible Add to Home Screen card (auto-hides once installed) */}
+            <InstallAppBanner />
 
             {/* Assignments & Recent Results */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

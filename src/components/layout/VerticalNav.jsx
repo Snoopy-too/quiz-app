@@ -11,14 +11,18 @@ import {
   Plus,
   Settings,
   Shield,
+  Smartphone,
   Trophy,
   Users,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { usePwaInstall } from "../../hooks/usePwaInstall";
 import { supabase } from "../../supabaseClient";
 import ConfirmModal from "../common/ConfirmModal";
+import InstallGuideDialog from "../common/InstallGuideDialog";
 import LanguageSwitcher from "../common/LanguageSwitcher";
+import { useToast } from "../ui";
 
 export default function VerticalNav({
   currentView,
@@ -27,9 +31,12 @@ export default function VerticalNav({
   pendingAssignmentCount = 0,
 }) {
   const { t } = useTranslation();
+  const toast = useToast();
+  const pwaInstall = usePwaInstall();
   const user = appState?.currentUser;
   const userRole = user?.role;
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
@@ -155,6 +162,22 @@ export default function VerticalNav({
   const handleNavClick = (itemId) => {
     setView(itemId);
     setMobileMenuOpen(false);
+  };
+
+  const handleInstallClick = async () => {
+    setMobileMenuOpen(false);
+    if (pwaInstall.canNativeInstall) {
+      const outcome = await pwaInstall.triggerNativeInstall();
+      if (outcome === "accepted") {
+        toast.success(t("pwa.installedToast"));
+        return;
+      }
+      if (outcome === "unavailable") {
+        setShowInstallGuide(true);
+      }
+      return;
+    }
+    setShowInstallGuide(true);
   };
 
   const userInitial =
@@ -285,6 +308,17 @@ export default function VerticalNav({
 
         <LanguageSwitcher compact={true} />
 
+        {pwaInstall.canShowInstallAction && (
+          <button
+            type="button"
+            onClick={handleInstallClick}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white transition-colors duration-150 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Smartphone size={15} aria-hidden="true" />
+            <span className="truncate">{t("pwa.navAction")}</span>
+          </button>
+        )}
+
         <div className="grid grid-cols-2 gap-1.5 pt-1">
           <button
             type="button"
@@ -381,6 +415,13 @@ export default function VerticalNav({
         onCancel={() => setShowLogoutModal(false)}
         confirmText={t("nav.logout")}
         confirmStyle="danger"
+      />
+
+      <InstallGuideDialog
+        open={showInstallGuide}
+        onClose={() => setShowInstallGuide(false)}
+        platform={pwaInstall.platform}
+        isInAppBrowser={pwaInstall.isInAppBrowser}
       />
     </>
   );
