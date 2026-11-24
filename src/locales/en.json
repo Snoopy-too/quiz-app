@@ -585,6 +585,7 @@
     "unableToGenerateTeacherCode": "Unable to generate teacher code. Please try again.",
     "unableToGenerateTeacherCodeLater": "Unable to generate a teacher code. Please try again later.",
     "profileUpdateFailed": "Profile update failed. Please try again.",
+    "sessionExpired": "Your session has expired. Please sign in again to complete your profile.",
     "googleSignInFailed": "Google sign-in failed",
     "failedToInitiateGoogleSignIn": "Failed to initiate Google sign-in. Please try again.",
     "studentAlreadyRegistered": "You have already successfully registered with the email {{email}}. Please wait for your teacher to approve your account.",

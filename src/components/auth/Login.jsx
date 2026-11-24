@@ -145,8 +145,22 @@ export default function Login({
         return;
       }
 
-      if (profile?.role !== "superadmin") {
-        if (!profile?.approved) {
+      if (!profile) {
+        // App.jsx onAuthStateChange will create the profile and route to /complete-profile.
+        return;
+      }
+
+      if (!profile.role) {
+        setAppState?.({
+          ...appState,
+          currentUser: profile,
+        });
+        setView?.("complete-profile");
+        return;
+      }
+
+      if (profile.role !== "superadmin") {
+        if (!profile.approved) {
           await supabase.auth.signOut();
           setErrorMsg(
             t("auth.teacherWillApprove") ||

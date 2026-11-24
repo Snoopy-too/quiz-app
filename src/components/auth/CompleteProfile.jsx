@@ -136,17 +136,33 @@ export default function CompleteProfile({ user, setAppState, setView, setSuccess
         updates.teacher_invite_code = trimmedCode || null;
       }
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const activeUserId = sessionData?.session?.user?.id;
+      if (!activeUserId || (user?.id && activeUserId !== user.id)) {
+        throw new Error(
+          t("errors.sessionExpired") ||
+            "Your session has expired. Please sign in again to complete your profile.",
+        );
+      }
+
       const { data: updatedUser, error: updateError } = await supabase
         .from("users")
         .update(updates)
-        .eq("id", user.id)
+        .eq("id", activeUserId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) {
         throw new Error(
           updateError.message ||
             t("errors.profileUpdateFailed") ||
+            "Profile update failed. Please try again.",
+        );
+      }
+
+      if (!updatedUser) {
+        throw new Error(
+          t("errors.profileUpdateFailed") ||
             "Profile update failed. Please try again.",
         );
       }

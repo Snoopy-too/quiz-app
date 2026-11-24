@@ -585,6 +585,7 @@
     "unableToGenerateTeacherCode": "教師コードを生成できません。もう一度お試しください。",
     "unableToGenerateTeacherCodeLater": "教師コードを生成できません。後でもう一度お試しください。",
     "profileUpdateFailed": "プロフィールの更新に失敗しました。もう一度お試しください。",
+    "sessionExpired": "セッションの有効期限が切れました。もう一度ログインしてからプロフィールを完了してください。",
     "googleSignInFailed": "Googleサインインに失敗しました",
     "failedToInitiateGoogleSignIn": "Googleサインインの開始に失敗しました。もう一度お試しください。",
     "registrationSuccessDetailed": "登録が完了しました！メールを確認してアカウントを有効にしてください。その後、スーパー管理者がアカウントを承認します。",
