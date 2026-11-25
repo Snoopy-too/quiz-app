@@ -66,6 +66,7 @@ export default function useTeacherSession(sessionId) {
   const shuffledQuestionsRef = useRef([]);
   const questionTimeRemainingRef = useRef(0);
   const showQuestionResultsRef = useRef(null);
+  const loadingResultsRef = useRef(false);
   // Debounce timers for realtime event handlers
   const loadParticipantsTimerRef = useRef(null);
   const loadLiveAnswersTimerRef = useRef(null);
@@ -517,6 +518,19 @@ export default function useTeacherSession(sessionId) {
         code: error.code
       });
 
+      // Only fall back to the simplified query on actual schema/relationship errors.
+      // Transient network errors ("Failed to fetch", timeouts, etc.) must NOT trigger
+      // the fallback (which would cause an N+1 storm of individual team lookups) and
+      // must NOT wipe the existing participants list.
+      const isSchemaOrRelationError =
+        Boolean(error.code && (String(error.code).startsWith('PGRST') || error.code === '42703' || error.code === '42P01')) ||
+        /relationship|column|teams/i.test(`${error.message || ''} ${error.details || ''}`);
+
+      if (!isSchemaOrRelationError) {
+        console.warn('[TeacherControl] Transient error loading participants — preserving current list');
+        return participantsRef.current;
+      }
+
       // Try a simpler query as fallback (in case teams table or is_team_entry column doesn't exist)
       console.log('[TeacherControl] Attempting fallback query without teams...');
       const fallbackResult = await supabase
@@ -527,6 +541,7 @@ export default function useTeacherSession(sessionId) {
 
       if (fallbackResult.error) {
         console.error('[TeacherControl] Fallback query also failed:', fallbackResult.error);
+        return participantsRef.current;
       } else {
         console.log('[TeacherControl] Fallback query succeeded!');
         data = fallbackResult.data;
@@ -1086,7 +1101,25 @@ export default function useTeacherSession(sessionId) {
     showQuestionResults(cqi);
   };
 
+  const retryWithBackoff = async (fn, { attempts = 3, baseDelayMs = 1000 } = {}) => {
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err;
+        if (attempt < attempts) {
+          console.warn(`[TeacherControl] Attempt ${attempt}/${attempts} failed, retrying in ${baseDelayMs * attempt}ms:`, err?.message || err);
+          await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+        }
+      }
+    }
+    throw lastError;
+  };
+
   const showQuestionResults = async (questionIndex) => {
+    if (loadingResultsRef.current) return;
+    loadingResultsRef.current = true;
     try {
       // Guard: bail out if this call corresponds to a stale timer firing after
       // the teacher already advanced past this question (the core crash fix).
@@ -1102,23 +1135,44 @@ export default function useTeacherSession(sessionId) {
 
       const questionsToUse =
         shuffledQuestionsRef.current.length > 0 ? shuffledQuestionsRef.current : questionsRef.current;
+      const targetQuestion = questionsToUse[questionIndex];
+      if (!targetQuestion) {
+        console.warn('[TeacherControl] Question not found at index for results:', questionIndex);
+        return;
+      }
 
-      // Get all answers for this question
-      const { data: answers, error } = await supabase
-        .from("quiz_answers")
-        .select("*, session_participants(users(name))")
-        .eq("session_id", sessionId)
-        .eq("question_id", questionsToUse[questionIndex].id);
+      // Get all answers for this question (with timeout + retry for transient network blips)
+      const answers = await retryWithBackoff(async () => {
+        const { data, error } = await withTimeout(
+          supabase
+            .from("quiz_answers")
+            .select("*, session_participants(users(name))")
+            .eq("session_id", sessionId)
+            .eq("question_id", targetQuestion.id),
+          8000
+        );
+        if (error) throw error;
+        return data || [];
+      });
 
-      if (error) throw error;
+      // Re-check session state after async fetch in case teacher cancelled or advanced
+      const latestSession = sessionRef.current;
+      if (
+        !latestSession ||
+        latestSession.current_question_index !== questionIndex ||
+        latestSession.status === 'cancelled' ||
+        latestSession.status === 'completed'
+      ) {
+        return;
+      }
 
       // Prepare session update payload
       const updatePayload = { status: "showing_results" };
 
-      if (currentSession.mode === "defuse") {
+      if (latestSession.mode === "defuse") {
         const currentParticipants = participantsRef.current;
-        const totalTakers = currentParticipants.length > 0 ? currentParticipants.length : (answers || []).length;
-        const incorrectCount = (answers || []).filter((a) => !a.is_correct).length;
+        const totalTakers = currentParticipants.length > 0 ? currentParticipants.length : answers.length;
+        const incorrectCount = answers.filter((a) => !a.is_correct).length;
         const totalTime = bombTotalTimeRef.current || calculateTotalQuizTime(questionsRef.current);
         const penalty = calculateDefusePenalty(totalTakers, incorrectCount, totalTime);
         const currentRemaining = bombTimeRemainingRef.current;
@@ -1138,17 +1192,25 @@ export default function useTeacherSession(sessionId) {
         }
       }
 
-      // Update session status and penalty info in database
-      await supabase
-        .from("quiz_sessions")
-        .update(updatePayload)
-        .eq("id", sessionId);
+      // Update session status and penalty info in database (with timeout + retry + error check)
+      await retryWithBackoff(async () => {
+        const { error: updateError } = await withTimeout(
+          supabase
+            .from("quiz_sessions")
+            .update(updatePayload)
+            .eq("id", sessionId),
+          8000
+        );
+        if (updateError) throw updateError;
+      });
 
-      setQuestionResults(answers || []);
+      setQuestionResults(answers);
       setShowResults(true);
       setSession(prev => prev ? { ...prev, ...updatePayload } : prev);
     } catch (err) {
       setAlertModal({ isOpen: true, title: t('common.error'), message: t('teacher.errorLoadingResults') + ': ' + err.message, type: "error" });
+    } finally {
+      loadingResultsRef.current = false;
     }
   };
 

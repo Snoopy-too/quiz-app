@@ -43,6 +43,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const [pointsEarned, setPointsEarned] = useState(0);
   const [countdown, setCountdown] = useState(5);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [isThinkingTime, setIsThinkingTime] = useState(false);
+  const [thinkingCountdown, setThinkingCountdown] = useState(5);
   const [showAnswers, setShowAnswers] = useState(false);
   const [answerRevealCountdown, setAnswerRevealCountdown] = useState(4);
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -96,6 +98,9 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           setShowCorrectAnswer(false);
           setWasCorrect(false);
           setPointsEarned(0);
+          const needsThinkingTime = session.mode === "team" || session.mode === "defuse";
+          setIsThinkingTime(needsThinkingTime);
+          setThinkingCountdown(needsThinkingTime ? 5 : 0);
           setShowAnswers(false);
           setAnswerRevealCountdown(4);
         }
@@ -129,7 +134,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
       clearActiveSession();
       setShowCountdown(false);
     }
-  }, [session?.status, session?.current_question_index, session?.id, questions, loading]);
+  }, [session?.status, session?.current_question_index, session?.id, session?.mode, questions, loading]);
 
   // Effect to check if user already answered the current question (reconnection case)
   useEffect(() => {
@@ -160,6 +165,8 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
           setWasCorrect(existingAnswer.is_correct);
           setPointsEarned(existingAnswer.points_earned ?? currentQuestion.points ?? 0);
           // If we've already answered, skip the visual reveal delays
+          setIsThinkingTime(false);
+          setThinkingCountdown(0);
           setShowAnswers(true);
           setAnswerRevealCountdown(0);
         }
@@ -464,17 +471,29 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
     }
   }, [showCountdown, countdown]);
 
-  // Answer reveal countdown effect - show answers after 4 seconds
+  // Thinking time countdown effect (Team & Defuse modes: 5s before 4s answer reveal)
   useEffect(() => {
-    if (session?.status === "question_active" && !showAnswers && answerRevealCountdown > 0) {
+    if (session?.status === "question_active" && isThinkingTime && thinkingCountdown > 0) {
       const timer = setTimeout(() => {
-        setAnswerRevealCountdown(answerRevealCountdown - 1);
+        setThinkingCountdown((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (session?.status === "question_active" && answerRevealCountdown === 0 && !showAnswers) {
+    } else if (session?.status === "question_active" && isThinkingTime && thinkingCountdown === 0) {
+      setIsThinkingTime(false);
+    }
+  }, [session?.status, isThinkingTime, thinkingCountdown]);
+
+  // Answer reveal countdown effect - show answers after 4 seconds (waits for thinking time to finish)
+  useEffect(() => {
+    if (session?.status === "question_active" && !isThinkingTime && !showAnswers && answerRevealCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAnswerRevealCountdown((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (session?.status === "question_active" && !isThinkingTime && answerRevealCountdown === 0 && !showAnswers) {
       setShowAnswers(true);
     }
-  }, [session?.status, answerRevealCountdown, showAnswers]);
+  }, [session?.status, isThinkingTime, answerRevealCountdown, showAnswers]);
 
   // Timer countdown - only starts after answers are revealed (Classic / Team modes)
   useEffect(() => {
@@ -649,6 +668,7 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
   const isQuestionInteractive =
     session?.status === "question_active" &&
     Boolean(currentQuestion) &&
+    !isThinkingTime &&
     showAnswers &&
     !hasAnswered &&
     !(session?.mode === "defuse" ? bombTimeRemaining === 0 : timeRemaining === 0);
@@ -1108,32 +1128,52 @@ export default function StudentQuiz({ sessionId, appState, setView }) {
                 </div>
               </div>
             ) : (
-              <div className="flex justify-center py-8">
-                <svg className="w-16 h-16" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke={TRACK_RING_BG}
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke={theme?.primary_color || DEFAULT_THEME_PRIMARY}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray="283"
-                    strokeDashoffset="283"
-                    transform="rotate(-90 50 50)"
-                    style={{
-                      animation: 'circleProgress 4s linear forwards'
-                    }}
-                  />
-                </svg>
+              <div className="flex justify-center py-6">
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
+                  <p className={`text-lg font-semibold mb-4 ${isThinkingTime ? "text-yellow-700" : "text-gray-700"}`}>
+                    {isThinkingTime ? `${t('teacher.thinking')}...` : t('quiz.revealingAnswersIn')}
+                  </p>
+                  <div className="relative">
+                    <svg
+                      key={isThinkingTime ? "student-thinking-ring" : "student-reveal-ring"}
+                      className="w-24 h-24"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={TRACK_RING_BG}
+                        strokeWidth="8"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={isThinkingTime ? "#ca8a04" : (theme?.primary_color || DEFAULT_THEME_PRIMARY)}
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray="283"
+                        strokeDashoffset="283"
+                        transform="rotate(-90 50 50)"
+                        style={{
+                          animation: `circleProgress ${isThinkingTime ? 5 : 4}s linear forwards`
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span
+                        className={`text-4xl font-bold ${isThinkingTime ? "text-yellow-700" : ""}`}
+                        style={!isThinkingTime ? { color: theme?.primary_color || DEFAULT_THEME_PRIMARY } : undefined}
+                      >
+                        {isThinkingTime ? thinkingCountdown : answerRevealCountdown}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-4">{t('quiz.getReady')}</p>
+                </div>
                 <style>{`
                   @keyframes circleProgress {
                     from { stroke-dashoffset: 283; }

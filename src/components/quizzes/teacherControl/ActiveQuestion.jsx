@@ -123,12 +123,57 @@ export default function ActiveQuestion({
               <MediaDisplay question={currentQuestion} />
             </div>
 
-            {!showAnswers ? (
+            {isThinkingTime ? (
+              /* 5-second thinking time countdown (Team / Defuse modes) */
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-xl font-semibold text-yellow-700 mb-4 flex items-center gap-2">
+                  <BrainCircuit size={24} />
+                  {t('teacher.thinking')}...
+                </p>
+                <div className="relative">
+                  <svg key="thinking-ring" className="w-24 h-24" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke={TRACK_RING_BG}
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="#ca8a04"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray="283"
+                      strokeDashoffset="283"
+                      transform="rotate(-90 50 50)"
+                      style={{
+                        animation: 'circleProgress 5s linear forwards'
+                      }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-yellow-700">{questionTimeRemaining}</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 mt-4">{t('quiz.getReady')}</p>
+                <style>{`
+                  @keyframes circleProgress {
+                    from { stroke-dashoffset: 283; }
+                    to { stroke-dashoffset: 0; }
+                  }
+                `}</style>
+              </div>
+            ) : !showAnswers ? (
               /* 4-second countdown before revealing answers */
               <div className="flex flex-col items-center justify-center py-12">
                 <p className="text-xl text-gray-600 mb-4">{t('quiz.revealingAnswersIn')}</p>
                 <div className="relative">
-                  <svg className="w-24 h-24" viewBox="0 0 100 100">
+                  <svg key="reveal-ring" className="w-24 h-24" viewBox="0 0 100 100">
                     {/* Background circle */}
                     <circle
                       cx="50"
@@ -195,6 +240,21 @@ export default function ActiveQuestion({
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
                     >
                       Show Results
+                    </button>
+                  )}
+                </div>
+              ) : !isDefuseMode && showAnswers && questionTimeRemaining === 0 ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-amber-700 font-semibold text-sm">
+                    {t('session.timeUp')}
+                  </span>
+                  {handleShowResults && (
+                    <button
+                      type="button"
+                      onClick={handleShowResults}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      {t('session.showResults')}
                     </button>
                   )}
                 </div>
